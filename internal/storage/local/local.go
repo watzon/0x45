@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type LocalStore struct {
@@ -26,8 +28,19 @@ func New(basePath, baseURL string) (*LocalStore, error) {
 }
 
 func (s *LocalStore) Save(content io.Reader, filename string) (string, error) {
+	// First read all content into memory
+	data, err := io.ReadAll(content)
+	if err != nil {
+		return "", fmt.Errorf("failed to read content: %w", err)
+	}
+
+	// Generate unique filename by adding UUID
+	ext := filepath.Ext(filename)
+	baseFilename := filename[:len(filename)-len(ext)]
+	uniqueFilename := fmt.Sprintf("%s-%s%s", baseFilename, uuid.New().String(), ext)
+
 	// Generate unique path
-	storagePath := filepath.Join(time.Now().Format("2006/01/02"), filename)
+	storagePath := filepath.Join(time.Now().Format("2006/01/02"), uniqueFilename)
 	fullPath := filepath.Join(s.basePath, storagePath)
 
 	// Ensure directory exists
@@ -35,16 +48,9 @@ func (s *LocalStore) Save(content io.Reader, filename string) (string, error) {
 		return "", fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	// Create file
-	f, err := os.Create(fullPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to create file: %w", err)
-	}
-	defer f.Close()
-
-	// Copy content
-	if _, err := io.Copy(f, content); err != nil {
-		return "", fmt.Errorf("failed to write content: %w", err)
+	// Write the file
+	if err := os.WriteFile(fullPath, data, 0644); err != nil {
+		return "", fmt.Errorf("failed to write file: %w", err)
 	}
 
 	return storagePath, nil

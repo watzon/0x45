@@ -1,31 +1,53 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/dustin/go-humanize"
 	"github.com/gofiber/fiber/v2"
 	"github.com/watzon/paste69/internal/models"
+	"go.uber.org/zap"
 )
 
 func (s *Server) handleIndex(c *fiber.Ctx) error {
-	// Get stats
+	// Get current stats
 	var totalPastes, totalUrls int64
 	s.db.Model(&models.Paste{}).Count(&totalPastes)
 	s.db.Model(&models.Shortlink{}).Count(&totalUrls)
 
+	// Get historical data
+	history, err := s.getStatsHistory(7) // Last 7 days
+	if err != nil {
+		s.logger.Error("failed to get stats history", zap.Error(err))
+		// Continue without history
+	}
+
+	// Convert history to JSON strings
+	pastesHistory, _ := json.Marshal(history.Pastes)
+	urlsHistory, _ := json.Marshal(history.URLs)
+	storageHistory, _ := json.Marshal(history.Storage)
+
 	return c.Render("index", fiber.Map{
 		"stats": fiber.Map{
-			"pastes":  totalPastes,
-			"urls":    totalUrls,
-			"storage": humanize.Bytes(s.getStorageSize()),
+			"pastes":         totalPastes,
+			"urls":           totalUrls,
+			"storage":        humanize.IBytes(s.getStorageSize()),
+			"pastesHistory":  string(pastesHistory),
+			"urlsHistory":    string(urlsHistory),
+			"storageHistory": string(storageHistory),
 		},
 		"retention": fiber.Map{
 			"noKey":   s.config.Server.Cleanup.MaxAge,
 			"withKey": "unlimited",
-			"maxSize": humanize.Bytes(uint64(s.config.Server.MaxUploadSize)),
+			"maxSize": humanize.IBytes(uint64(s.config.Server.MaxUploadSize)),
 		},
 		"baseUrl": s.config.Server.BaseURL,
 	}, "layouts/main")
@@ -34,7 +56,7 @@ func (s *Server) handleIndex(c *fiber.Ctx) error {
 func (s *Server) handleDocs(c *fiber.Ctx) error {
 	return c.Render("docs", fiber.Map{
 		"baseUrl": s.config.Server.BaseURL,
-		"maxSize": humanize.Bytes(uint64(s.config.Server.MaxUploadSize)),
+		"maxSize": humanize.IBytes(uint64(s.config.Server.MaxUploadSize)),
 		"retention": fiber.Map{
 			"noKey":   s.config.Server.Cleanup.MaxAge,
 			"withKey": "unlimited",
@@ -59,52 +81,23 @@ func (s *Server) handleMultipartUpload(c *fiber.Ctx) error {
 	private := c.QueryBool("private", false)
 	filename := c.Query("filename", file.Filename)
 
-	// Open the uploaded file
-	f, err := file.Open()
+	// Create paste
+	paste, err := s.createPasteFromMultipart(c, file, &PasteOptions{
+		Extension: extension,
+		ExpiresIn: expiresIn,
+		Private:   private,
+		Filename:  filename,
+	})
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read uploaded file")
-	}
-	// Add after file.Open()
-	if file.Size > int64(s.config.Server.MaxUploadSize) {
-		return fiber.NewError(fiber.StatusBadRequest, "File too large")
-	}
-	defer f.Close()
-
-	// Store the file
-	storagePath, err := s.store.Save(f, filename)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to save file")
+		return err
 	}
 
-	// Create paste record
-	paste := &models.Paste{
-		Filename:    filename,
-		MimeType:    file.Header.Get("Content-Type"),
-		Size:        file.Size,
-		Extension:   extension,
-		StoragePath: storagePath,
-		StorageType: s.store.Type(),
-		Private:     private,
-	}
-
-	if expiresIn != "" {
-		expiry, err := time.ParseDuration(expiresIn)
-		if err == nil {
-			expiryTime := time.Now().Add(expiry)
-			paste.ExpiresAt = &expiryTime
-		}
-	}
-
-	// Save to database
-	if err := s.db.Create(paste).Error; err != nil {
-		// Try to cleanup stored file
-		s.store.Delete(storagePath)
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to save paste")
-	}
+	response := paste.ToResponse()
+	s.addBaseURLToPasteResponse(response)
 
 	return c.JSON(fiber.Map{
 		"success": true,
-		"data":    paste.ToResponse(),
+		"data":    response,
 	})
 }
 
@@ -136,9 +129,12 @@ func (s *Server) handleRawUpload(c *fiber.Ctx) error {
 		return err
 	}
 
+	response := paste.ToResponse()
+	s.addBaseURLToPasteResponse(response)
+
 	return c.JSON(fiber.Map{
 		"success": true,
-		"data":    paste.ToResponse(),
+		"data":    response,
 	})
 }
 
@@ -193,9 +189,12 @@ func (s *Server) handleJSONUpload(c *fiber.Ctx) error {
 		return err
 	}
 
+	response := paste.ToResponse()
+	s.addBaseURLToPasteResponse(response)
+
 	return c.JSON(fiber.Map{
 		"success": true,
-		"data":    paste.ToResponse(),
+		"data":    response,
 	})
 }
 
@@ -309,7 +308,9 @@ func (s *Server) handleListPastes(c *fiber.Ctx) error {
 	// Convert to response format
 	var items []fiber.Map
 	for _, paste := range pastes {
-		items = append(items, paste.ToResponse())
+		response := paste.ToResponse()
+		s.addBaseURLToPasteResponse(response)
+		items = append(items, response)
 	}
 
 	return c.JSON(fiber.Map{
@@ -401,9 +402,12 @@ func (s *Server) handleUpdateExpiration(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to update paste")
 	}
 
+	response := paste.ToResponse()
+	s.addBaseURLToPasteResponse(response)
+
 	return c.JSON(fiber.Map{
 		"success": true,
-		"data":    paste.ToResponse(),
+		"data":    response,
 	})
 }
 
@@ -438,30 +442,50 @@ func (s *Server) handleView(c *fiber.Ctx) error {
 }
 
 // handleRawView serves the raw content of a paste
-// Sets appropriate Content-Type header based on file type
 func (s *Server) handleRawView(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	paste, err := s.findPaste(id)
 	if err != nil {
-		return fiber.NewError(fiber.StatusNotFound, "Not found")
+		return err
 	}
 
 	// Get content from storage
 	content, err := s.store.Get(paste.StoragePath)
 	if err != nil {
+		s.logger.Error("failed to read content from storage",
+			zap.String("id", id),
+			zap.Error(err),
+		)
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
 	}
 	defer content.Close()
 
-	// Set content type header
-	c.Set("Content-Type", paste.MimeType)
+	// For text content, use text/plain to display in browser
+	contentType := paste.MimeType
+	if isTextContent(paste.MimeType) {
+		contentType = "text/plain; charset=utf-8"
+	}
 
-	return c.SendStream(content)
+	// Set content type and cache headers
+	c.Set("Content-Type", contentType)
+	c.Set("Content-Length", fmt.Sprintf("%d", paste.Size))
+	c.Set("Cache-Control", "public, max-age=300") // Cache for 5 minutes
+
+	// Read all content first
+	data, err := io.ReadAll(content)
+	if err != nil {
+		s.logger.Error("failed to read content",
+			zap.String("id", id),
+			zap.Error(err),
+		)
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
+	}
+
+	return c.Send(data)
 }
 
 // handleDownload serves the content as a downloadable file
-// Sets Content-Disposition header to attachment
 func (s *Server) handleDownload(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -477,11 +501,19 @@ func (s *Server) handleDownload(c *fiber.Ctx) error {
 	}
 	defer content.Close()
 
+	// Read all content first
+	data, err := io.ReadAll(content)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
+	}
+
 	// Set download headers
 	c.Set("Content-Type", "application/octet-stream")
+	c.Set("Content-Length", fmt.Sprintf("%d", paste.Size))
 	c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, paste.Filename))
+	c.Set("Cache-Control", "public, max-age=300") // Cache for 5 minutes
 
-	return c.SendStream(content)
+	return c.Send(data)
 }
 
 // handleDeleteWithKey deletes a paste using its deletion key
@@ -530,29 +562,54 @@ func (s *Server) renderPasteView(c *fiber.Ctx, paste *models.Paste) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
 	}
 
-	// Determine language from extension or mime type
-	language := paste.Extension
-	if language == "" {
-		switch paste.MimeType {
-		case "text/x-python", "application/x-python":
-			language = "python"
-		case "application/javascript", "text/javascript":
-			language = "javascript"
-		case "text/x-go":
-			language = "go"
-		default:
-			language = "plaintext"
+	// Get lexer based on extension or mime type
+	lexer := lexers.Get(paste.Extension)
+	if lexer == nil {
+		// Try to match by filename
+		lexer = lexers.Match(paste.Filename)
+		if lexer == nil {
+			// Try to analyze content
+			lexer = lexers.Analyse(string(data))
+			if lexer == nil {
+				lexer = lexers.Fallback
+			}
 		}
+	}
+	lexer = chroma.Coalesce(lexer)
+
+	// Create formatter without classes (will use inline styles)
+	formatter := html.New(
+		html.WithLineNumbers(true),
+		html.WithLinkableLineNumbers(true, ""),
+		html.TabWidth(4),
+	)
+
+	// Use gruvbox style (dark theme that matches our UI)
+	style := styles.Get("gruvbox")
+	if style == nil {
+		style = styles.Fallback
+	}
+
+	// Generate highlighted HTML
+	var highlightedContent strings.Builder
+	iterator, err := lexer.Tokenise(nil, string(data))
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to tokenize content")
+	}
+
+	err = formatter.Format(&highlightedContent, style, iterator)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to format content")
 	}
 
 	return c.Render("paste", fiber.Map{
 		"id":       paste.ID,
 		"filename": paste.Filename,
-		"content":  string(data),
-		"language": language,
+		"content":  highlightedContent.String(),
+		"language": lexer.Config().Name,
 		"created":  paste.CreatedAt.Format(time.RFC3339),
 		"expires":  paste.ExpiresAt,
-	})
+	}, "layouts/main")
 }
 
 // getStorageSize returns total size of stored files
@@ -563,4 +620,16 @@ func (s *Server) getStorageSize() uint64 {
 		Row().
 		Scan(&total)
 	return total
+}
+
+// Add this helper method to the Server struct
+func (s *Server) addBaseURLToPasteResponse(response fiber.Map) {
+	baseURL := strings.TrimSuffix(s.config.Server.BaseURL, "/")
+	for key, value := range response {
+		if strValue, ok := value.(string); ok {
+			if strings.HasSuffix(key, "_url") {
+				response[key] = baseURL + strValue
+			}
+		}
+	}
 }

@@ -6,12 +6,12 @@ database:
   # SQLite configuration
   name: paste69.db  # Database file path for SQLite
   
-  # PostgreSQL configuration (ignored for SQLite)
-  host: localhost
-  port: 5432
-  user: paste69
-  password: paste69
-  sslmode: disable  # Options: disable, require, verify-ca, verify-full
+  # # PostgreSQL configuration (ignored for SQLite)
+  # host: localhost
+  # port: 5432
+  # user: paste69
+  # password: paste69
+  # sslmode: disable  # Options: disable, require, verify-ca, verify-full
 
 # Storage configuration
 storage:
@@ -51,10 +51,10 @@ server:
     cors_origins: ["*"]
     cors_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     
-    # HTTPS/TLS configuration
-    tls_enabled: false
-    cert_file: ./certs/cert.pem
-    key_file: ./certs/key.pem
+    # # HTTPS/TLS configuration
+    # tls_enabled: false
+    # cert_file: ./certs/cert.pem
+    # key_file: ./certs/key.pem
   
   # Logging configuration
   logging:
@@ -71,7 +71,7 @@ server:
 # Feature flags
 features:
   url_shortener: true
-  syntax_highlighting: true
   file_preview: true
+  syntax_highlighting: true
   api_keys: true
   base_url: http://localhost:3000 

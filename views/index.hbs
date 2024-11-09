@@ -1,23 +1,59 @@
-<!DOCTYPE html>
-<pre>
-<span class="md-h1"># Paste69</span>
+<h1>Paste69</h1>
 
-<span class="md-h2">## Stats</span>
-* Total Pastes: {{stats.pastes}}
-* Total URLs: {{stats.urls}}
-* Files Stored: {{stats.storage}}
+<p>
+    Paste69 is a simple, fast, and secure pastebin written using Go and Fiber.
+</p>
 
-<span class="md-h2">## File Retention</span>
-* No API Key: <span class="md-code">{{retention.noKey}}</span>
-* With API Key: <span class="md-code">{{retention.withKey}}</span>
-* Maximum Size: <span class="md-code">{{retention.maxSize}}</span>
+<h2>Usage</h2>
+<div class="code-block">
+    <pre><code>curl -F 'file=@file.txt' {{baseUrl}}/api/upload</code></pre>
+    <button class="action-btn" data-clipboard data-content="curl -F 'file=@file.txt' {{baseUrl}}/api/upload">
+        <span>Copy</span>
+    </button>
+</div>
 
-<span class="md-h2">## Usage</span>
-<span class="md-code" data-clipboard>curl -F 'file=@file.txt' {{baseUrl}}/api/upload</span>
-<span class="md-code" data-clipboard>curl -X POST --data-binary @file.txt {{baseUrl}}</span>
-<span class="md-code" data-clipboard>curl -d '{"url":"https://example.com"}' {{baseUrl}}/api/url</span>
+<div class="code-block">
+    <pre><code>curl -X POST --data-binary @file.txt {{baseUrl}}</code></pre>
+    <button class="action-btn" data-clipboard data-content="curl -X POST --data-binary @file.txt {{baseUrl}}">
+        <span>Copy</span>
+    </button>
+</div>
 
-For more examples and API docs, visit:
-<a href="{{baseUrl}}/docs" class="md-link">{{baseUrl}}/docs</a>
-</pre>
-</html> 
+<div class="code-block">
+    <pre><code>curl -d '{"url":"https://example.com"}' {{baseUrl}}/api/url</code></pre>
+    <button class="action-btn" data-clipboard data-content="curl -d '{"url":"https://example.com"}' {{baseUrl}}/api/url">
+        <span>Copy</span>
+    </button>
+</div>
+
+<p>
+    For more examples and API docs, visit:
+    <a href="{{baseUrl}}/docs">{{baseUrl}}/docs</a>
+</p>
+
+<h2>File Retention</h2>
+<ul>
+    <li>No API Key: <code>{{retention.noKey}}</code></li>
+    <li>With API Key: <code>{{retention.withKey}}</code></li>
+    <li>Maximum Size: <code>{{retention.maxSize}}</code></li>
+</ul>
+
+
+<h2>Stats</h2>
+<ul>
+    <li>Total Pastes: 
+        <span data-chart 
+              data-chart-history='{{stats.pastesHistory}}' 
+              data-chart-color="blue">{{stats.pastes}}</span>
+    </li>
+    <li>Total URLs: 
+        <span data-chart 
+              data-chart-history='{{stats.urlsHistory}}' 
+              data-chart-color="green">{{stats.urls}}</span>
+    </li>
+    <li>Files Stored: 
+        <span data-chart 
+              data-chart-history='{{stats.storageHistory}}' 
+              data-chart-color="yellow">{{stats.storage}}</span>
+    </li>
+</ul>

@@ -50,15 +50,25 @@ func (p *Paste) BeforeCreate(tx *gorm.DB) error {
 
 // ToResponse returns a map of the paste data for API responses
 func (p *Paste) ToResponse() fiber.Map {
-	return fiber.Map{
+	response := fiber.Map{
 		"id":         p.ID,
-		"created_at": p.CreatedAt,
 		"filename":   p.Filename,
-		"mime_type":  p.MimeType,
 		"size":       p.Size,
-		"extension":  p.Extension,
-		"private":    p.Private,
-		"delete_url": fmt.Sprintf("/delete/%s.%s", p.ID, p.DeleteKey),
+		"mime_type":  p.MimeType,
+		"created_at": p.CreatedAt,
 		"expires_at": p.ExpiresAt,
+		"private":    p.Private,
 	}
+
+	// Add URL paths
+	response["url"] = fmt.Sprintf("/view/%s", p.ID)
+	response["raw_url"] = fmt.Sprintf("/raw/%s", p.ID)
+	response["download_url"] = fmt.Sprintf("/download/%s", p.ID)
+
+	// Only include delete_url if there's a delete key
+	if p.DeleteKey != "" {
+		response["delete_url"] = fmt.Sprintf("/delete/%s/%s", p.ID, p.DeleteKey)
+	}
+
+	return response
 }

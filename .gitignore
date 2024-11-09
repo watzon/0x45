@@ -1,7 +1,9 @@
 /docs/
 /lib/
 /bin/
-/.shards/
+/uploads/
 *.dwarf
 *.env
 *.db
+*.out
+*.log

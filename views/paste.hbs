@@ -1,0 +1,21 @@
+<div class="paste-header">
+    <div class="paste-info">
+        <h2>{{filename}}</h2>
+        <div class="metadata">
+            <span title="{{created}}">Created: {{created}}</span>
+            {{#if expires}}
+            <span title="{{expires}}">Expires: {{expires}}</span>
+            {{/if}}
+            <span>Language: {{language}}</span>
+        </div>
+    </div>
+    <div class="actions">
+        <button class="action-btn" data-clipboard="#paste-content">Copy</button>
+        <a href="/raw/{{id}}" class="action-btn">Raw</a>
+        <a href="/download/{{id}}" class="action-btn">Download</a>
+    </div>
+</div>
+
+<div id="paste-content" class="paste-content">
+    {{{content}}}
+</div> 

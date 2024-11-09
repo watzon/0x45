@@ -13,6 +13,7 @@ import (
 	"github.com/watzon/paste69/internal/database"
 	"github.com/watzon/paste69/internal/middleware"
 	"github.com/watzon/paste69/internal/storage"
+	"go.uber.org/zap"
 )
 
 type Server struct {
@@ -22,6 +23,7 @@ type Server struct {
 	store       storage.Store
 	config      *config.Config
 	rateLimiter *RateLimiter
+	logger      *zap.Logger
 }
 
 // RateLimiter handles rate limiting for API endpoints
@@ -67,6 +69,12 @@ func New(db *database.Database, store storage.Store, config *config.Config) *Ser
 	// Serve static files
 	app.Static("/public", "./public")
 
+	// Initialize logger
+	logger, err := zap.NewProduction()
+	if err != nil {
+		return nil
+	}
+
 	return &Server{
 		app:         app,
 		db:          db,
@@ -74,6 +82,7 @@ func New(db *database.Database, store storage.Store, config *config.Config) *Ser
 		store:       store,
 		config:      config,
 		rateLimiter: NewRateLimiter(),
+		logger:      logger,
 	}
 }
 
@@ -122,4 +131,10 @@ func errorHandler(c *fiber.Ctx, err error) error {
 
 func (s *Server) Start(addr string) error {
 	return s.app.Listen(addr)
+}
+
+func (s *Server) Cleanup() {
+	if s.logger != nil {
+		s.logger.Sync() // flush any buffered log entries
+	}
 }

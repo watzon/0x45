@@ -1,19 +1,32 @@
-function showCopyNotification(element) {
-    const notification = document.createElement('div');
-    notification.textContent = 'Copied!';
-    notification.className = 'copy-notification';
-    element.appendChild(notification);
-    
-    // Remove the notification after animation
+function showToast(message) {
+    // Create or get toast container
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    // Create toast
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    // Remove toast after animation
     setTimeout(() => {
-        notification.remove();
+        toast.remove();
+        // Remove container if empty
+        if (container.children.length === 0) {
+            container.remove();
+        }
     }, 1500);
 }
 
 function copyToClipboard(text, element) {
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text)
-            .then(() => showCopyNotification(element))
+            .then(() => showToast('Copied to clipboard'))
             .catch(err => {
                 console.error('Failed to copy text: ', err);
             });
@@ -36,13 +49,12 @@ function copyToClipboard(text, element) {
 
     try {
         document.execCommand('copy');
+        showToast('Copied to clipboard');
     } catch (err) {
         console.error('Failed to copy text: ', err);
     }
 
     document.body.removeChild(textArea);
-
-    showCopyNotification(element);
 }
 
 // Add click event listeners to all elements with data-clipboard attribute
@@ -51,8 +63,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     clipboardElements.forEach(element => {
         element.addEventListener('click', (e) => {
-            const text = e.target.textContent;
-            copyToClipboard(text, e.target);
+            const selector = element.getAttribute('data-clipboard');
+            let textToCopy;
+            
+            if (selector) {
+                // If selector is provided, find the target element
+                const target = document.querySelector(selector);
+                textToCopy = target ? target.textContent : '';
+            } else {
+                // If no selector, use the data-content attribute or element's text
+                textToCopy = element.getAttribute('data-content') || element.textContent;
+            }
+            
+            copyToClipboard(textToCopy.trim(), element);
         });
     });
 });

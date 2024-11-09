@@ -1,0 +1,90 @@
+[data-chart] {
+    font-family: monospace;
+    white-space: pre;
+    display: block;
+    margin: 1em 0;
+    line-height: 1.2;
+    font-size: 14px;
+    padding: 0.5em 0;
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Color themes */
+[data-chart] {
+    color: #58a6ff;  /* Default blue */
+}
+
+[data-chart-color="green"] { 
+    color: #7ee787; 
+}
+
+[data-chart-color="yellow"] { 
+    color: #e3b341; 
+}
+
+/* Container adjustments */
+li [data-chart] {
+    margin-top: 0.5em;
+    display: block;
+    padding-left: 0;  /* Remove default list padding */
+}
+
+/* Ensure list items with charts have proper spacing */
+li:has([data-chart]) {
+    margin-bottom: 2em;
+    list-style: none;  /* Remove bullets for chart items */
+} 
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+} 
+
+.chart {
+    font-family: monospace;
+    white-space: pre;
+    line-height: 1.2;
+    font-size: 14px;
+    margin: 1em 0;
+    color: #8b949e; /* Default color for dates and scale */
+}
+
+/* Define color schemes */
+.chart[data-chart-color="blue"] {
+    --color-bright: #58a6ff;
+    --color-dim: #0d419d;
+    --color-empty: #21262d;
+}
+
+.chart[data-chart-color="green"] {
+    --color-bright: #7ee787;
+    --color-dim: #0f5323;
+    --color-empty: #1f2820;
+}
+
+.chart[data-chart-color="yellow"] {
+    --color-bright: #f1e05a;
+    --color-dim: #835a00;
+    --color-empty: #2d2a17;
+}
+
+/* Color gradients */
+.chart .chart-bar {
+    color: color-mix(
+        in srgb,
+        var(--color-bright),
+        var(--color-dim) calc(100% - (var(--value-intensity) * 100%))
+    );
+}
+
+.chart .chart-bar:empty {
+    color: var(--color-empty);
+}
+
+.chart .chart-label {
+    color: color-mix(
+        in srgb,
+        var(--color-bright),
+        var(--color-dim) calc(100% - (var(--value-intensity) * 100%))
+    );
+} 
