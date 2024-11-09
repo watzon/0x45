@@ -16,31 +16,37 @@ import (
 	"gorm.io/gorm"
 )
 
+// PasteOptions contains configuration options for creating a new paste
 type PasteOptions struct {
-	Extension string
-	ExpiresIn string
-	Private   bool
-	Filename  string
-	APIKey    *models.APIKey // Optional
+	Extension string         // File extension (optional)
+	ExpiresIn string         // Duration string for paste expiry (e.g. "24h")
+	Private   bool           // Whether the paste is private
+	Filename  string         // Original filename
+	APIKey    *models.APIKey // Associated API key for authentication
 }
 
+// ShortlinkOptions contains configuration options for creating a new shortlink
 type ShortlinkOptions struct {
-	Title     string
-	ExpiresIn string
-	APIKey    *models.APIKey // Required
+	Title     string         // Display title for the shortlink
+	ExpiresIn string         // Duration string for shortlink expiry (e.g. "24h")
+	APIKey    *models.APIKey // Required API key for authentication
 }
 
+// ChartDataPoint represents a single point of data in time-series statistics
 type ChartDataPoint struct {
-	Value interface{} `json:"value"`
-	Date  time.Time   `json:"date"`
+	Value interface{} `json:"value"` // The value at this point (can be number or string)
+	Date  time.Time   `json:"date"`  // The timestamp for this data point
 }
 
+// StatsHistory contains time-series data for system statistics
 type StatsHistory struct {
-	Pastes  []ChartDataPoint
-	URLs    []ChartDataPoint
-	Storage []ChartDataPoint
+	Pastes  []ChartDataPoint // Daily paste creation counts
+	URLs    []ChartDataPoint // Daily URL shortening counts
+	Storage []ChartDataPoint // Daily total storage usage
 }
 
+// createPasteFromMultipart creates a new paste from a multipart file upload
+// It handles file reading, MIME type detection, and storage
 func (s *Server) createPasteFromMultipart(c *fiber.Ctx, file *multipart.FileHeader, opts *PasteOptions) (*models.Paste, error) {
 	f, err := file.Open()
 	if err != nil {
@@ -74,6 +80,8 @@ func (s *Server) createPasteFromMultipart(c *fiber.Ctx, file *multipart.FileHead
 	return s.createPaste(bytes.NewReader(content), int64(len(content)), mimeType, opts)
 }
 
+// createPasteFromRaw creates a new paste from raw content bytes
+// It handles MIME type detection and storage of the raw content
 func (s *Server) createPasteFromRaw(c *fiber.Ctx, content []byte, opts *PasteOptions) (*models.Paste, error) {
 	// Log the incoming content size
 	s.logger.Debug("received raw content",
@@ -97,6 +105,8 @@ func (s *Server) createPasteFromRaw(c *fiber.Ctx, content []byte, opts *PasteOpt
 	return s.createPaste(bytes.NewReader(content), int64(len(content)), mimeType, opts)
 }
 
+// createPasteFromURL creates a new paste by downloading content from a URL
+// It handles HTTP fetching, MIME type detection, and storage
 func (s *Server) createPasteFromURL(c *fiber.Ctx, url string, opts *PasteOptions) (*models.Paste, error) {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -130,6 +140,8 @@ func (s *Server) createPasteFromURL(c *fiber.Ctx, url string, opts *PasteOptions
 	return s.createPaste(bytes.NewReader(content), int64(len(content)), mimeType, opts)
 }
 
+// createPaste is the core paste creation function used by all paste creation methods
+// It handles storage and database operations for creating a new paste
 func (s *Server) createPaste(content io.Reader, size int64, contentType string, opts *PasteOptions) (*models.Paste, error) {
 	// Store the file
 	storagePath, err := s.store.Save(content, opts.Filename)
@@ -169,6 +181,8 @@ func (s *Server) createPaste(content io.Reader, size int64, contentType string, 
 	return paste, nil
 }
 
+// createShortlink creates a new URL shortlink with the given options
+// It handles database operations and expiry time calculation
 func (s *Server) createShortlink(url string, opts *ShortlinkOptions) (*models.Shortlink, error) {
 	shortlink := &models.Shortlink{
 		TargetURL: url,
@@ -191,6 +205,8 @@ func (s *Server) createShortlink(url string, opts *ShortlinkOptions) (*models.Sh
 	return shortlink, nil
 }
 
+// findPaste retrieves a paste by ID with expiry checking
+// It performs two queries: one to check existence and another to verify expiry
 func (s *Server) findPaste(id string) (*models.Paste, error) {
 	var paste models.Paste
 
@@ -237,6 +253,8 @@ func (s *Server) findPaste(id string) (*models.Paste, error) {
 	return &paste, nil
 }
 
+// findShortlink retrieves an active shortlink by ID
+// It includes expiry checking in the query
 func (s *Server) findShortlink(id string) (*models.Shortlink, error) {
 	var shortlink models.Shortlink
 	err := s.db.Where("id = ? AND (expires_at IS NULL OR expires_at > ?)", id, time.Now()).First(&shortlink).Error
@@ -246,6 +264,8 @@ func (s *Server) findShortlink(id string) (*models.Shortlink, error) {
 	return &shortlink, nil
 }
 
+// updateShortlinkStats increments the click count and updates last click time
+// for a given shortlink
 func (s *Server) updateShortlinkStats(shortlink *models.Shortlink, c *fiber.Ctx) {
 	now := time.Now()
 	s.db.Model(shortlink).Updates(map[string]interface{}{
@@ -254,6 +274,8 @@ func (s *Server) updateShortlinkStats(shortlink *models.Shortlink, c *fiber.Ctx)
 	})
 }
 
+// isTextContent determines if a MIME type represents textual content
+// This includes plain text, JSON, XML, and JavaScript
 func isTextContent(mimeType string) bool {
 	if strings.HasPrefix(mimeType, "text/") {
 		return true
@@ -267,14 +289,19 @@ func isTextContent(mimeType string) bool {
 	return false
 }
 
+// isImageContent determines if a MIME type represents an image
 func isImageContent(mimeType string) bool {
 	return strings.HasPrefix(mimeType, "image/")
 }
 
+// isBinaryContent determines if a MIME type represents binary content
+// This is any content that is neither text nor image
 func isBinaryContent(mimeType string) bool {
 	return !isTextContent(mimeType) && !isImageContent(mimeType)
 }
 
+// getStatsHistory generates usage statistics for the specified number of days
+// It returns counts of pastes and URLs created per day, plus total storage used
 func (s *Server) getStatsHistory(days int) (*StatsHistory, error) {
 	history := &StatsHistory{
 		Pastes:  make([]ChartDataPoint, days),

@@ -87,23 +87,6 @@ func New(db *database.Database, store storage.Store, config *config.Config) *Ser
 }
 
 func (s *Server) SetupRoutes() {
-	// API routes
-	api := s.app.Group("/api")
-
-	// Paste routes
-	api.Post("/upload", s.auth.Auth(false), s.handleMultipartUpload)
-	api.Post("/", s.auth.Auth(false), s.handleRawUpload)
-	api.Post("/json", s.auth.Auth(false), s.handleJSONUpload)
-
-	// URL shortener routes (requires API key)
-	api.Post("/url", s.auth.Auth(true), s.handleURLShorten)
-	api.Get("/url/:id/stats", s.auth.Auth(true), s.handleURLStats)
-
-	// Management routes (requires API key)
-	api.Get("/pastes", s.auth.Auth(true), s.handleListPastes)
-	api.Delete("/pastes/:id", s.auth.Auth(true), s.handleDeletePaste)
-	api.Put("/pastes/:id/expire", s.auth.Auth(true), s.handleUpdateExpiration)
-
 	// Public routes
 	s.app.Get("/", s.handleIndex)
 	s.app.Get("/docs", s.handleDocs)
@@ -111,6 +94,18 @@ func (s *Server) SetupRoutes() {
 	s.app.Get("/raw/:id", s.handleRawView)
 	s.app.Get("/download/:id", s.handleDownload)
 	s.app.Delete("/delete/:id.:key", s.handleDeleteWithKey)
+
+	// Paste creation routes
+	s.app.Post("/", s.auth.Auth(false), s.handleUpload)
+
+	// URL shortener routes (requires API key)
+	s.app.Post("/url", s.auth.Auth(true), s.handleURLShorten)
+	s.app.Get("/url/:id/stats", s.auth.Auth(true), s.handleURLStats)
+
+	// Management routes (requires API key)
+	s.app.Get("/pastes", s.auth.Auth(true), s.handleListPastes)
+	s.app.Delete("/pastes/:id", s.auth.Auth(true), s.handleDeletePaste)
+	s.app.Put("/pastes/:id/expire", s.auth.Auth(true), s.handleUpdateExpiration)
 }
 
 // Error handler

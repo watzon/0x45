@@ -17,6 +17,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// Web Interface Handlers
+
+// handleIndex serves the main web interface page
+// Displays current statistics and historical data for pastes and URLs
 func (s *Server) handleIndex(c *fiber.Ctx) error {
 	// Get current stats
 	var totalPastes, totalUrls int64
@@ -53,6 +57,8 @@ func (s *Server) handleIndex(c *fiber.Ctx) error {
 	}, "layouts/main")
 }
 
+// handleDocs serves the API documentation page
+// Shows API endpoints, usage examples, and system limits
 func (s *Server) handleDocs(c *fiber.Ctx) error {
 	return c.Render("docs", fiber.Map{
 		"baseUrl": s.config.Server.BaseURL,
@@ -64,9 +70,43 @@ func (s *Server) handleDocs(c *fiber.Ctx) error {
 	}, "layouts/main")
 }
 
-// Upload Handlers
+// Paste Creation Handlers
 
-// handleMultipartUpload handles file uploads via multipart/form-data
+// handleUpload is a unified entry point for all upload types
+// Automatically routes to the appropriate handler based on Content-Type and request format
+// Supports:
+// - multipart/form-data (file uploads)
+// - application/json (JSON payload with content or URL)
+// - any other Content-Type (treated as raw content)
+func (s *Server) handleUpload(c *fiber.Ctx) error {
+	// Get content type, removing any charset suffix
+	contentType := strings.Split(c.Get("Content-Type"), ";")[0]
+
+	switch contentType {
+	case "multipart/form-data":
+		// Check if we have a file in the form
+		if _, err := c.FormFile("file"); err == nil {
+			return s.handleMultipartUpload(c)
+		}
+		return fiber.NewError(fiber.StatusBadRequest, "No file provided in multipart form")
+
+	case "application/json":
+		// Verify we have a JSON body
+		if len(c.Body()) == 0 {
+			return fiber.NewError(fiber.StatusBadRequest, "Empty JSON body")
+		}
+		return s.handleJSONUpload(c)
+
+	default:
+		// Treat everything else as raw content
+		if len(c.Body()) == 0 {
+			return fiber.NewError(fiber.StatusBadRequest, "Empty content")
+		}
+		return s.handleRawUpload(c)
+	}
+}
+
+// handleMultipartUpload processes multipart form file uploads
 // Accepts: multipart/form-data with 'file' field
 // Optional query params: ext, expires, private, filename
 func (s *Server) handleMultipartUpload(c *fiber.Ctx) error {
@@ -117,13 +157,19 @@ func (s *Server) handleRawUpload(c *fiber.Ctx) error {
 	private := c.QueryBool("private", false)
 	filename := c.Query("filename", "paste")
 
+	// Get API key if present (make it optional)
+	var apiKey *models.APIKey
+	if key := c.Locals("apiKey"); key != nil {
+		apiKey = key.(*models.APIKey)
+	}
+
 	// Create paste from raw content
 	paste, err := s.createPasteFromRaw(c, content, &PasteOptions{
 		Extension: extension,
 		ExpiresIn: expiresIn,
 		Private:   private,
 		Filename:  filename,
-		APIKey:    c.Locals("apiKey").(*models.APIKey), // Will be nil if no API key
+		APIKey:    apiKey, // This can now be nil
 	})
 	if err != nil {
 		return err
@@ -245,7 +291,7 @@ func (s *Server) handleURLShorten(c *fiber.Ctx) error {
 }
 
 // handleURLStats returns statistics for a shortened URL (requires API key)
-// Returns: view count, last viewed, etc.
+// Returns: view count, last viewed time, and other metadata
 func (s *Server) handleURLStats(c *fiber.Ctx) error {
 	apiKey := c.Locals("apiKey").(*models.APIKey)
 	id := c.Params("id")
@@ -274,10 +320,13 @@ func (s *Server) handleURLStats(c *fiber.Ctx) error {
 	})
 }
 
-// Management Handlers
+// Paste Management Handlers
 
-// handleListPastes returns a list of pastes for the API key
-// Optional query params: page, limit, sort
+// handleListPastes returns a paginated list of pastes for the API key
+// Optional query params:
+//   - page: page number (default: 1)
+//   - limit: items per page (default: 20)
+//   - sort: sort order (default: "created_at desc")
 func (s *Server) handleListPastes(c *fiber.Ctx) error {
 	apiKey := c.Locals("apiKey").(*models.APIKey)
 
@@ -325,6 +374,8 @@ func (s *Server) handleListPastes(c *fiber.Ctx) error {
 }
 
 // handleDeletePaste deletes a paste (requires API key ownership)
+// Verifies API key ownership before deletion
+// Removes both storage content and database record
 func (s *Server) handleDeletePaste(c *fiber.Ctx) error {
 	id := c.Params("id")
 	apiKey := c.Locals("apiKey").(*models.APIKey)
@@ -415,6 +466,8 @@ func (s *Server) handleUpdateExpiration(c *fiber.Ctx) error {
 
 // handleView serves the content with syntax highlighting if applicable
 // For URLs, redirects to target URL and increments view counter
+// For text content, renders with syntax highlighting
+// For other content types, redirects to download handler
 func (s *Server) handleView(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -442,6 +495,8 @@ func (s *Server) handleView(c *fiber.Ctx) error {
 }
 
 // handleRawView serves the raw content of a paste
+// Sets appropriate content type and cache headers
+// For text content, forces text/plain content type
 func (s *Server) handleRawView(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -486,6 +541,8 @@ func (s *Server) handleRawView(c *fiber.Ctx) error {
 }
 
 // handleDownload serves the content as a downloadable file
+// Sets Content-Disposition header for download
+// Includes original filename in download prompt
 func (s *Server) handleDownload(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -518,6 +575,7 @@ func (s *Server) handleDownload(c *fiber.Ctx) error {
 
 // handleDeleteWithKey deletes a paste using its deletion key
 // No authentication required, but deletion key must match
+// Removes both storage content and database record
 func (s *Server) handleDeleteWithKey(c *fiber.Ctx) error {
 	id := c.Params("id")
 	key := c.Params("key")
@@ -547,7 +605,11 @@ func (s *Server) handleDeleteWithKey(c *fiber.Ctx) error {
 	})
 }
 
+// Helper Functions
+
 // renderPasteView renders the paste view for text content
+// Includes syntax highlighting using Chroma
+// Supports language detection and line numbering
 func (s *Server) renderPasteView(c *fiber.Ctx, paste *models.Paste) error {
 	// Get content from storage
 	content, err := s.store.Get(paste.StoragePath)
@@ -612,7 +674,8 @@ func (s *Server) renderPasteView(c *fiber.Ctx, paste *models.Paste) error {
 	}, "layouts/main")
 }
 
-// getStorageSize returns total size of stored files
+// getStorageSize returns total size of stored files in bytes
+// Calculated as sum of all paste sizes in database
 func (s *Server) getStorageSize() uint64 {
 	var total uint64
 	s.db.Model(&models.Paste{}).
@@ -622,7 +685,8 @@ func (s *Server) getStorageSize() uint64 {
 	return total
 }
 
-// Add this helper method to the Server struct
+// addBaseURLToPasteResponse adds the configured base URL to all URL fields
+// Modifies the response map in place, appending base URL to *_url fields
 func (s *Server) addBaseURLToPasteResponse(response fiber.Map) {
 	baseURL := strings.TrimSuffix(s.config.Server.BaseURL, "/")
 	for key, value := range response {

@@ -34,10 +34,32 @@ type APIKey struct {
 	UsageCount int64
 }
 
-// BeforeCreate generates the API key if not set
+// BeforeCreate generates the API key if not set and sets defaults
 func (k *APIKey) BeforeCreate(tx *gorm.DB) error {
 	if k.Key == "" {
 		k.Key = utils.GenerateID(64)
 	}
+
+	// Set defaults if not specified
+	if k.MaxFileSize == 0 {
+		k.MaxFileSize = 10485760 // 10MB
+	}
+	if k.MaxExpiration == "" {
+		k.MaxExpiration = "24h"
+	}
+	if k.RateLimit == 0 {
+		k.RateLimit = 100
+	}
+	if !k.AllowPrivate && !k.AllowUpdates && !k.AllowShortlinks {
+		k.AllowPrivate = true // Default to allowing private pastes
+	}
+
 	return nil
+}
+
+// NewAPIKey creates a new APIKey with default values
+func NewAPIKey() *APIKey {
+	key := &APIKey{}
+	key.BeforeCreate(nil) // Set defaults
+	return key
 }
