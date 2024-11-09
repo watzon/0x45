@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<pre>
+<span class="md-h1"># Paste69 API Documentation</span>
+
+<span class="md-h2">## File Upload Endpoints</span>
+
+<span class="md-bold">1. Multipart Upload</span>
+   <span class="md-code">POST {{baseUrl}}/api/upload</span>
+   - Form field: file
+   - Optional query params:
+     * ext: file extension
+     * expires: expiration time (e.g. "24h")
+     * private: true/false
+     * filename: custom filename
+
+<span class="md-bold">2. Raw Upload</span>
+   <span class="md-code">POST {{baseUrl}}</span>
+   - Body: raw file content
+   - Same query params as multipart
+
+<span class="md-bold">3. JSON Upload</span>
+   <span class="md-code">POST {{baseUrl}}/api/json</span>
+   - Content-Type: application/json
+   - Body: {
+       <span class="md-em">"content": "string",    // Required if no URL</span>
+       <span class="md-em">"url": "string",        // Required if no content</span>
+       <span class="md-em">"filename": "string",   // Optional</span>
+       <span class="md-em">"extension": "string",  // Optional</span>
+       <span class="md-em">"expires_in": "string", // Optional (e.g. "24h")</span>
+       <span class="md-em">"private": boolean      // Optional</span>
+     }
+
+<span class="md-h2">## URL Shortener (Requires API Key)</span>
+
+<span class="md-bold">1. Shorten URL</span>
+   <span class="md-code">POST {{baseUrl}}/api/url</span>
+   - Content-Type: application/json
+   - Body: {
+       <span class="md-em">"url": "string",        // Required</span>
+       <span class="md-em">"title": "string",      // Optional</span>
+       <span class="md-em">"expires_in": "string"  // Optional</span>
+     }
+
+<span class="md-bold">2. URL Stats</span>
+   <span class="md-code">GET {{baseUrl}}/api/url/:id/stats</span>
+
+<span class="md-h2">## File Management</span>
+
+<span class="md-bold">1. View File</span>
+   <span class="md-code">GET {{baseUrl}}/:id</span>
+
+<span class="md-bold">2. Raw View</span>
+   <span class="md-code">GET {{baseUrl}}/raw/:id</span>
+
+<span class="md-bold">3. Download</span>
+   <span class="md-code">GET {{baseUrl}}/download/:id</span>
+
+<span class="md-bold">4. Delete with Key</span>
+   <span class="md-code">DELETE {{baseUrl}}/delete/:id.:key</span>
+
+<span class="md-h2">## Limits & Retention</span>
+
+* Maximum file size: <span class="md-code">{{maxSize}}</span>
+* Retention without API key: <span class="md-code">{{retention.noKey}}</span>
+* Retention with API key: <span class="md-code">{{retention.withKey}}</span>
+
+For support or issues: <span class="md-link">https://github.com/watzon/paste69</span>
+</pre>
+</html> 

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<pre>
+<span class="md-h1"># Paste69</span>
+
+<span class="md-h2">## Stats</span>
+* Total Pastes: {{stats.pastes}}
+* Total URLs: {{stats.urls}}
+* Files Stored: {{stats.storage}}
+
+<span class="md-h2">## File Retention</span>
+* No API Key: <span class="md-code">{{retention.noKey}}</span>
+* With API Key: <span class="md-code">{{retention.withKey}}</span>
+* Maximum Size: <span class="md-code">{{retention.maxSize}}</span>
+
+<span class="md-h2">## Usage</span>
+<span class="md-code">curl -F 'file=@file.txt' {{baseUrl}}/api/upload</span>
+<span class="md-code">curl -X POST --data-binary @file.txt {{baseUrl}}</span>
+<span class="md-code">curl -d '{"url":"https://example.com"}' {{baseUrl}}/api/url</span>
+
+For more examples and API docs, visit:
+<a href="{{baseUrl}}/docs" class="md-link">{{baseUrl}}/docs</a>
+</pre>
+</html> 

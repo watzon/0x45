@@ -1,0 +1,77 @@
+# Database configuration
+database:
+  # Database driver: "sqlite" or "postgres"
+  driver: sqlite
+  
+  # SQLite configuration
+  name: paste69.db  # Database file path for SQLite
+  
+  # # PostgreSQL configuration (ignored for SQLite)
+  # host: localhost
+  # port: 5432
+  # user: paste69
+  # password: paste69
+  # sslmode: disable  # Options: disable, require, verify-ca, verify-full
+
+# Storage configuration
+storage:
+  # Storage backend: "local" or "s3"
+  type: local
+  
+  # Local storage configuration
+  path: ./uploads  # Local directory for file storage
+  
+  # S3 storage configuration (ignored for local storage)
+  s3_bucket: paste69-bucket
+  s3_region: us-east-1
+  s3_key: your-access-key
+  s3_secret: your-secret-key
+  s3_endpoint: https://s3.amazonaws.com  # Custom endpoint for S3-compatible services
+
+# Server configuration
+server:
+  # Server binding address
+  address: :3000
+  
+  # Public-facing URL (used for generating links)
+  base_url: http://localhost:3000
+  
+  # Maximum upload size in bytes (default: 50MB)
+  max_upload_size: 52428800  # 50 * 1024 * 1024
+  
+  # Rate limiting configuration
+  rate_limit:
+    enabled: true
+    requests: 60    # Number of requests
+    duration: 60    # Time window in seconds
+  
+  # Security settings
+  security:
+    cors_enabled: true
+    cors_origins: ["*"]
+    cors_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    
+    # HTTPS/TLS configuration
+    tls_enabled: false
+    cert_file: ./certs/cert.pem
+    key_file: ./certs/key.pem
+  
+  # Logging configuration
+  logging:
+    level: info      # debug, info, warn, error
+    format: json     # text or json
+    output: stdout   # stdout, stderr, or file path
+    
+  # Cleanup configuration
+  cleanup:
+    enabled: true
+    interval: 3600   # Cleanup interval in seconds
+    max_age: 168h    # Maximum age for temporary pastes (7 days)
+
+# Feature flags
+features:
+  url_shortener: true
+  syntax_highlighting: true
+  file_preview: true
+  api_keys: true
+  base_url: http://localhost:3000 
