@@ -49,7 +49,17 @@ li:has([data-chart]) {
     color: #8b949e; /* Default color for dates and scale */
 }
 
-/* Define color schemes */
+/* Define color schemes for all charts */
+.chart {
+    --color-blue: #58a6ff;
+    --color-green: #7ee787;
+    --color-yellow: #f1e05a;
+    --color-bright: #58a6ff;  /* Same as blue for backwards compatibility */
+    --color-dim: #0d419d;
+    --color-empty: #21262d;
+}
+
+/* Specific overrides for different color themes if needed */
 .chart[data-chart-color="blue"] {
     --color-bright: #58a6ff;
     --color-dim: #0d419d;
@@ -87,4 +97,15 @@ li:has([data-chart]) {
         var(--color-bright),
         var(--color-dim) calc(100% - (var(--value-intensity) * 100%))
     );
-} 
+}
+
+/* Dot chart specific styles */
+.chart .chart-dot {
+    color: var(--color-bright);
+    opacity: 1;
+}
+
+.chart .chart-line {
+    color: var(--color-bright);
+    opacity: 0.3;
+}

@@ -32,6 +32,11 @@ type APIKey struct {
 	// Usage tracking
 	LastUsedAt *time.Time
 	UsageCount int64
+
+	// Verification
+	Verified     bool   `gorm:"default:false"`
+	VerifyToken  string `gorm:"type:varchar(64)"`
+	VerifyExpiry time.Time
 }
 
 // BeforeCreate generates the API key if not set and sets defaults

@@ -37,6 +37,19 @@ type Config struct {
 			MaxAge   string `mapstructure:"max_age"`  // duration string (e.g., "168h")
 		} `mapstructure:"cleanup"`
 	} `mapstructure:"server"`
+
+	// Add SMTP configuration
+	SMTP struct {
+		Enabled   bool   `mapstructure:"enabled"`
+		Host      string `mapstructure:"host"`
+		Port      int    `mapstructure:"port"`
+		Username  string `mapstructure:"username"`
+		Password  string `mapstructure:"password"`
+		From      string `mapstructure:"from"`
+		FromName  string `mapstructure:"from_name"`
+		StartTLS  bool   `mapstructure:"starttls"`
+		TLSVerify bool   `mapstructure:"tls_verify"`
+	} `mapstructure:"smtp"`
 }
 
 func Load() (*Config, error) {
@@ -55,6 +68,13 @@ func Load() (*Config, error) {
 	viper.SetDefault("server.cleanup.enabled", true)
 	viper.SetDefault("server.cleanup.interval", 3600)
 	viper.SetDefault("server.cleanup.max_age", "168h")
+
+	// SMTP defaults
+	viper.SetDefault("smtp.enabled", false)
+	viper.SetDefault("smtp.port", 587)
+	viper.SetDefault("smtp.starttls", true)
+	viper.SetDefault("smtp.tls_verify", true)
+	viper.SetDefault("smtp.from_name", "Paste69")
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {

@@ -1,0 +1,3 @@
+ALTER TABLE api_keys ADD COLUMN verified BOOLEAN DEFAULT FALSE;
+ALTER TABLE api_keys ADD COLUMN verify_token VARCHAR(64);
+ALTER TABLE api_keys ADD COLUMN verify_expiry TIMESTAMP; 

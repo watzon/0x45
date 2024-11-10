@@ -11,7 +11,9 @@ import (
 	"github.com/gofiber/template/handlebars/v2"
 	"github.com/watzon/paste69/internal/config"
 	"github.com/watzon/paste69/internal/database"
+	"github.com/watzon/paste69/internal/mailer"
 	"github.com/watzon/paste69/internal/middleware"
+	"github.com/watzon/paste69/internal/models"
 	"github.com/watzon/paste69/internal/storage"
 	"go.uber.org/zap"
 )
@@ -24,6 +26,7 @@ type Server struct {
 	config      *config.Config
 	rateLimiter *RateLimiter
 	logger      *zap.Logger
+	mailer      *mailer.Mailer
 }
 
 // RateLimiter handles rate limiting for API endpoints
@@ -75,6 +78,16 @@ func New(db *database.Database, store storage.Store, config *config.Config) *Ser
 		return nil
 	}
 
+	// Initialize mailer if enabled
+	var mailClient *mailer.Mailer
+	if config.SMTP.Enabled {
+		mailClient, err = mailer.New(config)
+		if err != nil {
+			logger.Error("failed to initialize mailer", zap.Error(err))
+			// Continue without mailer
+		}
+	}
+
 	return &Server{
 		app:         app,
 		db:          db,
@@ -83,7 +96,13 @@ func New(db *database.Database, store storage.Store, config *config.Config) *Ser
 		config:      config,
 		rateLimiter: NewRateLimiter(),
 		logger:      logger,
+		mailer:      mailClient,
 	}
+}
+
+// Add a helper method to check if email features are available
+func (s *Server) hasMailer() bool {
+	return s.config.SMTP.Enabled && s.mailer != nil
 }
 
 func (s *Server) SetupRoutes() {
@@ -106,6 +125,10 @@ func (s *Server) SetupRoutes() {
 	s.app.Get("/pastes", s.auth.Auth(true), s.handleListPastes)
 	s.app.Delete("/pastes/:id", s.auth.Auth(true), s.handleDeletePaste)
 	s.app.Put("/pastes/:id/expire", s.auth.Auth(true), s.handleUpdateExpiration)
+
+	// API Key management
+	s.app.Post("/api-key", s.handleRequestAPIKey)
+	s.app.Get("/verify/:token", s.handleVerifyAPIKey)
 }
 
 // Error handler
@@ -125,11 +148,30 @@ func errorHandler(c *fiber.Ctx, err error) error {
 }
 
 func (s *Server) Start(addr string) error {
+	// Start cleanup goroutine if enabled
+	if s.config.Server.Cleanup.Enabled {
+		go func() {
+			ticker := time.NewTicker(time.Duration(s.config.Server.Cleanup.Interval) * time.Second)
+			defer ticker.Stop()
+
+			for range ticker.C {
+				s.cleanupUnverifiedKeys()
+			}
+		}()
+	}
+
 	return s.app.Listen(addr)
 }
 
 func (s *Server) Cleanup() {
 	if s.logger != nil {
 		s.logger.Sync() // flush any buffered log entries
+	}
+}
+
+func (s *Server) cleanupUnverifiedKeys() {
+	if err := s.db.Where("verified = ? AND verify_expiry < ?",
+		false, time.Now()).Delete(&models.APIKey{}).Error; err != nil {
+		s.logger.Error("failed to cleanup unverified API keys", zap.Error(err))
 	}
 }

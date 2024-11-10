@@ -61,7 +61,7 @@ func (p *Paste) ToResponse() fiber.Map {
 	}
 
 	// Add URL paths
-	response["url"] = fmt.Sprintf("/view/%s", p.ID)
+	response["url"] = fmt.Sprintf("/%s", p.ID)
 	response["raw_url"] = fmt.Sprintf("/raw/%s", p.ID)
 	response["download_url"] = fmt.Sprintf("/download/%s", p.ID)
 

@@ -14,6 +14,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/gofiber/fiber/v2"
 	"github.com/watzon/paste69/internal/models"
+	"github.com/watzon/paste69/internal/utils"
 	"go.uber.org/zap"
 )
 
@@ -34,10 +35,19 @@ func (s *Server) handleIndex(c *fiber.Ctx) error {
 		// Continue without history
 	}
 
-	// Convert history to JSON strings
+	// Generate retention data
+	retentionStats, err := utils.GenerateRetentionData(int64(s.config.Server.MaxUploadSize))
+	if err != nil {
+		s.logger.Error("failed to generate retention data", zap.Error(err))
+		// Continue with empty retention data
+	}
+
+	// Convert data to JSON strings
 	pastesHistory, _ := json.Marshal(history.Pastes)
 	urlsHistory, _ := json.Marshal(history.URLs)
 	storageHistory, _ := json.Marshal(history.Storage)
+	noKeyHistory, _ := json.Marshal(retentionStats.Data["noKey"])
+	withKeyHistory, _ := json.Marshal(retentionStats.Data["withKey"])
 
 	return c.Render("index", fiber.Map{
 		"stats": fiber.Map{
@@ -49,9 +59,11 @@ func (s *Server) handleIndex(c *fiber.Ctx) error {
 			"storageHistory": string(storageHistory),
 		},
 		"retention": fiber.Map{
-			"noKey":   s.config.Server.Cleanup.MaxAge,
-			"withKey": "unlimited",
-			"maxSize": humanize.IBytes(uint64(s.config.Server.MaxUploadSize)),
+			"noKey":          retentionStats.NoKeyRange,
+			"withKey":        retentionStats.WithKeyRange,
+			"maxSize":        humanize.IBytes(uint64(s.config.Server.MaxUploadSize)),
+			"noKeyHistory":   string(noKeyHistory),
+			"withKeyHistory": string(withKeyHistory),
 		},
 		"baseUrl": s.config.Server.BaseURL,
 	}, "layouts/main")
@@ -60,13 +72,20 @@ func (s *Server) handleIndex(c *fiber.Ctx) error {
 // handleDocs serves the API documentation page
 // Shows API endpoints, usage examples, and system limits
 func (s *Server) handleDocs(c *fiber.Ctx) error {
+	retentionStats, err := utils.GenerateRetentionData(int64(s.config.Server.MaxUploadSize))
+	if err != nil {
+		s.logger.Error("failed to generate retention data", zap.Error(err))
+		// Continue with empty retention data
+	}
+
 	return c.Render("docs", fiber.Map{
 		"baseUrl": s.config.Server.BaseURL,
 		"maxSize": humanize.IBytes(uint64(s.config.Server.MaxUploadSize)),
 		"retention": fiber.Map{
-			"noKey":   s.config.Server.Cleanup.MaxAge,
-			"withKey": "unlimited",
+			"noKey":   retentionStats.NoKeyRange,
+			"withKey": retentionStats.WithKeyRange,
 		},
+		"apiKeyEnabled": s.hasMailer(),
 	}, "layouts/main")
 }
 
@@ -462,6 +481,107 @@ func (s *Server) handleUpdateExpiration(c *fiber.Ctx) error {
 	})
 }
 
+// handleRequestAPIKey handles the initial API key request
+func (s *Server) handleRequestAPIKey(c *fiber.Ctx) error {
+	// Check if email verification is available
+	if !s.hasMailer() {
+		return fiber.NewError(
+			fiber.StatusServiceUnavailable,
+			"Email verification is not available. Please contact the administrator.",
+		)
+	}
+
+	ip := c.IP()
+	if err := s.rateLimiter.Allow(fmt.Sprintf("api_key_request:%s", ip)); err != nil {
+		return fiber.NewError(
+			fiber.StatusTooManyRequests,
+			"Please wait before requesting another API key",
+		)
+	}
+
+	var req struct {
+		Email string `json:"email" validate:"required,email"`
+		Name  string `json:"name" validate:"required"`
+	}
+
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
+	}
+
+	// Check if email is already in use
+	var existingKey models.APIKey
+	err := s.db.Where("email = ? AND verified = ?", req.Email, true).
+		First(&existingKey).Error
+	if err == nil {
+		return fiber.NewError(
+			fiber.StatusConflict,
+			"An API key already exists for this email address",
+		)
+	}
+
+	// Create API key with verification token
+	apiKey := models.NewAPIKey()
+	apiKey.Email = req.Email
+	apiKey.Name = req.Name
+	apiKey.VerifyToken = utils.GenerateID(64)
+	apiKey.VerifyExpiry = time.Now().Add(24 * time.Hour)
+
+	if err := s.db.Create(apiKey).Error; err != nil {
+		s.logger.Error("failed to create API key",
+			zap.String("email", req.Email),
+			zap.Error(err))
+		return fiber.NewError(
+			fiber.StatusInternalServerError,
+			"Failed to create API key",
+		)
+	}
+
+	// Send verification email
+	if err := s.mailer.SendVerification(req.Email, apiKey.VerifyToken); err != nil {
+		s.logger.Error("failed to send verification email",
+			zap.String("email", req.Email),
+			zap.Error(err))
+
+		// Delete the API key if we couldn't send the email
+		s.db.Delete(apiKey)
+
+		return fiber.NewError(
+			fiber.StatusInternalServerError,
+			"Failed to send verification email",
+		)
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "Please check your email to verify your API key",
+	})
+}
+
+// handleVerifyAPIKey verifies the email and activates the API key
+func (s *Server) handleVerifyAPIKey(c *fiber.Ctx) error {
+	token := c.Params("token")
+
+	var apiKey models.APIKey
+	err := s.db.Where("verify_token = ? AND verify_expiry > ? AND verified = ?",
+		token, time.Now(), false).First(&apiKey).Error
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "Invalid or expired verification token")
+	}
+
+	// Activate the key
+	apiKey.Verified = true
+	apiKey.VerifyToken = ""
+	if err := s.db.Save(&apiKey).Error; err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to verify API key")
+	}
+
+	return c.Render("verify_success", fiber.Map{
+		"apiKey":  apiKey.Key,
+		"baseUrl": s.config.Server.BaseURL,
+	}, "layouts/main")
+}
+
 // Public Access Handlers
 
 // handleView serves the content with syntax highlighting if applicable
@@ -691,7 +811,7 @@ func (s *Server) addBaseURLToPasteResponse(response fiber.Map) {
 	baseURL := strings.TrimSuffix(s.config.Server.BaseURL, "/")
 	for key, value := range response {
 		if strValue, ok := value.(string); ok {
-			if strings.HasSuffix(key, "_url") {
+			if strings.HasSuffix(key, "url") {
 				response[key] = baseURL + strValue
 			}
 		}

@@ -31,29 +31,70 @@
     <a href="{{baseUrl}}/docs">{{baseUrl}}/docs</a>
 </p>
 
-<h2>File Retention</h2>
-<ul>
-    <li>No API Key: <code>{{retention.noKey}}</code></li>
-    <li>With API Key: <code>{{retention.withKey}}</code></li>
-    <li>Maximum Size: <code>{{retention.maxSize}}</code></li>
-</ul>
-
-
 <h2>Stats</h2>
 <ul>
     <li>Total Pastes: 
-        <span data-chart 
-              data-chart-history='{{stats.pastesHistory}}' 
-              data-chart-color="blue">{{stats.pastes}}</span>
+        <div class="chart" data-chart-color="blue">
+            <span data-chart 
+                  data-chart-type="bar"
+                  data-chart-history='{{stats.pastesHistory}}'>{{stats.pastes}}</span>
+        </div>
     </li>
     <li>Total URLs: 
-        <span data-chart 
-              data-chart-history='{{stats.urlsHistory}}' 
-              data-chart-color="green">{{stats.urls}}</span>
+        <div class="chart" data-chart-color="green">
+            <span data-chart 
+                  data-chart-type="bar"
+                  data-chart-history='{{stats.urlsHistory}}'>{{stats.urls}}</span>
+        </div>
     </li>
     <li>Files Stored: 
-        <span data-chart 
-              data-chart-history='{{stats.storageHistory}}' 
-              data-chart-color="yellow">{{stats.storage}}</span>
+        <div class="chart" data-chart-color="yellow">
+            <span data-chart 
+                  data-chart-type="bar"
+                  data-chart-history='{{stats.storageHistory}}'>{{stats.storage}}</span>
+        </div>
     </li>
 </ul>
+
+<h2>File Retention</h2>
+
+<ul>
+    <li>Maximums:</li>
+    <ul>
+        <li>No API Key: {{retention.noKey}}</li>
+        <li>With API Key: {{retention.withKey}}</li>
+        <li>Maximum Size: {{retention.maxSize}}</li>
+    </ul>
+</ul>
+
+<div class="chart" data-chart-color="blue">
+    <span data-chart 
+          data-chart-type="dot"
+          data-chart-options='{
+              "series": [
+                  {"name": "No API Key", "color": "bright", "data": {{{retention.noKeyHistory}}} },
+                  {"name": "With API Key", "color": "green", "data": {{{retention.withKeyHistory}}} }
+              ],
+              "height": 15,
+              "barWidth": 30,
+              "yAxisPadding": 8,
+              "connectLines": true,
+              "showScale": true,
+              "showAxisLabels": true,
+              "xAxis": {
+                  "label": "File Size",
+                  "unit": "MiB",
+                  "maxSize": "{{retention.maxSize}}",
+                  "points": 3
+              },
+              "yAxis": {
+                  "label": "Days",
+                  "points": 3,
+                  "range": {
+                      "min": 30,
+                      "max": 730
+                  }
+              }
+          }'>
+    </span>
+</div>

@@ -452,3 +452,74 @@ kbd {
     70% { opacity: 1; }
     100% { opacity: 0; }
 }
+
+/* API Key Verification Success */
+.verify-success {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.verify-success h1 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.key-info {
+    margin-top: 40px;
+    background: #f9f9f9;
+    border-radius: 5px;
+    padding: 20px;
+}
+
+.key-info h2 {
+    margin-top: 0;
+}
+
+.warning {
+    margin-top: 20px;
+    padding: 15px;
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-radius: 5px;
+    color: #856404;
+}
+
+.warning strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.notice {
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 15px 0;
+}
+
+.code-block {
+    position: relative;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 15px 0;
+    overflow-x: auto;
+}
+
+.code-block pre {
+    margin: 0;
+    padding-right: 40px; /* Space for copy button */
+}
+
+.code-block code {
+    font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.code-block .action-btn {
+    position: absolute;
+    top: 24px;
+    right: 12px;
+}

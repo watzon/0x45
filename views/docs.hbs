@@ -126,4 +126,53 @@
     <li>Retention with API key: <code>{{retention.withKey}}</code></li>
 </ul>
 
-For support or issues: <a href="https://github.com/watzon/paste69">https://github.com/watzon/paste69</a>
+{{#if apiKeyEnabled}}
+<h2>Getting an API Key</h2>
+
+<p>
+    API keys are required for URL shortening and extended features. To request an API key:
+</p>
+
+<div class="code-block">
+    <pre><code>curl -X POST {{baseUrl}}/api-key \
+    -H "Content-Type: application/json" \
+    -d '{
+    "email": "your@email.com",
+    "name": "Your Name"
+}'</code></pre>
+    <button class="action-btn" data-clipboard data-content='curl -X POST {{baseUrl}}/api-key -H "Content-Type: application/json" -d '"'"'{"email":"your@email.com","name":"Your Name"}'"'"''>
+        <span>Copy</span>
+    </button>
+</div>
+
+<p>
+    You will receive a verification email with a link to activate your API key.
+    Once verified, your API key can be used by including it in the Authorization header:
+</p>
+
+<div class="code-block">
+    <pre><code>Authorization: Bearer your-api-key</code></pre>
+    <button class="action-btn" data-clipboard data-content="Authorization: Bearer your-api-key">
+        <span>Copy</span>
+    </button>
+</div>
+
+<h3>API Key Features</h3>
+<ul>
+    <li>Unlimited file retention</li>
+    <li>URL shortening capabilities</li>
+    <li>Private paste support</li>
+    <li>Higher rate limits (100 requests/hour)</li>
+</ul>
+
+{{else}}
+<h2>API Keys</h2>
+<p class="notice">
+    API key requests are currently disabled. Please contact the administrator for access.
+</p>
+{{/if}}
+
+<h2>Support</h2>
+<p>
+    For support or issues: <a href="https://github.com/watzon/paste69">https://github.com/watzon/paste69</a>
+</p>

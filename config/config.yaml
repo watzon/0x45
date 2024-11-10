@@ -68,6 +68,18 @@ server:
     interval: 3600   # Cleanup interval in seconds
     max_age: 168h    # Maximum age for temporary pastes (7 days)
 
+# SMTP configuration for sending emails
+smtp:
+  enabled: false  # Set to true to enable email features
+  host: smtp.example.com
+  port: 587
+  username: your_username
+  password: your_password  # Consider using environment variable
+  from: noreply@example.com
+  from_name: Paste69
+  starttls: true
+  tls_verify: true
+
 # Feature flags
 features:
   url_shortener: true
