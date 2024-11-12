@@ -383,12 +383,6 @@ func isImageContent(mimeType string) bool {
 	return strings.HasPrefix(mimeType, "image/")
 }
 
-// isBinaryContent determines if a MIME type represents binary content
-// This is any content that is neither text nor image
-func isBinaryContent(mimeType string) bool {
-	return !isTextContent(mimeType) && !isImageContent(mimeType)
-}
-
 // getStatsHistory generates usage statistics for the specified number of days
 // It returns counts of pastes and URLs created per day, plus total storage used
 func (s *Server) getStatsHistory(days int) (*StatsHistory, error) {
@@ -503,4 +497,57 @@ func (s *Server) cleanupUnverifiedKeys() {
 		false, time.Now()).Delete(&models.APIKey{}).Error; err != nil {
 		s.logger.Error("failed to cleanup unverified API keys", zap.Error(err))
 	}
+}
+
+// cleanupExpiredContent removes expired pastes and their associated files
+func (s *Server) cleanupExpiredContent() {
+	// Parse max age duration
+	maxAge, err := time.ParseDuration(s.config.Server.Cleanup.MaxAge)
+	if err != nil {
+		s.logger.Error("failed to parse cleanup max age", zap.Error(err))
+		return
+	}
+
+	// Find expired pastes
+	var expiredPastes []models.Paste
+	if err := s.db.Where("expires_at < ? OR (expires_at IS NULL AND created_at < ?)",
+		time.Now(), time.Now().Add(-maxAge)).Find(&expiredPastes).Error; err != nil {
+		s.logger.Error("failed to find expired pastes", zap.Error(err))
+		return
+	}
+
+	// Delete each expired paste
+	for _, paste := range expiredPastes {
+		// Get the storage backend
+		store, err := s.storage.GetStore(paste.StorageName)
+		if err != nil {
+			s.logger.Error("failed to get storage for cleanup",
+				zap.String("storage", paste.StorageName),
+				zap.Error(err))
+			continue
+		}
+
+		// Delete the file from storage
+		if err := store.Delete(paste.StoragePath); err != nil {
+			s.logger.Error("failed to delete file during cleanup",
+				zap.String("id", paste.ID),
+				zap.Error(err))
+			continue
+		}
+
+		// Delete the database record
+		if err := s.db.Delete(&paste).Error; err != nil {
+			s.logger.Error("failed to delete paste record during cleanup",
+				zap.String("id", paste.ID),
+				zap.Error(err))
+			continue
+		}
+
+		s.logger.Info("cleaned up expired paste",
+			zap.String("id", paste.ID),
+			zap.String("filename", paste.Filename))
+	}
+
+	s.logger.Info("cleanup completed",
+		zap.Int("pastes_cleaned", len(expiredPastes)))
 }

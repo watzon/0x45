@@ -179,6 +179,7 @@ func (s *Server) Start(addr string) error {
 
 			for range ticker.C {
 				s.cleanupUnverifiedKeys()
+				s.cleanupExpiredContent()
 			}
 		}()
 	}
