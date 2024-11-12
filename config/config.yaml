@@ -36,13 +36,13 @@ server:
   # Public-facing URL (used for generating links)
   base_url: http://localhost:3000
   
-  # Maximum upload size in bytes (default: 50MB)
-  max_upload_size: 52428800  # 50 * 1024 * 1024
+  # Maximum upload size in bytes (default: 5MB)
+  max_upload_size: 5242880  # 5 * 1024 * 1024
   
   # Rate limiting configuration
   rate_limit:
     enabled: true
-    requests: 60    # Number of requests
+    requests: 10    # Number of requests
     duration: 60    # Time window in seconds
   
   # Security settings
@@ -68,7 +68,7 @@ server:
     interval: 3600   # Cleanup interval in seconds
     max_age: 168h    # Maximum age for temporary pastes (7 days)
 
-# SMTP configuration for sending emails
+# SMTP configuration for sending emails with PostPilot
 smtp:
   enabled: true  # Set to true to enable email features
   host: localhost

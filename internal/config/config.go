@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -64,7 +65,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("storage.type", "local")
 	viper.SetDefault("storage.path", "./uploads")
 	viper.SetDefault("server.address", ":3000")
-	viper.SetDefault("server.max_upload_size", 50*1024*1024) // 50MB default
+	viper.SetDefault("server.max_upload_size", 5*1024*1024) // 5MB default
 	viper.SetDefault("server.cleanup.enabled", true)
 	viper.SetDefault("server.cleanup.interval", 3600)
 	viper.SetDefault("server.cleanup.max_age", "168h")
@@ -75,6 +76,11 @@ func Load() (*Config, error) {
 	viper.SetDefault("smtp.starttls", true)
 	viper.SetDefault("smtp.tls_verify", true)
 	viper.SetDefault("smtp.from_name", "Paste69")
+
+	// Enable environment variables
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("0X")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_")) // Converts nested keys to env format
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
