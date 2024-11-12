@@ -5,5 +5,4 @@
 *.dwarf
 *.env
 config/config.yml
-config/templates/*.j2
 uploads
