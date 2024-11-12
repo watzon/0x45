@@ -37,12 +37,19 @@ type APIKey struct {
 	Verified     bool   `gorm:"default:false"`
 	VerifyToken  string `gorm:"type:varchar(64)"`
 	VerifyExpiry time.Time
+
+	IsReset bool `json:"is_reset" gorm:"default:false"`
 }
 
-// BeforeCreate generates the API key if not set and sets defaults
+// GenerateKey generates a new API key string
+func GenerateAPIKey() string {
+	return utils.GenerateID(64)
+}
+
+// BeforeCreate sets defaults and generates the API key if not set
 func (k *APIKey) BeforeCreate(tx *gorm.DB) error {
 	if k.Key == "" {
-		k.Key = utils.GenerateID(64)
+		k.Key = GenerateAPIKey()
 	}
 
 	// Set defaults if not specified

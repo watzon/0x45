@@ -1,50 +1,59 @@
+<div class="nav-bar">
+    <a href="{{baseUrl}}" class="nav-link">cd ..</a>
+</div>
+
 <h1>Paste69 API Documentation</h1>
 
 <h2>File Upload Endpoints</h2>
 
-<strong>1. Multipart Upload</strong>
-<div class="code-block">
-    <code>POST {{baseUrl}}</code>
-    <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
-</div>
-<dl>
-    <dt>Form field:</dt>
-    <dd>file</dd>
-    <dt>Optional query params:</dt>
-    <dd>
-        <ul>
-            <li>ext: file extension</li>
-            <li>expires: expiration time (e.g. "24h")</li>
-            <li>private: true/false</li>
-            <li>filename: custom filename</li>
-        </ul>
-    </dd>
-</dl>
+<section>
+    <strong>1. Multipart Upload</strong>
+    <div class="code-block">
+        <code>POST {{baseUrl}}</code>
+        <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
+    </div>
+    <dl>
+        <dt>Form field:</dt>
+        <dd>file</dd>
+        <dt>Optional query params:</dt>
+        <dd>
+            <ul>
+                <li>ext: file extension</li>
+                <li>expires: expiration time (e.g. "24h")</li>
+                <li>private: true/false</li>
+                <li>filename: custom filename</li>
+            </ul>
+        </dd>
+    </dl>
+</section>
 
-<strong>2. Raw Upload</strong>
-<div class="code-block">
-    <code>POST {{baseUrl}}</code>
-    <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
-</div>
-<dl>
-    <dt>Body:</dt>
-    <dd>raw file content</dd>
-    <dt>Query params:</dt>
-    <dd>Same query params as multipart</dd>
-</dl>
+<section>
+    <strong>2. Raw Upload</strong>
+    <div class="code-block">
+        <code>POST {{baseUrl}}</code>
+        <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
+    </div>
+    <dl>
+        <dt>Body:</dt>
+        <dd>raw file content</dd>
+        <dt>Query params:</dt>
+        <dd>Same query params as multipart</dd>
+    </dl>
+</section>
 
-<strong>3. JSON Upload</strong>
-<div class="code-block">
-    <code>POST {{baseUrl}}</code>
-    <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
-</div>
-<dl>
-    <dt>Content-Type:</dt>
-    <dd>application/json</dd>
-    <dt>Body:</dt>
-    <dd>
-        <div class="code-block json">
-            <pre><code>{
+<section>
+    <strong>3. JSON Upload</strong>
+    <div class="code-block">
+        <code>POST {{baseUrl}}</code>
+        <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
+    </div>
+    <dl>
+        <dt>Content-Type:</dt>
+        <dd>application/json</dd>
+        <dt>Body:</dt>
+        <dd>
+            <div class="code-block json">
+                <pre><code>{
     "content": "string",     // Required if no URL
     "url": "string",         // Required if no content
     "filename": "string",    // Optional
@@ -52,127 +61,138 @@
     "expires_in": "string",  // Optional (e.g. "24h")
     "private": boolean       // Optional
 }</code></pre>
-            <button class="action-btn" data-clipboard="#json-upload-body"><span>Copy</span></button>
-        </div>
-    </dd>
-</dl>
+                <button class="action-btn" data-clipboard="#json-upload-body"><span>Copy</span></button>
+            </div>
+        </dd>
+    </dl>
+</section>
 
-<h2>URL Shortener (Requires API Key)</h2>
+<section>
+    <h2>URL Shortener (Requires API Key)</h2>
 
-<strong>1. Shorten URL</strong>
-<div class="code-block">
-    <code>POST {{baseUrl}}/url</code>
-    <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}/url"><span>Copy</span></button>
-</div>
-<dl>
-    <dt>Content-Type:</dt>
-    <dd>application/json</dd>
-    <dt>Body:</dt>
-    <dd>
-        <div class="code-block json">
-            <pre><code>{
+    <strong>1. Shorten URL</strong>
+    <div class="code-block">
+        <code>POST {{baseUrl}}/url</code>
+        <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}/url"><span>Copy</span></button>
+    </div>
+    <dl>
+        <dt>Content-Type:</dt>
+        <dd>application/json</dd>
+        <dt>Body:</dt>
+        <dd>
+            <div class="code-block json">
+                <pre><code>{
     "url": "string",         // Required
     "title": "string",       // Optional
     "expires_in": "string"   // Optional
 }</code></pre>
-            <button class="action-btn" data-clipboard="#json-url-body"><span>Copy</span></button>
-        </div>
-    </dd>
-</dl>
+                <button class="action-btn" data-clipboard="#json-url-body"><span>Copy</span></button>
+            </div>
+        </dd>
+    </dl>
+</section>
 
-<strong>2. URL Stats</strong>
-<div class="code-block">
-    <code>GET {{baseUrl}}/url/:id/stats</code>
-    <button class="action-btn" data-content="GET {{baseUrl}}/url/:id/stats"><span>Copy</span></button>
-</div>
+<section>
+    <strong>2. URL Stats</strong>
+    <div class="code-block">
+        <code>GET {{baseUrl}}/url/:id/stats</code>
+        <button class="action-btn" data-content="GET {{baseUrl}}/url/:id/stats"><span>Copy</span></button>
+    </div>
+</section>
 
-<h2>File Management</h2>
+<section>
+    <h2>File Management</h2>
 
-<ul>
-    <li><strong>View File</strong>
-        <div class="code-block">
-            <code>GET {{baseUrl}}/:id</code>
-            <button class="action-btn" data-content="GET {{baseUrl}}/:id"><span>Copy</span></button>
-        </div>
-    </li>
-    
-    <li><strong>Raw View</strong>
-        <div class="code-block">
-            <code>GET {{baseUrl}}/raw/:id</code>
-            <button class="action-btn" data-content="GET {{baseUrl}}/raw/:id"><span>Copy</span></button>
-        </div>
-    </li>
-    
-    <li><strong>Download</strong>
-        <div class="code-block">
-            <code>GET {{baseUrl}}/download/:id</code>
-            <button class="action-btn" data-content="GET {{baseUrl}}/download/:id"><span>Copy</span></button>
-        </div>
-    </li>
-    
-    <li><strong>Delete with Key</strong>
-        <div class="code-block">
-            <code>DELETE {{baseUrl}}/delete/:id.:key</code>
-            <button class="action-btn" data-content="DELETE {{baseUrl}}/delete/:id.:key"><span>Copy</span></button>
-        </div>
-    </li>
-</ul>
+    <ul>
+        <li><strong>View File</strong>
+            <div class="code-block">
+                <code>GET {{baseUrl}}/:id</code>
+                <button class="action-btn" data-content="GET {{baseUrl}}/:id"><span>Copy</span></button>
+            </div>
+        </li>
 
-<h2>Limits & Retention</h2>
+        <li><strong>Raw View</strong>
+            <div class="code-block">
+                <code>GET {{baseUrl}}/raw/:id</code>
+                <button class="action-btn" data-content="GET {{baseUrl}}/raw/:id"><span>Copy</span></button>
+            </div>
+        </li>
 
-<ul>
-    <li>Maximum file size: <code>{{maxSize}}</code></li>
-    <li>Retention without API key: <code>{{retention.noKey}}</code></li>
-    <li>Retention with API key: <code>{{retention.withKey}}</code></li>
-</ul>
+        <li><strong>Download</strong>
+            <div class="code-block">
+                <code>GET {{baseUrl}}/download/:id</code>
+                <button class="action-btn" data-content="GET {{baseUrl}}/download/:id"><span>Copy</span></button>
+            </div>
+        </li>
 
-{{#if apiKeyEnabled}}
-<h2>Getting an API Key</h2>
+        <li><strong>Delete with Key</strong>
+            <div class="code-block">
+                <code>DELETE {{baseUrl}}/delete/:id.:key</code>
+                <button class="action-btn" data-content="DELETE {{baseUrl}}/delete/:id.:key"><span>Copy</span></button>
+            </div>
+        </li>
+    </ul>
+</section>
 
-<p>
-    API keys are required for URL shortening and extended features. To request an API key:
-</p>
+<section>
+    <h2>Limits & Retention</h2>
 
-<div class="code-block">
-    <pre><code>curl -X POST {{baseUrl}}/api-key \
+    <ul>
+        <li>Maximum file size: <code>{{maxSize}}</code></li>
+        <li>Retention without API key: <code>{{retention.noKey}}</code></li>
+        <li>Retention with API key: <code>{{retention.withKey}}</code></li>
+    </ul>
+
+    {{#if apiKeyEnabled}}
+    <h2>Getting an API Key</h2>
+
+    <p>
+        API keys are required for URL shortening and extended features. To request an API key:
+    </p>
+
+    <div class="code-block">
+        <pre><code id="api-key-curl">curl -X POST {{baseUrl}}/api-key \
     -H "Content-Type: application/json" \
     -d '{
     "email": "your@email.com",
     "name": "Your Name"
 }'</code></pre>
-    <button class="action-btn" data-clipboard data-content='curl -X POST {{baseUrl}}/api-key -H "Content-Type: application/json" -d '"'"'{"email":"your@email.com","name":"Your Name"}'"'"''>
-        <span>Copy</span>
-    </button>
-</div>
+        <button class="action-btn" data-clipboard="#api-key-curl">
+            <span>Copy</span>
+        </button>
+    </div>
 
-<p>
-    You will receive a verification email with a link to activate your API key.
-    Once verified, your API key can be used by including it in the Authorization header:
-</p>
+    <p>
+        You will receive a verification email with a link to activate your API key.
+        Once verified, your API key can be used by including it in the Authorization header:
+    </p>
 
-<div class="code-block">
-    <pre><code>Authorization: Bearer your-api-key</code></pre>
-    <button class="action-btn" data-clipboard data-content="Authorization: Bearer your-api-key">
-        <span>Copy</span>
-    </button>
-</div>
+    <div class="code-block">
+        <pre><code>Authorization: Bearer your-api-key</code></pre>
+        <button class="action-btn" data-clipboard data-content="Authorization: Bearer your-api-key">
+            <span>Copy</span>
+        </button>
+    </div>
+</section>
 
-<h3>API Key Features</h3>
-<ul>
-    <li>Unlimited file retention</li>
-    <li>URL shortening capabilities</li>
-    <li>Private paste support</li>
-    <li>Higher rate limits (100 requests/hour)</li>
-</ul>
+<section>
+    <h3>API Key Features</h3>
+    <ul>
+        <li>Extended retention</li>
+        <li>URL shortening capabilities</li>
+        <li>Private paste support</li>
+        <li>Higher rate limits</li>
+    </ul>
 
-{{else}}
-<h2>API Keys</h2>
-<p class="notice">
-    API key requests are currently disabled. Please contact the administrator for access.
-</p>
-{{/if}}
+    {{else}}
+    <h2>API Keys</h2>
+    <p class="notice">
+        API key requests are currently disabled. Please contact the administrator for access.
+    </p>
+    {{/if}}
 
-<h2>Support</h2>
-<p>
-    For support or issues: <a href="https://github.com/watzon/paste69">https://github.com/watzon/paste69</a>
-</p>
+    <h2>Support</h2>
+    <p>
+        For support or issues: <a href="https://github.com/watzon/paste69">https://github.com/watzon/paste69</a>
+    </p>
+</section>

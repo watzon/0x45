@@ -25,7 +25,8 @@ class AsciiDotChart extends Chart {
             // Layout
             height: options.height || 15,
             barWidth: options.barWidth || 30,
-            yAxisPadding: options.yAxisPadding || 8,
+            yAxisPadding: options.yAxisPadding || 12,
+            xAxisPadding: options.xAxisPadding || 1,
             legendSpacing: options.legendSpacing || 3,
             
             // Display options
@@ -125,6 +126,10 @@ class AsciiDotChart extends Chart {
 
         const padding = this.options.yAxisPadding;
         const rows = [];
+        
+        // Add x-axis padding
+        rows.push('\n'.repeat(this.options.xAxisPadding));
+        
         const points = this.options.xAxis.points;
         const scalePoints = Array.from({length: points}, (_, i) => 
             Math.floor((i / (points - 1)) * (width - 1)));

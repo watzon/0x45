@@ -8,6 +8,7 @@ body {
 
 .container {
     max-width: 912px;
+    overflow-x: hidden;
     padding: 40px;
     margin: 0;
 }
@@ -226,6 +227,10 @@ kbd {
     padding: 2px 5px;
 }
 
+section {
+    margin-bottom: 2.5em;
+}
+
 [data-clipboard] {
     cursor: pointer;
     position: relative;
@@ -368,9 +373,8 @@ kbd {
 
 .code-block .action-btn {
     position: absolute;
-    right: 0.5em;
-    top: 50%;
-    transform: translateY(-50%);
+    right: 8px;
+    top: 8px;
     padding: 0.3em;
     font-size: 0.8em;
     width: 24px;
@@ -453,73 +457,42 @@ kbd {
     100% { opacity: 0; }
 }
 
-/* API Key Verification Success */
-.verify-success {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-.verify-success h1 {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-.key-info {
-    margin-top: 40px;
-    background: #f9f9f9;
-    border-radius: 5px;
-    padding: 20px;
-}
-
-.key-info h2 {
-    margin-top: 0;
-}
-
-.warning {
-    margin-top: 20px;
-    padding: 15px;
-    background: #fff3cd;
-    border: 1px solid #ffeeba;
-    border-radius: 5px;
-    color: #856404;
-}
-
-.warning strong {
+/* Markdown-style back link */
+.back-link {
     display: block;
-    margin-bottom: 5px;
+    margin-top: 2em;
+    padding-top: 1em;
+    border-top: 1px solid #30363d;
+    color: #8b949e;
 }
 
-.notice {
-    background: #fff3cd;
-    border: 1px solid #ffeeba;
-    color: #856404;
-    padding: 15px;
-    border-radius: 5px;
-    margin: 15px 0;
+.back-link:before {
+    content: "← ";
 }
 
-.code-block {
-    position: relative;
-    border-radius: 6px;
-    padding: 15px;
-    margin: 15px 0;
-    overflow-x: auto;
+.back-link:hover {
+    color: #58a6ff;
 }
 
-.code-block pre {
-    margin: 0;
-    padding-right: 40px; /* Space for copy button */
+/* Navigation bar */
+.nav-bar {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 0.5em 1em;
+    margin-bottom: 2em;
 }
 
-.code-block code {
-    font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
-    font-size: 14px;
-    line-height: 1.4;
+.nav-link {
+    color: #8b949e;
+    text-decoration: none;
+    font-size: 0.9em;
 }
 
-.code-block .action-btn {
-    position: absolute;
-    top: 24px;
-    right: 12px;
+.nav-link:before {
+    content: "← ";
+}
+
+.nav-link:hover {
+    color: #58a6ff;
+    text-decoration: none;
 }

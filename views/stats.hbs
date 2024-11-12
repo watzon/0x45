@@ -1,0 +1,42 @@
+<div class="nav-bar">
+    <a href="{{baseUrl}}" class="nav-link">cd ..</a>
+</div>
+
+<h1>Paste69 Statistics</h1>
+
+<h2>Stats</h2>
+<h3>Total Pastes:</h3>
+<div class="chart">
+    <span data-chart data-chart-type="bar" data-chart-history='{{stats.pastesHistory}}' 
+          data-chart-options='{"color": "blue", "height": 5, "barWidth": 12}'>{{stats.pastes}}</span>
+</div>
+
+<h3>Total URLs:</h3>
+<div class="chart">
+    <span data-chart data-chart-type="bar" data-chart-history='{{stats.urlsHistory}}'
+          data-chart-options='{"color": "green", "height": 5, "barWidth": 12}'>{{stats.urls}}</span>
+</div>
+
+<h3>Files Stored:</h3>
+<div class="chart">
+    <span data-chart data-chart-type="bar" data-chart-history='{{stats.storageHistory}}'
+          data-chart-options='{"color": "yellow", "height": 5, "barWidth": 12}'>{{stats.storage}}</span>
+</div>
+
+<h3>Storage by File Type:</h3>
+<div class="chart">
+    <span data-chart data-chart-type="pie" 
+          data-chart-data='{
+              "Text": 450,
+              "Images": 320,
+              "Archives": 180,
+              "Documents": 150,
+              "Code": 100,
+              "Other": 50
+          }'
+          data-chart-options='{
+              "color": "blue",
+              "width": 45
+          }'>
+    </span>
+</div>

@@ -70,15 +70,15 @@ server:
 
 # SMTP configuration for sending emails
 smtp:
-  enabled: false  # Set to true to enable email features
-  host: smtp.example.com
-  port: 587
-  username: your_username
-  password: your_password  # Consider using environment variable
-  from: noreply@example.com
+  enabled: true  # Set to true to enable email features
+  host: localhost
+  port: 1025
+  username: 
+  password:
+  from: noreply@0x45.st
   from_name: Paste69
-  starttls: true
-  tls_verify: true
+  starttls: false
+  tls_verify: false
 
 # Feature flags
 features:

@@ -24,6 +24,7 @@
             border-radius: 5px;
             padding: 20px;
             margin-bottom: 20px;
+            color: #333;
         }
         .button {
             display: inline-block;
@@ -37,7 +38,7 @@
         .footer {
             text-align: center;
             font-size: 0.9em;
-            color: #666;
+            color: #999;
         }
     </style>
 </head>
@@ -53,11 +54,11 @@
             <p>Thank you for requesting an API key for Paste69. To activate your key, please click the verification link below:</p>
             
             <p style="text-align: center;">
-                <a href="{{.BaseURL}}/verify/{{.Token}}" class="button">Verify API Key</a>
+                <a href="{{baseUrl}}/verify/{{token}}" class="button">Verify API Key</a>
             </p>
             
             <p>Or copy and paste this URL into your browser:</p>
-            <p style="word-break: break-all;">{{.BaseURL}}/verify/{{.Token}}</p>
+            <p style="word-break: break-all;">{{baseUrl}}/verify/{{token}}</p>
             
             <p>This link will expire in 24 hours.</p>
         </div>
@@ -68,4 +69,4 @@
         </div>
     </div>
 </body>
-</html> 
+</html>

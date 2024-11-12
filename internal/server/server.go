@@ -109,6 +109,7 @@ func (s *Server) SetupRoutes() {
 	// Public routes
 	s.app.Get("/", s.handleIndex)
 	s.app.Get("/docs", s.handleDocs)
+	s.app.Get("/stats", s.handleStats)
 	s.app.Get("/:id", s.handleView)
 	s.app.Get("/raw/:id", s.handleRawView)
 	s.app.Get("/download/:id", s.handleDownload)

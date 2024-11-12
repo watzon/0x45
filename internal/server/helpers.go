@@ -5,6 +5,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/watzon/paste69/internal/models"
 	"go.uber.org/zap"
+	"golang.org/x/net/html"
 	"gorm.io/gorm"
 )
 
@@ -183,9 +185,33 @@ func (s *Server) createPaste(content io.Reader, size int64, contentType string, 
 
 // createShortlink creates a new URL shortlink with the given options
 // It handles database operations and expiry time calculation
-func (s *Server) createShortlink(url string, opts *ShortlinkOptions) (*models.Shortlink, error) {
+func (s *Server) createShortlink(_url string, opts *ShortlinkOptions) (*models.Shortlink, error) {
+	// Check if the URL is empty before we do anything else
+	if _url == "" {
+		return nil, fiber.NewError(fiber.StatusBadRequest, "URL cannot be empty")
+	}
+
+	// Validate URL
+	parsedURL, err := url.Parse(_url)
+	if err != nil || !parsedURL.IsAbs() || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+		return nil, fiber.NewError(fiber.StatusBadRequest, "Invalid URL. Must be a valid absolute HTTP(S) URL")
+	}
+
+	if opts.Title == "" {
+		title, err := fetchURLTitle(_url)
+		if err == nil {
+			opts.Title = title
+		}
+	}
+
+	// Sanitize title - trim spaces and limit length
+	opts.Title = strings.TrimSpace(opts.Title)
+	if len(opts.Title) > 255 { // Common DB VARCHAR limit
+		opts.Title = opts.Title[:255]
+	}
+
 	shortlink := &models.Shortlink{
-		TargetURL: url,
+		TargetURL: _url,
 		Title:     opts.Title,
 		APIKey:    opts.APIKey.Key,
 	}
@@ -203,6 +229,46 @@ func (s *Server) createShortlink(url string, opts *ShortlinkOptions) (*models.Sh
 	}
 
 	return shortlink, nil
+}
+
+func fetchURLTitle(url string) (string, error) {
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// Only attempt to parse HTML content
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.Contains(contentType, "text/html") {
+		return "", nil
+	}
+
+	// Parse HTML and look for title
+	tokenizer := html.NewTokenizer(resp.Body)
+	for {
+		tokenType := tokenizer.Next()
+		switch tokenType {
+		case html.ErrorToken:
+			// End of document or error
+			return "", tokenizer.Err()
+		case html.StartTagToken:
+			token := tokenizer.Token()
+			if token.Data == "title" {
+				// Next token should be the title text
+				tokenType = tokenizer.Next()
+				if tokenType == html.TextToken {
+					return strings.TrimSpace(tokenizer.Token().Data), nil
+				}
+				return "", nil
+			}
+		}
+	}
 }
 
 // findPaste retrieves a paste by ID with expiry checking

@@ -68,28 +68,21 @@ ${legendRows.join('\n')}
     generatePieAscii() {
         const rows = [];
         const radius = Math.floor(this.options.width / 2);
-        const aspectRatio = 2.1; // Compensate for terminal character height/width ratio
+        const aspectRatio = 2.1;
         
-        // For each row
-        for (let y = -radius; y <= radius; y++) {
+        // Reduce the vertical range by adjusting the y-bounds
+        for (let y = -Math.floor(radius/aspectRatio); y <= Math.floor(radius/aspectRatio); y++) {
             let row = '';
-            // For each column
             for (let x = -radius; x <= radius; x++) {
-                // Adjust for aspect ratio
                 const normalizedX = x;
                 const normalizedY = y * aspectRatio;
                 
-                // Calculate distance from center
                 const distance = Math.sqrt(normalizedX * normalizedX + normalizedY * normalizedY);
                 
-                // If point is within circle radius
                 if (distance <= radius) {
-                    // Calculate angle in degrees
                     let angle = Math.atan2(normalizedY, normalizedX) * (180 / Math.PI);
-                    // Adjust angle to be 0-360
                     angle = angle < 0 ? angle + 360 : angle;
                     
-                    // Find which segment this angle belongs to
                     const segment = this.segments.find(seg => 
                         angle >= seg.startAngle && angle < seg.endAngle);
                     
@@ -98,7 +91,9 @@ ${legendRows.join('\n')}
                     row += ' ';
                 }
             }
-            rows.push(row);
+            if (row.trim()) {  // Only add rows that have content
+                rows.push(row);
+            }
         }
         
         return rows;

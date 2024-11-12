@@ -21,8 +21,32 @@ import (
 // Web Interface Handlers
 
 // handleIndex serves the main web interface page
-// Displays current statistics and historical data for pastes and URLs
 func (s *Server) handleIndex(c *fiber.Ctx) error {
+	// Generate retention data
+	retentionStats, err := utils.GenerateRetentionData(int64(s.config.Server.MaxUploadSize))
+	if err != nil {
+		s.logger.Error("failed to generate retention data", zap.Error(err))
+		// Continue with empty retention data
+	}
+
+	noKeyHistory, _ := json.Marshal(retentionStats.Data["noKey"])
+	withKeyHistory, _ := json.Marshal(retentionStats.Data["withKey"])
+
+	return c.Render("index", fiber.Map{
+		"retention": fiber.Map{
+			"noKey":          retentionStats.NoKeyRange,
+			"withKey":        retentionStats.WithKeyRange,
+			"maxSize":        humanize.IBytes(uint64(s.config.Server.MaxUploadSize)),
+			"noKeyHistory":   string(noKeyHistory),
+			"withKeyHistory": string(withKeyHistory),
+		},
+		"baseUrl": s.config.Server.BaseURL,
+	}, "layouts/main")
+}
+
+// handleStats serves the statistics page
+// Displays current statistics and historical data for pastes and URLs
+func (s *Server) handleStats(c *fiber.Ctx) error {
 	// Get current stats
 	var totalPastes, totalUrls int64
 	s.db.Model(&models.Paste{}).Count(&totalPastes)
@@ -35,21 +59,12 @@ func (s *Server) handleIndex(c *fiber.Ctx) error {
 		// Continue without history
 	}
 
-	// Generate retention data
-	retentionStats, err := utils.GenerateRetentionData(int64(s.config.Server.MaxUploadSize))
-	if err != nil {
-		s.logger.Error("failed to generate retention data", zap.Error(err))
-		// Continue with empty retention data
-	}
-
 	// Convert data to JSON strings
 	pastesHistory, _ := json.Marshal(history.Pastes)
 	urlsHistory, _ := json.Marshal(history.URLs)
 	storageHistory, _ := json.Marshal(history.Storage)
-	noKeyHistory, _ := json.Marshal(retentionStats.Data["noKey"])
-	withKeyHistory, _ := json.Marshal(retentionStats.Data["withKey"])
 
-	return c.Render("index", fiber.Map{
+	return c.Render("stats", fiber.Map{
 		"stats": fiber.Map{
 			"pastes":         totalPastes,
 			"urls":           totalUrls,
@@ -57,13 +72,6 @@ func (s *Server) handleIndex(c *fiber.Ctx) error {
 			"pastesHistory":  string(pastesHistory),
 			"urlsHistory":    string(urlsHistory),
 			"storageHistory": string(storageHistory),
-		},
-		"retention": fiber.Map{
-			"noKey":          retentionStats.NoKeyRange,
-			"withKey":        retentionStats.WithKeyRange,
-			"maxSize":        humanize.IBytes(uint64(s.config.Server.MaxUploadSize)),
-			"noKeyHistory":   string(noKeyHistory),
-			"withKeyHistory": string(withKeyHistory),
 		},
 		"baseUrl": s.config.Server.BaseURL,
 	}, "layouts/main")
@@ -279,6 +287,15 @@ func (s *Server) handleURLShorten(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusForbidden, "API key does not allow URL shortening")
 	}
 
+	// Get content type, removing any charset suffix
+	contentType := strings.Split(c.Get("Content-Type"), ";")[0]
+	if contentType != "application/json" {
+		return fiber.NewError(
+			fiber.StatusBadRequest,
+			"Content-Type must be application/json",
+		)
+	}
+
 	var req struct {
 		URL       string `json:"url"`
 		Title     string `json:"title"`
@@ -286,13 +303,16 @@ func (s *Server) handleURLShorten(c *fiber.Ctx) error {
 	}
 
 	if err := c.BodyParser(&req); err != nil {
+		s.logger.Error("failed to parse request body",
+			zap.Error(err),
+			zap.String("body", string(c.Body())))
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid JSON")
 	}
 
-	// Add in handleURLShorten before creating shortlink
-	if err := s.rateLimiter.Allow(apiKey.Key); err != nil {
-		return fiber.NewError(fiber.StatusTooManyRequests, "Rate limit exceeded")
-	}
+	s.logger.Info("received shortlink request",
+		zap.String("url", req.URL),
+		zap.String("title", req.Title),
+		zap.String("expires_in", req.ExpiresIn))
 
 	shortlink, err := s.createShortlink(req.URL, &ShortlinkOptions{
 		Title:     req.Title,
@@ -300,12 +320,22 @@ func (s *Server) handleURLShorten(c *fiber.Ctx) error {
 		APIKey:    apiKey,
 	})
 	if err != nil {
+		s.logger.Error("failed to create shortlink",
+			zap.Error(err),
+			zap.String("url", req.URL))
 		return err
 	}
 
+	s.logger.Info("created shortlink",
+		zap.String("id", shortlink.ID),
+		zap.String("target_url", shortlink.TargetURL))
+
+	response := shortlink.ToResponse()
+	s.addBaseURLToPasteResponse(response)
+
 	return c.JSON(fiber.Map{
 		"success": true,
-		"data":    shortlink.ToResponse(),
+		"data":    response,
 	})
 }
 
@@ -491,13 +521,13 @@ func (s *Server) handleRequestAPIKey(c *fiber.Ctx) error {
 		)
 	}
 
-	ip := c.IP()
-	if err := s.rateLimiter.Allow(fmt.Sprintf("api_key_request:%s", ip)); err != nil {
-		return fiber.NewError(
-			fiber.StatusTooManyRequests,
-			"Please wait before requesting another API key",
-		)
-	}
+	// ip := c.IP()
+	// if err := s.rateLimiter.Allow(fmt.Sprintf("api_key_request:%s", ip)); err != nil {
+	// 	return fiber.NewError(
+	// 		fiber.StatusTooManyRequests,
+	// 		"Please wait before requesting another API key",
+	// 	)
+	// }
 
 	var req struct {
 		Email string `json:"email" validate:"required,email"`
@@ -508,15 +538,47 @@ func (s *Server) handleRequestAPIKey(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
 	}
 
-	// Check if email is already in use
+	// Check if email already has a verified key
 	var existingKey models.APIKey
 	err := s.db.Where("email = ? AND verified = ?", req.Email, true).
 		First(&existingKey).Error
+
+	// If user exists, create a temporary verification for key reset
 	if err == nil {
-		return fiber.NewError(
-			fiber.StatusConflict,
-			"An API key already exists for this email address",
-		)
+		// Create temporary verification record
+		tempKey := models.NewAPIKey()
+		tempKey.Email = req.Email
+		tempKey.Name = req.Name
+		tempKey.VerifyToken = utils.GenerateID(64)
+		tempKey.VerifyExpiry = time.Now().Add(24 * time.Hour)
+		tempKey.IsReset = true // Add this field to APIKey model
+
+		if err := s.db.Create(tempKey).Error; err != nil {
+			s.logger.Error("failed to create temporary verification",
+				zap.String("email", req.Email),
+				zap.Error(err))
+			return fiber.NewError(
+				fiber.StatusInternalServerError,
+				"Failed to process request",
+			)
+		}
+
+		// Send verification email
+		if err := s.mailer.SendVerification(req.Email, tempKey.VerifyToken); err != nil {
+			s.logger.Error("failed to send verification email",
+				zap.String("email", req.Email),
+				zap.Error(err))
+			s.db.Delete(tempKey)
+			return fiber.NewError(
+				fiber.StatusInternalServerError,
+				"Failed to send verification email",
+			)
+		}
+
+		return c.JSON(fiber.Map{
+			"success": true,
+			"message": "Please check your email to verify your key reset request",
+		})
 	}
 
 	// Create API key with verification token
@@ -561,23 +623,49 @@ func (s *Server) handleRequestAPIKey(c *fiber.Ctx) error {
 func (s *Server) handleVerifyAPIKey(c *fiber.Ctx) error {
 	token := c.Params("token")
 
-	var apiKey models.APIKey
+	var tempKey models.APIKey
 	err := s.db.Where("verify_token = ? AND verify_expiry > ? AND verified = ?",
-		token, time.Now(), false).First(&apiKey).Error
+		token, time.Now(), false).First(&tempKey).Error
 
 	if err != nil {
 		return fiber.NewError(fiber.StatusNotFound, "Invalid or expired verification token")
 	}
 
+	// Handle key reset case
+	if tempKey.IsReset {
+		// Find the existing verified key
+		var existingKey models.APIKey
+		err := s.db.Where("email = ? AND verified = ? AND is_reset = ?",
+			tempKey.Email, true, false).First(&existingKey).Error
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Failed to process key reset")
+		}
+
+		// Update existing key with new credentials
+		existingKey.Key = models.GenerateAPIKey()
+		if err := s.db.Save(&existingKey).Error; err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Failed to reset API key")
+		}
+
+		// Delete the temporary verification record
+		s.db.Delete(&tempKey)
+
+		return c.Render("verify_success", fiber.Map{
+			"apiKey":  existingKey.Key,
+			"baseUrl": s.config.Server.BaseURL,
+			"reset":   true,
+		}, "layouts/main")
+	}
+
 	// Activate the key
-	apiKey.Verified = true
-	apiKey.VerifyToken = ""
-	if err := s.db.Save(&apiKey).Error; err != nil {
+	tempKey.Verified = true
+	tempKey.VerifyToken = ""
+	if err := s.db.Save(&tempKey).Error; err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to verify API key")
 	}
 
 	return c.Render("verify_success", fiber.Map{
-		"apiKey":  apiKey.Key,
+		"apiKey":  tempKey.Key,
 		"baseUrl": s.config.Server.BaseURL,
 	}, "layouts/main")
 }
@@ -593,9 +681,34 @@ func (s *Server) handleView(c *fiber.Ctx) error {
 
 	// Try shortlink first
 	if shortlink, err := s.findShortlink(id); err == nil {
+		// Log initial state
+		s.logger.Info("shortlink found",
+			zap.String("id", id),
+			zap.String("original_url", shortlink.TargetURL))
+
 		// Update click stats asynchronously
 		go s.updateShortlinkStats(shortlink, c)
-		return c.Redirect(shortlink.TargetURL, fiber.StatusTemporaryRedirect)
+
+		// Clean and validate the URL
+		targetURL := strings.TrimSpace(shortlink.TargetURL)
+		s.logger.Info("cleaned url",
+			zap.String("id", id),
+			zap.String("cleaned_url", targetURL))
+
+		// Ensure URL has a protocol
+		if !strings.Contains(targetURL, "://") {
+			targetURL = "https://" + targetURL
+			s.logger.Info("added protocol",
+				zap.String("id", id),
+				zap.String("final_url", targetURL))
+		}
+
+		// Log final redirect attempt
+		s.logger.Info("attempting redirect",
+			zap.String("id", id),
+			zap.String("redirect_url", targetURL))
+
+		return c.Redirect(targetURL, fiber.StatusFound)
 	}
 
 	// Try paste
@@ -812,7 +925,10 @@ func (s *Server) addBaseURLToPasteResponse(response fiber.Map) {
 	for key, value := range response {
 		if strValue, ok := value.(string); ok {
 			if strings.HasSuffix(key, "url") {
-				response[key] = baseURL + strValue
+				// Skip if the URL already has a protocol
+				if !strings.Contains(strValue, "://") {
+					response[key] = baseURL + strValue
+				}
 			}
 		}
 	}

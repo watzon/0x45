@@ -43,7 +43,7 @@ func (s *Shortlink) BeforeCreate(tx *gorm.DB) error {
 }
 
 func (s *Shortlink) ToResponse() fiber.Map {
-	return fiber.Map{
+	response := fiber.Map{
 		"id":         s.ID,
 		"url":        s.TargetURL,
 		"title":      s.Title,
@@ -51,6 +51,15 @@ func (s *Shortlink) ToResponse() fiber.Map {
 		"expires_at": s.ExpiresAt,
 		"clicks":     s.Clicks,
 		"last_click": s.LastClick,
-		"delete_url": fmt.Sprintf("/delete/%s.%s", s.ID, s.DeleteKey),
 	}
+
+	// Add URL paths (similar to how Paste does it)
+	response["short_url"] = fmt.Sprintf("/%s", s.ID)
+
+	// Only include delete_url if there's a delete key
+	if s.DeleteKey != "" {
+		response["delete_url"] = fmt.Sprintf("/delete/%s/%s", s.ID, s.DeleteKey)
+	}
+
+	return response
 }
