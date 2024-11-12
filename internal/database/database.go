@@ -3,10 +3,10 @@ package database
 import (
 	"fmt"
 
+	"github.com/glebarez/sqlite"
 	"github.com/watzon/paste69/internal/config"
 	"github.com/watzon/paste69/internal/database/migrations"
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
