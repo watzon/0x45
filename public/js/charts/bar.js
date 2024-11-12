@@ -2,17 +2,29 @@ import Chart from './base.js';
 
 class AsciiBarChart extends Chart {
     constructor(data, options = {}) {
-        super(data, {
-            barChar: '█',
-            emptyChar: '░',
-            ...options
-        });
+        const mergedOptions = {
+            barChar: options.barChar || '█',
+            emptyChar: options.emptyChar || '░',
+            height: options.height || 5,
+            barWidth: options.barWidth || 12,
+            showLabels: options.showLabels !== undefined ? options.showLabels : true,
+            showDates: options.showDates !== undefined ? options.showDates : true,
+            showScale: options.showScale !== undefined ? options.showScale : true,
+            color: options.color || 'blue',
+            valueFormat: options.valueFormat || (value => value.toString()),
+            dateFormat: options.dateFormat || {
+                month: 'short',
+                day: 'numeric'
+            }
+        };
+
+        super(data, mergedOptions);
 
         this.formattedNumbers = this.data.map(d => {
             if (typeof d.value === 'string' && d.value.includes('B')) {
                 return d.value.padStart(7);
             }
-            return d.value.toString().padStart(3);
+            return this.options.valueFormat(d.value).padStart(3);
         });
         this.maxNumberWidth = Math.max(...this.formattedNumbers.map(n => n.length));
     }
@@ -72,10 +84,7 @@ class AsciiBarChart extends Chart {
     renderDates() {
         const dates = this.data.map(d => {
             const date = new Date(d.date);
-            const dateStr = date.toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric'
-            });
+            const dateStr = date.toLocaleDateString('en-US', this.options.dateFormat);
             const padding = Math.max(0, this.options.barWidth - dateStr.length);
             const leftPad = Math.floor(padding / 2);
             const rightPad = padding - leftPad;
@@ -93,7 +102,7 @@ class AsciiBarChart extends Chart {
     }
 
     wrapOutput(rows) {
-        return `<pre class="chart" data-chart-color="${this.options.color}">${rows.join('\n')}</pre>`;
+        return `<pre class="chart" data-palette="${this.options.color}">${rows.join('\n')}</pre>`;
     }
 }
 

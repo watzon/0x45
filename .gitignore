@@ -2,6 +2,7 @@
 /lib/
 /bin/
 /uploads/
+/tmp/
 *.dwarf
 *.env
 *.db

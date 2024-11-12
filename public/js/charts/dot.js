@@ -62,12 +62,10 @@ class AsciiDotChart extends Chart {
             },
             
             // Series styling
-            seriesColors: {
-                blue: 'var(--color-blue)',
-                green: 'var(--color-green)',
-                yellow: 'var(--color-yellow)',
-                ...(options.seriesColors || {})
-            },
+            series: options.series?.map(series => ({
+                ...series,
+                palette: series.palette || 'blue'
+            })) || [],
             
             // Line styling
             lineOpacity: options.lineOpacity || 0.3,
@@ -79,8 +77,7 @@ class AsciiDotChart extends Chart {
         // Process series data with colors
         this.series = this.options.series.map(series => ({
             ...series,
-            values: this.processValues(series.data),
-            color: `var(--color-${series.color})`
+            values: this.processValues(series.data)
         }));
         
         // Calculate ranges
@@ -182,7 +179,7 @@ class AsciiDotChart extends Chart {
         
         const legend = [];
         const legendItems = this.series.map(series => 
-            `<span class="chart-legend-dot" style="color: ${series.color}">${this.options.legendDotChar}</span> ${series.name}`
+            `<span class="chart-legend-dot" data-palette="${series.palette}">${this.options.legendDotChar}</span> ${series.name}`
         );
         legend.push(legendItems.join(' '.repeat(this.options.legendSpacing)));
         return legend;
@@ -203,11 +200,11 @@ class AsciiDotChart extends Chart {
             const y = Math.floor((1 - normalizedValue) * (height - 1));
             
             if (y >= 0 && y < height && x >= 0 && x < grid[0].length) {
-                // Use the color directly
-                grid[y][x] = `<span class="chart-dot" style="color: ${series.color}">${this.options.dotChar}</span>`;
+                // Update to use palette
+                grid[y][x] = `<span class="chart-dot" data-palette="${series.palette}">${this.options.dotChar}</span>`;
                 
                 if (this.options.connectLines && lastX !== null) {
-                    this.drawLine(grid, lastX, lastY, x, y, series.color);
+                    this.drawLine(grid, lastX, lastY, x, y, series.palette);
                 }
                 
                 lastX = x;
@@ -267,7 +264,7 @@ class AsciiDotChart extends Chart {
         return this.wrapOutput(rows);
     }
 
-    drawLine(grid, x1, y1, x2, y2, color) {
+    drawLine(grid, x1, y1, x2, y2, palette) {
         // Bresenham's line algorithm
         const dx = Math.abs(x2 - x1);
         const dy = Math.abs(y2 - y1);
@@ -284,8 +281,8 @@ class AsciiDotChart extends Chart {
                 currentX >= 0 && currentX < grid[0].length) {
                 // Only draw if the cell is empty
                 if (grid[currentY][currentX] === ' ') {
-                    // Update line color
-                    grid[currentY][currentX] = `<span class="chart-line" style="color: ${color}; opacity: ${this.options.lineOpacity}">${this.options.lineChar}</span>`;
+                    // Update to use palette
+                    grid[currentY][currentX] = `<span class="chart-line" data-palette="${palette}" style="opacity: ${this.options.lineOpacity}">${this.options.lineChar}</span>`;
                 }
             }
             
@@ -304,7 +301,7 @@ class AsciiDotChart extends Chart {
     }
 
     wrapOutput(rows) {
-        return `<pre class="chart" data-chart-color="${this.options.color}">${rows.join('\n')}</pre>`;
+        return `<pre class="chart">${rows.join('\n')}</pre>`;
     }
 }
 

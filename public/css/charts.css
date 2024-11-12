@@ -9,19 +9,6 @@
     animation: fadeIn 0.3s ease-out;
 }
 
-/* Color themes */
-[data-chart] {
-    color: #58a6ff;  /* Default blue */
-}
-
-[data-chart-color="green"] { 
-    color: #7ee787; 
-}
-
-[data-chart-color="yellow"] { 
-    color: #e3b341; 
-}
-
 /* Container adjustments */
 li [data-chart] {
     margin-top: 0.5em;
@@ -49,63 +36,135 @@ li:has([data-chart]) {
     color: #8b949e; /* Default color for dates and scale */
 }
 
-/* Define color schemes for all charts */
-.chart {
-    --color-blue: #58a6ff;
-    --color-green: #7ee787;
-    --color-yellow: #f1e05a;
-    --color-bright: #58a6ff;  /* Same as blue for backwards compatibility */
-    --color-dim: #0d419d;
-    --color-empty: #21262d;
+/* Base chart colors - define all available palettes */
+:root {
+    /* Blue palette */
+    --palette-blue-primary: #58a6ff;
+    --palette-blue-secondary: #0d419d;
+    --palette-blue-muted: #21262d;
+
+    /* Green palette */
+    --palette-green-primary: #7ee787;
+    --palette-green-secondary: #0f4a1c;
+    --palette-green-muted: #21262d;
+
+    /* Yellow palette */
+    --palette-yellow-primary: #f1e05a;
+    --palette-yellow-secondary: #544d20;
+    --palette-yellow-muted: #21262d;
+
+    /* Pie chart palettes */
+    --palette-pie1-primary: #58a6ff;  /* Blue */
+    --palette-pie2-primary: #7ee787;  /* Green */
+    --palette-pie3-primary: #f1e05a;  /* Yellow */
+    --palette-pie4-primary: #ff7b72;  /* Red */
+    --palette-pie5-primary: #d2a8ff;  /* Purple */
+    --palette-pie6-primary: #ffa657;  /* Orange */
+
+    /* Secondary colors for each pie segment */
+    --palette-pie1-secondary: #0d419d;
+    --palette-pie2-secondary: #0f4a1c;
+    --palette-pie3-secondary: #544d20;
+    --palette-pie4-secondary: #4d1f1c;
+    --palette-pie5-secondary: #4b2d59;
+    --palette-pie6-secondary: #4d2f1c;
+
+    /* Add new palettes here following the pattern:
+    --palette-{name}-primary: #color;
+    --palette-{name}-secondary: #color;
+    --palette-{name}-muted: #color;
+    */
 }
 
-/* Specific overrides for different color themes if needed */
-.chart[data-chart-color="blue"] {
-    --color-bright: #58a6ff;
-    --color-dim: #0d419d;
-    --color-empty: #21262d;
+/* Chart palette application */
+.chart [data-palette="blue"] {
+    --chart-primary: var(--palette-blue-primary);
+    --chart-secondary: var(--palette-blue-secondary);
+    --chart-muted: var(--palette-blue-muted);
 }
 
-.chart[data-chart-color="green"] {
-    --color-bright: #7ee787;
-    --color-dim: #0f5323;
-    --color-empty: #1f2820;
+.chart [data-palette="green"] {
+    --chart-primary: var(--palette-green-primary);
+    --chart-secondary: var(--palette-green-secondary);
+    --chart-muted: var(--palette-green-muted);
 }
 
-.chart[data-chart-color="yellow"] {
-    --color-bright: #f1e05a;
-    --color-dim: #835a00;
-    --color-empty: #2d2a17;
+.chart [data-palette="yellow"] {
+    --chart-primary: var(--palette-yellow-primary);
+    --chart-secondary: var(--palette-yellow-secondary);
+    --chart-muted: var(--palette-yellow-muted);
 }
 
-/* Color gradients */
+.chart [data-palette="pie1"] { --chart-primary: var(--palette-pie1-primary); --chart-secondary: var(--palette-pie1-secondary); }
+.chart [data-palette="pie2"] { --chart-primary: var(--palette-pie2-primary); --chart-secondary: var(--palette-pie2-secondary); }
+.chart [data-palette="pie3"] { --chart-primary: var(--palette-pie3-primary); --chart-secondary: var(--palette-pie3-secondary); }
+.chart [data-palette="pie4"] { --chart-primary: var(--palette-pie4-primary); --chart-secondary: var(--palette-pie4-secondary); }
+.chart [data-palette="pie5"] { --chart-primary: var(--palette-pie5-primary); --chart-secondary: var(--palette-pie5-secondary); }
+.chart [data-palette="pie6"] { --chart-primary: var(--palette-pie6-primary); --chart-secondary: var(--palette-pie6-secondary); }
+
+/* Chart component styles using the palette */
 .chart .chart-bar {
     color: color-mix(
         in srgb,
-        var(--color-bright),
-        var(--color-dim) calc(100% - (var(--value-intensity) * 100%))
+        var(--chart-primary),
+        var(--chart-secondary) calc(100% - (var(--value-intensity) * 100%))
     );
 }
 
 .chart .chart-bar:empty {
-    color: var(--color-empty);
+    color: var(--chart-muted);
 }
 
 .chart .chart-label {
     color: color-mix(
         in srgb,
-        var(--color-bright),
-        var(--color-dim) calc(100% - (var(--value-intensity) * 100%))
+        var(--chart-primary),
+        var(--chart-secondary) calc(100% - (var(--value-intensity) * 100%))
     );
 }
 
-/* Dot chart specific styles */
 .chart .chart-dot {
-    color: var(--color-bright);
-    opacity: 1;
+    color: var(--chart-primary);
 }
 
 .chart .chart-line {
-    color: var(--color-bright);
+    color: var(--chart-primary);
     opacity: 0.3;
+}
+
+.chart .chart-legend-dot {
+    color: var(--chart-primary);
+}
+
+/* Pie chart specific styles */
+.chart-container {
+    display: flex;
+    align-items: center;
+    gap: 2em;
+    padding: 20px 0;
+}
+
+.chart-pie {
+    flex: 0 0 auto;
+}
+
+.chart-legend {
+    flex: 1;
+    padding: 0;
+}
+
+.chart .chart-pie-segment {
+    color: var(--chart-primary);
+    display: inline-block;
+    width: 1ch;
+    height: 1.1em;
+    text-align: center;
+    line-height: 1;
+}
+
+.chart .chart-legend-item {
+    color: var(--chart-primary);
+    padding-right: 0.5em;
+    white-space: nowrap;
+    font-size: 1.2em;
 }

@@ -5,13 +5,13 @@ export function initializeCharts() {
     
     chartElements.forEach(element => {
         const historyData = element.getAttribute('data-chart-history');
+        const regularData = element.getAttribute('data-chart-data');
         const options = element.getAttribute('data-chart-options');
         
         try {
             let data = [];
             let chartOptions = {};
             
-            // Handle both history data and options data
             if (historyData) {
                 data = JSON.parse(historyData);
                 chartOptions = {
@@ -22,15 +22,18 @@ export function initializeCharts() {
                     barWidth: 12,
                     height: 5
                 };
-            } else if (options) {
-                // For dot charts with series data
-                chartOptions = JSON.parse(options);
-                data = []; // The data is contained within the series in options
+            } else if (regularData) {
+                data = JSON.parse(regularData);
+            }
+            
+            if (options) {
+                chartOptions = {
+                    ...chartOptions,
+                    ...JSON.parse(options)
+                };
             }
 
             const type = element.getAttribute('data-chart-type') || 'bar';
-            console.log('Creating chart:', { type, options: chartOptions }); // Debug log
-            
             const chart = ChartFactory.create(type, data, chartOptions);
             element.innerHTML = chart.render();
         } catch (e) {
