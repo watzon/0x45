@@ -1,4 +1,5 @@
 import Chart from './base.js';
+import Legend from './legend.js';
 
 class AsciiDotChart extends Chart {
     constructor(data, options = {}) {
@@ -86,6 +87,14 @@ class AsciiDotChart extends Chart {
         this.max = this.options.yAxis.range.max || Math.max(...allValues);
         this.min = this.options.yAxis.range.min || Math.min(...allValues);
         this.valueRange = this.max - this.min;
+
+        // Initialize legend
+        this.legend = new Legend({
+            position: options.legendPosition,
+            legendDotChar: options.legendDotChar,
+            legendSpacing: options.legendSpacing,
+            showLegend: options.showLegend
+        });
     }
 
     addYScale(grid) {
@@ -180,14 +189,12 @@ class AsciiDotChart extends Chart {
     }
 
     renderLegend() {
-        if (!this.options.showLegend) return [];
+        const legendItems = this.series.map(series => ({
+            color: series.palette,
+            text: series.name
+        }));
         
-        const legend = [];
-        const legendItems = this.series.map(series => 
-            `<span class="chart-legend-dot" data-palette="${series.palette}">${this.options.legendDotChar}</span> ${series.name}`
-        );
-        legend.push(legendItems.join(' '.repeat(this.options.legendSpacing)));
-        return legend;
+        return this.legend.render(legendItems);
     }
 
     drawSeriesLine(grid, series) {

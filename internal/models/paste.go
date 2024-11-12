@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/watzon/paste69/internal/utils"
+	"github.com/watzon/0x45/internal/config"
+	"github.com/watzon/0x45/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -24,6 +25,7 @@ type Paste struct {
 	// Storage information
 	StoragePath string `gorm:"type:varchar(512)"`
 	StorageType string `gorm:"type:varchar(32)"` // "local" or "s3"
+	StorageName string `gorm:"type:varchar(64)"` // Name of the storage config
 
 	// Access control
 	Private   bool
@@ -45,6 +47,27 @@ func (p *Paste) BeforeCreate(tx *gorm.DB) error {
 	if p.DeleteKey == "" {
 		p.DeleteKey = utils.GenerateID(32)
 	}
+
+	// If StorageName is not set, find the default storage config
+	if p.StorageName == "" {
+		var cfg config.Config
+		if err := tx.Statement.Context.Value("config").(*config.Config); err != nil {
+			return fmt.Errorf("config not found in context")
+		}
+
+		for _, storage := range cfg.Storage {
+			if storage.IsDefault {
+				p.StorageName = storage.Name
+				p.StorageType = storage.Type
+				break
+			}
+		}
+
+		if p.StorageName == "" {
+			return fmt.Errorf("no default storage configuration found")
+		}
+	}
+
 	return nil
 }
 

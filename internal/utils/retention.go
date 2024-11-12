@@ -3,6 +3,8 @@ package utils
 import (
 	"fmt"
 	"math"
+
+	"github.com/watzon/0x45/internal/config"
 )
 
 type RetentionPoint struct {
@@ -17,15 +19,16 @@ type RetentionStats struct {
 }
 
 // GenerateRetentionData creates data points for the retention curve
-func GenerateRetentionData(maxSize int64) (*RetentionStats, error) {
-	const (
-		points   = 50
-		minAge   = 30.0  // 30 days minimum
-		maxNoKey = 365.0 // 1 year without key
-		maxKey   = 730.0 // 2 years with key
-		midNoKey = 197.5 // Midpoint for no key curve
-		midKey   = 365.0 // Midpoint for key curve
-	)
+func GenerateRetentionData(maxSize int64, cfg *config.Config) (*RetentionStats, error) {
+	points := cfg.Retention.Points
+
+	// No key retention settings
+	minAgeNoKey := cfg.Retention.NoKey.MinAge
+	maxAgeNoKey := cfg.Retention.NoKey.MaxAge
+
+	// With key retention settings
+	minAgeWithKey := cfg.Retention.WithKey.MinAge
+	maxAgeWithKey := cfg.Retention.WithKey.MaxAge
 
 	data := make(map[string][]RetentionPoint)
 	data["noKey"] = make([]RetentionPoint, points+1)
@@ -35,19 +38,21 @@ func GenerateRetentionData(maxSize int64) (*RetentionStats, error) {
 		fileSize := float64(i) / float64(points) * float64(maxSize)
 		sizeRatio := fileSize / float64(maxSize)
 
-		// Calculate retention for no key
-		noKeyRetention := minAge
+		// Calculate retention for no key using a sigmoid-like curve
+		noKeyRetention := minAgeNoKey
 		if sizeRatio <= 1 {
-			noKeyRetention += (maxNoKey - minAge) * math.Pow(1-sizeRatio, 3)
+			// Use exponential decay based on file size ratio
+			noKeyRetention += (maxAgeNoKey - minAgeNoKey) * math.Pow(1-sizeRatio, 2)
 		}
-		noKeyRetention = math.Max(minAge, math.Min(maxNoKey, noKeyRetention))
+		noKeyRetention = math.Max(minAgeNoKey, math.Min(maxAgeNoKey, noKeyRetention))
 
 		// Calculate retention for with key (more generous curve)
-		withKeyRetention := minAge
+		withKeyRetention := minAgeWithKey
 		if sizeRatio <= 1 {
-			withKeyRetention += (maxKey - minAge) * math.Pow(1-sizeRatio, 3)
+			// Use a gentler exponential decay for authenticated uploads
+			withKeyRetention += (maxAgeWithKey - minAgeWithKey) * math.Pow(1-sizeRatio, 1.5)
 		}
-		withKeyRetention = math.Max(minAge, math.Min(maxKey, withKeyRetention))
+		withKeyRetention = math.Max(minAgeWithKey, math.Min(maxAgeWithKey, withKeyRetention))
 
 		// Store points
 		data["noKey"][i] = RetentionPoint{
@@ -61,8 +66,8 @@ func GenerateRetentionData(maxSize int64) (*RetentionStats, error) {
 	}
 
 	return &RetentionStats{
-		NoKeyRange:   fmt.Sprintf("%d-%d days", int(minAge), int(maxNoKey)),
-		WithKeyRange: fmt.Sprintf("%d-%d days", int(minAge), int(maxKey)),
+		NoKeyRange:   fmt.Sprintf("%.0f-%.0f days", minAgeNoKey, maxAgeNoKey),
+		WithKeyRange: fmt.Sprintf("%.0f-%.0f days", minAgeWithKey, maxAgeWithKey),
 		Data:         data,
 	}, nil
 }

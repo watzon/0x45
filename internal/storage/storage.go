@@ -27,4 +27,10 @@ type Store interface {
 
 	// Type returns the type of the storage backend
 	Type() string
+
+	// SetDefault sets the storage backend as the default
+	SetDefault() error
+
+	// IsDefault returns whether the storage backend is the default
+	IsDefault() bool
 }

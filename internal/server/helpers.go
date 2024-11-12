@@ -12,7 +12,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/gofiber/fiber/v2"
-	"github.com/watzon/paste69/internal/models"
+	"github.com/watzon/0x45/internal/models"
 	"go.uber.org/zap"
 	"golang.org/x/net/html"
 	"gorm.io/gorm"
@@ -50,6 +50,11 @@ type StatsHistory struct {
 // createPasteFromMultipart creates a new paste from a multipart file upload
 // It handles file reading, MIME type detection, and storage
 func (s *Server) createPasteFromMultipart(c *fiber.Ctx, file *multipart.FileHeader, opts *PasteOptions) (*models.Paste, error) {
+	// Add API key from context if available
+	if apiKey, ok := c.Locals("apiKey").(*models.APIKey); ok {
+		opts.APIKey = apiKey
+	}
+
 	f, err := file.Open()
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to read uploaded file")
@@ -85,6 +90,11 @@ func (s *Server) createPasteFromMultipart(c *fiber.Ctx, file *multipart.FileHead
 // createPasteFromRaw creates a new paste from raw content bytes
 // It handles MIME type detection and storage of the raw content
 func (s *Server) createPasteFromRaw(c *fiber.Ctx, content []byte, opts *PasteOptions) (*models.Paste, error) {
+	// Add API key from context if available
+	if apiKey, ok := c.Locals("apiKey").(*models.APIKey); ok {
+		opts.APIKey = apiKey
+	}
+
 	// Log the incoming content size
 	s.logger.Debug("received raw content",
 		zap.Int("content_length", len(content)),
@@ -110,6 +120,11 @@ func (s *Server) createPasteFromRaw(c *fiber.Ctx, content []byte, opts *PasteOpt
 // createPasteFromURL creates a new paste by downloading content from a URL
 // It handles HTTP fetching, MIME type detection, and storage
 func (s *Server) createPasteFromURL(c *fiber.Ctx, url string, opts *PasteOptions) (*models.Paste, error) {
+	// Add API key from context if available
+	if apiKey, ok := c.Locals("apiKey").(*models.APIKey); ok {
+		opts.APIKey = apiKey
+	}
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusBadRequest, "Failed to fetch URL")
@@ -145,8 +160,14 @@ func (s *Server) createPasteFromURL(c *fiber.Ctx, url string, opts *PasteOptions
 // createPaste is the core paste creation function used by all paste creation methods
 // It handles storage and database operations for creating a new paste
 func (s *Server) createPaste(content io.Reader, size int64, contentType string, opts *PasteOptions) (*models.Paste, error) {
+	// Get default store if no specific store is requested
+	store, storeName, err := s.storage.GetDefaultStore()
+	if err != nil {
+		return nil, fiber.NewError(fiber.StatusInternalServerError, "No storage configuration available")
+	}
+
 	// Store the file
-	storagePath, err := s.store.Save(content, opts.Filename)
+	storagePath, err := store.Save(content, opts.Filename)
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to save file")
 	}
@@ -158,6 +179,8 @@ func (s *Server) createPaste(content io.Reader, size int64, contentType string, 
 		Size:        size,
 		Extension:   opts.Extension,
 		StoragePath: storagePath,
+		StorageType: store.Type(),
+		StorageName: storeName,
 		Private:     opts.Private,
 	}
 
@@ -176,7 +199,7 @@ func (s *Server) createPaste(content io.Reader, size int64, contentType string, 
 	// Save to database
 	if err := s.db.Create(paste).Error; err != nil {
 		// Try to cleanup stored file
-		s.store.Delete(storagePath)
+		_ = store.Delete(storagePath)
 		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to save paste")
 	}
 
@@ -417,4 +440,67 @@ func (s *Server) getStatsHistory(days int) (*StatsHistory, error) {
 	}
 
 	return history, nil
+}
+
+// getStorageByFileType retrieves and categorizes storage usage by file type
+func (s *Server) getStorageByFileType() (map[string]int64, error) {
+	var results []struct {
+		MimeType  string
+		TotalSize int64
+	}
+
+	err := s.db.Model(&models.Paste{}).
+		Select("mime_type, SUM(size) as total_size").
+		Group("mime_type").
+		Find(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	categories := map[string]int64{
+		"Text":      0,
+		"Images":    0,
+		"Archives":  0,
+		"Documents": 0,
+		"Other":     0,
+	}
+
+	for _, result := range results {
+		category := categorizeMimeType(result.MimeType)
+		categories[category] += result.TotalSize
+	}
+
+	// Create a new map with only non-zero values
+	nonZeroCategories := make(map[string]int64)
+	for category, size := range categories {
+		if size > 0 {
+			nonZeroCategories[category] = size
+		}
+	}
+
+	return nonZeroCategories, nil
+}
+
+// categorizeMimeType categorizes a MIME type into one of the predefined categories
+func categorizeMimeType(mimeType string) string {
+	switch {
+	case strings.HasPrefix(mimeType, "text/"):
+		return "Text"
+	case strings.HasPrefix(mimeType, "image/"):
+		return "Images"
+	case strings.Contains(mimeType, "compressed") || strings.Contains(mimeType, "zip") || strings.Contains(mimeType, "tar"):
+		return "Archives"
+	case strings.Contains(mimeType, "pdf") || strings.Contains(mimeType, "document") || strings.Contains(mimeType, "msword"):
+		return "Documents"
+	default:
+		return "Other"
+	}
+}
+
+func (s *Server) cleanupUnverifiedKeys() {
+	if err := s.db.Where("verified = ? AND verify_expiry < ?",
+		false, time.Now()).Delete(&models.APIKey{}).Error; err != nil {
+		s.logger.Error("failed to cleanup unverified API keys", zap.Error(err))
+	}
 }

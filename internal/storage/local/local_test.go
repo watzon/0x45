@@ -13,7 +13,7 @@ import (
 func TestLocalStorage(t *testing.T) {
 	tempDir := t.TempDir()
 	baseURL := "http://localhost:3000"
-	store, err := New(tempDir, baseURL)
+	store, err := New(tempDir, baseURL, true)
 	assert.NoError(t, err)
 
 	t.Run("Save and Get", func(t *testing.T) {

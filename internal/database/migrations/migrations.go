@@ -7,7 +7,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	_ "github.com/watzon/paste69/internal/database/sqlite"
+	_ "github.com/watzon/0x45/internal/database/sqlite"
 )
 
 //go:embed *.sql

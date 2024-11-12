@@ -139,11 +139,32 @@ li:has([data-chart]) {
 /* Pie chart specific styles */
 .chart-container {
     display: flex;
-    align-items: center;
     gap: 2em;
     padding: 20px 0;
 }
 
+/* Legend positioning variants */
+.chart-container-right {
+    flex-direction: row;
+    align-items: center;
+}
+
+.chart-container-left {
+    flex-direction: row-reverse;
+    align-items: center;
+}
+
+.chart-container-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.chart-container-top {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+}
+
+/* Chart components */
 .chart-pie {
     flex: 0 0 auto;
 }
@@ -151,20 +172,18 @@ li:has([data-chart]) {
 .chart-legend {
     flex: 1;
     padding: 0;
+    white-space: pre;
 }
 
-.chart .chart-pie-segment {
-    color: var(--chart-primary);
-    display: inline-block;
-    width: 1ch;
-    height: 1.1em;
-    text-align: center;
-    line-height: 1;
-}
-
+/* Legend items */
 .chart .chart-legend-item {
     color: var(--chart-primary);
     padding-right: 0.5em;
     white-space: nowrap;
     font-size: 1.2em;
+}
+
+/* Pie chart segment colors */
+.chart .chart-pie-segment {
+    color: var(--chart-primary);
 }

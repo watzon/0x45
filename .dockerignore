@@ -1,8 +1,6 @@
 /docs/
 /lib/
 /bin/
-/.shards/
+/config/
 *.dwarf
 *.env
-config/config.yml
-uploads

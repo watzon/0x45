@@ -13,8 +13,8 @@ import (
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/dustin/go-humanize"
 	"github.com/gofiber/fiber/v2"
-	"github.com/watzon/paste69/internal/models"
-	"github.com/watzon/paste69/internal/utils"
+	"github.com/watzon/0x45/internal/models"
+	"github.com/watzon/0x45/internal/utils"
 	"go.uber.org/zap"
 )
 
@@ -22,8 +22,8 @@ import (
 
 // handleIndex serves the main web interface page
 func (s *Server) handleIndex(c *fiber.Ctx) error {
-	// Generate retention data
-	retentionStats, err := utils.GenerateRetentionData(int64(s.config.Server.MaxUploadSize))
+	// Generate retention data with config
+	retentionStats, err := utils.GenerateRetentionData(int64(s.config.Server.MaxUploadSize), s.config)
 	if err != nil {
 		s.logger.Error("failed to generate retention data", zap.Error(err))
 		// Continue with empty retention data
@@ -36,6 +36,8 @@ func (s *Server) handleIndex(c *fiber.Ctx) error {
 		"retention": fiber.Map{
 			"noKey":          retentionStats.NoKeyRange,
 			"withKey":        retentionStats.WithKeyRange,
+			"minAge":         s.config.Retention.NoKey.MinAge,
+			"maxAge":         s.config.Retention.WithKey.MaxAge,
 			"maxSize":        humanize.IBytes(uint64(s.config.Server.MaxUploadSize)),
 			"noKeyHistory":   string(noKeyHistory),
 			"withKeyHistory": string(withKeyHistory),
@@ -64,6 +66,17 @@ func (s *Server) handleStats(c *fiber.Ctx) error {
 	urlsHistory, _ := json.Marshal(history.URLs)
 	storageHistory, _ := json.Marshal(history.Storage)
 
+	// Get storage by file type data
+	storageByType, err := s.getStorageByFileType()
+	if err != nil {
+		s.logger.Error("failed to get storage by file type", zap.Error(err))
+		// Continue with empty data
+		storageByType = make(map[string]int64)
+	}
+
+	// Convert storageByType to JSON
+	storageByTypeJSON, _ := json.Marshal(storageByType)
+
 	return c.Render("stats", fiber.Map{
 		"stats": fiber.Map{
 			"pastes":         totalPastes,
@@ -72,6 +85,7 @@ func (s *Server) handleStats(c *fiber.Ctx) error {
 			"pastesHistory":  string(pastesHistory),
 			"urlsHistory":    string(urlsHistory),
 			"storageHistory": string(storageHistory),
+			"storageByType":  string(storageByTypeJSON),
 		},
 		"baseUrl": s.config.Server.BaseURL,
 	}, "layouts/main")
@@ -80,7 +94,8 @@ func (s *Server) handleStats(c *fiber.Ctx) error {
 // handleDocs serves the API documentation page
 // Shows API endpoints, usage examples, and system limits
 func (s *Server) handleDocs(c *fiber.Ctx) error {
-	retentionStats, err := utils.GenerateRetentionData(int64(s.config.Server.MaxUploadSize))
+	// Generate retention data with config
+	retentionStats, err := utils.GenerateRetentionData(int64(s.config.Server.MaxUploadSize), s.config)
 	if err != nil {
 		s.logger.Error("failed to generate retention data", zap.Error(err))
 		// Continue with empty retention data
@@ -106,6 +121,10 @@ func (s *Server) handleDocs(c *fiber.Ctx) error {
 // - application/json (JSON payload with content or URL)
 // - any other Content-Type (treated as raw content)
 func (s *Server) handleUpload(c *fiber.Ctx) error {
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
+
 	// Get content type, removing any charset suffix
 	contentType := strings.Split(c.Get("Content-Type"), ";")[0]
 
@@ -282,6 +301,10 @@ func (s *Server) handleJSONUpload(c *fiber.Ctx) error {
 //	  "expires_in": "string" // Optional
 //	}
 func (s *Server) handleURLShorten(c *fiber.Ctx) error {
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
+
 	apiKey := c.Locals("apiKey").(*models.APIKey)
 	if !apiKey.AllowShortlinks {
 		return fiber.NewError(fiber.StatusForbidden, "API key does not allow URL shortening")
@@ -377,6 +400,10 @@ func (s *Server) handleURLStats(c *fiber.Ctx) error {
 //   - limit: items per page (default: 20)
 //   - sort: sort order (default: "created_at desc")
 func (s *Server) handleListPastes(c *fiber.Ctx) error {
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
+
 	apiKey := c.Locals("apiKey").(*models.APIKey)
 
 	// Get pagination params
@@ -404,7 +431,7 @@ func (s *Server) handleListPastes(c *fiber.Ctx) error {
 	}
 
 	// Convert to response format
-	var items []fiber.Map
+	items := []fiber.Map{}
 	for _, paste := range pastes {
 		response := paste.ToResponse()
 		s.addBaseURLToPasteResponse(response)
@@ -426,6 +453,10 @@ func (s *Server) handleListPastes(c *fiber.Ctx) error {
 // Verifies API key ownership before deletion
 // Removes both storage content and database record
 func (s *Server) handleDeletePaste(c *fiber.Ctx) error {
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
+
 	id := c.Params("id")
 	apiKey := c.Locals("apiKey").(*models.APIKey)
 
@@ -441,7 +472,12 @@ func (s *Server) handleDeletePaste(c *fiber.Ctx) error {
 	}
 
 	// Delete from storage first
-	if err := s.store.Delete(paste.StoragePath); err != nil {
+	store, err := s.storage.GetStore(paste.StorageName)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to get storage")
+	}
+
+	if err := store.Delete(paste.StoragePath); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to delete paste content")
 	}
 
@@ -463,6 +499,10 @@ func (s *Server) handleDeletePaste(c *fiber.Ctx) error {
 //	  "expires_in": "string" // Required (e.g., "24h", or "never")
 //	}
 func (s *Server) handleUpdateExpiration(c *fiber.Ctx) error {
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
+
 	id := c.Params("id")
 	apiKey := c.Locals("apiKey").(*models.APIKey)
 
@@ -513,7 +553,6 @@ func (s *Server) handleUpdateExpiration(c *fiber.Ctx) error {
 
 // handleRequestAPIKey handles the initial API key request
 func (s *Server) handleRequestAPIKey(c *fiber.Ctx) error {
-	// Check if email verification is available
 	if !s.hasMailer() {
 		return fiber.NewError(
 			fiber.StatusServiceUnavailable,
@@ -521,13 +560,9 @@ func (s *Server) handleRequestAPIKey(c *fiber.Ctx) error {
 		)
 	}
 
-	// ip := c.IP()
-	// if err := s.rateLimiter.Allow(fmt.Sprintf("api_key_request:%s", ip)); err != nil {
-	// 	return fiber.NewError(
-	// 		fiber.StatusTooManyRequests,
-	// 		"Please wait before requesting another API key",
-	// 	)
-	// }
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
 
 	var req struct {
 		Email string `json:"email" validate:"required,email"`
@@ -621,6 +656,10 @@ func (s *Server) handleRequestAPIKey(c *fiber.Ctx) error {
 
 // handleVerifyAPIKey verifies the email and activates the API key
 func (s *Server) handleVerifyAPIKey(c *fiber.Ctx) error {
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
+
 	token := c.Params("token")
 
 	var tempKey models.APIKey
@@ -677,6 +716,10 @@ func (s *Server) handleVerifyAPIKey(c *fiber.Ctx) error {
 // For text content, renders with syntax highlighting
 // For other content types, redirects to download handler
 func (s *Server) handleView(c *fiber.Ctx) error {
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
+
 	id := c.Params("id")
 
 	// Try shortlink first
@@ -731,6 +774,10 @@ func (s *Server) handleView(c *fiber.Ctx) error {
 // Sets appropriate content type and cache headers
 // For text content, forces text/plain content type
 func (s *Server) handleRawView(c *fiber.Ctx) error {
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
+
 	id := c.Params("id")
 
 	paste, err := s.findPaste(id)
@@ -738,11 +785,18 @@ func (s *Server) handleRawView(c *fiber.Ctx) error {
 		return err
 	}
 
+	// Get the correct store for this paste
+	store, err := s.storage.GetStore(paste.StorageName)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Storage not found")
+	}
+
 	// Get content from storage
-	content, err := s.store.Get(paste.StoragePath)
+	content, err := store.Get(paste.StoragePath)
 	if err != nil {
 		s.logger.Error("failed to read content from storage",
 			zap.String("id", id),
+			zap.String("storage", paste.StorageName),
 			zap.Error(err),
 		)
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
@@ -777,6 +831,10 @@ func (s *Server) handleRawView(c *fiber.Ctx) error {
 // Sets Content-Disposition header for download
 // Includes original filename in download prompt
 func (s *Server) handleDownload(c *fiber.Ctx) error {
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
+
 	id := c.Params("id")
 
 	paste, err := s.findPaste(id)
@@ -784,8 +842,14 @@ func (s *Server) handleDownload(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusNotFound, "Not found")
 	}
 
+	// Get the correct store for this paste
+	store, err := s.storage.GetStore(paste.StorageName)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Storage not found")
+	}
+
 	// Get content from storage
-	content, err := s.store.Get(paste.StoragePath)
+	content, err := store.Get(paste.StoragePath)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
 	}
@@ -810,6 +874,10 @@ func (s *Server) handleDownload(c *fiber.Ctx) error {
 // No authentication required, but deletion key must match
 // Removes both storage content and database record
 func (s *Server) handleDeleteWithKey(c *fiber.Ctx) error {
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
+
 	id := c.Params("id")
 	key := c.Params("key")
 
@@ -822,8 +890,14 @@ func (s *Server) handleDeleteWithKey(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusForbidden, "Invalid delete key")
 	}
 
+	// Get the correct store for this paste
+	store, err := s.storage.GetStore(paste.StorageName)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Storage not found")
+	}
+
 	// Delete from storage first
-	if err := s.store.Delete(paste.StoragePath); err != nil {
+	if err := store.Delete(paste.StoragePath); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to delete paste content")
 	}
 
@@ -845,7 +919,12 @@ func (s *Server) handleDeleteWithKey(c *fiber.Ctx) error {
 // Supports language detection and line numbering
 func (s *Server) renderPasteView(c *fiber.Ctx, paste *models.Paste) error {
 	// Get content from storage
-	content, err := s.store.Get(paste.StoragePath)
+	store, err := s.storage.GetStore(paste.StorageName)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Storage not found")
+	}
+
+	content, err := store.Get(paste.StoragePath)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
 	}

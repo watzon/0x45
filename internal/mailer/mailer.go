@@ -6,7 +6,7 @@ import (
 	"net/smtp"
 
 	"github.com/mailgun/raymond/v2"
-	"github.com/watzon/paste69/internal/config"
+	"github.com/watzon/0x45/internal/config"
 )
 
 type Mailer struct {
@@ -53,7 +53,7 @@ func (m *Mailer) SendVerification(to, token string) error {
 	// Configure TLS
 	tlsConfig := &tls.Config{
 		ServerName:         m.config.SMTP.Host,
-		InsecureSkipVerify: !m.config.SMTP.TLSVerify,
+		InsecureSkipVerify: !m.config.SMTP.StartTLS,
 	}
 
 	// Connect to the server

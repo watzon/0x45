@@ -3,10 +3,10 @@ package main
 import (
 	"log"
 
-	"github.com/watzon/paste69/internal/config"
-	"github.com/watzon/paste69/internal/database"
-	"github.com/watzon/paste69/internal/server"
-	"github.com/watzon/paste69/internal/storage"
+	"github.com/watzon/0x45/internal/config"
+	"github.com/watzon/0x45/internal/database"
+	"github.com/watzon/0x45/internal/server"
+	"github.com/watzon/0x45/internal/storage"
 )
 
 func main() {
@@ -27,14 +27,16 @@ func main() {
 		log.Fatalf("Error running migrations: %v", err)
 	}
 
-	// Initialize storage
-	store, err := storage.NewStore(cfg)
+	// Initialize storage manager
+	storageManager, err := storage.NewStorageManager(cfg)
 	if err != nil {
-		log.Fatalf("Error initializing storage: %v", err)
+		log.Fatalf("Failed to initialize storage: %v", err)
 	}
 
+	// Initialize server with storage manager
+	srv := server.New(db, storageManager, cfg)
+
 	// Create and setup server
-	srv := server.New(db, store, cfg)
 	srv.SetupRoutes()
 
 	// Start server

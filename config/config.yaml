@@ -15,18 +15,18 @@ database:
 
 # Storage configuration
 storage:
-  # Storage backend: "local" or "s3"
-  type: local
-  
-  # Local storage configuration
-  path: ./uploads  # Local directory for file storage
-  
-  # S3 storage configuration (ignored for local storage)
-  s3_bucket: paste69-bucket
-  s3_region: us-east-1
-  s3_key: your-access-key
-  s3_secret: your-secret-key
-  s3_endpoint: https://s3.amazonaws.com  # Custom endpoint for S3-compatible services
+  - name: local
+    type: local
+    path: ./uploads
+    default: true
+    
+  - name: s3
+    type: s3
+    s3_bucket: paste69-bucket
+    s3_region: us-east-1
+    s3_key: your-access-key
+    s3_secret: your-secret-key
+    s3_endpoint: https://localhost.localstack.cloud:4566
 
 # Server configuration
 server:
@@ -38,12 +38,29 @@ server:
   
   # Maximum upload size in bytes (default: 5MB)
   max_upload_size: 5242880  # 5 * 1024 * 1024
+
+  # Preforking
+  prefork: false
   
   # Rate limiting configuration
   rate_limit:
-    enabled: true
-    requests: 10    # Number of requests
-    duration: 60    # Time window in seconds
+    # Global rate limit (across all IPs)
+    global:
+      enabled: true  # Enable/disable global rate limiting
+      rate: 100.0   # Requests per second
+      burst: 50     # Maximum burst size
+    
+    # Per-IP rate limit
+    per_ip:
+      enabled: true # Enable/disable per-IP rate limiting
+      rate: 1.0    # Requests per second per IP
+      burst: 5     # Maximum burst size
+    
+    # Use Redis for rate limiting if it's available (required for prefork)
+    use_redis: true
+
+    # How often to clean up inactive IP limiters
+    ip_cleanup_interval: 1h
   
   # Security settings
   security:
@@ -51,10 +68,10 @@ server:
     cors_origins: ["*"]
     cors_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     
-    # # HTTPS/TLS configuration
-    # tls_enabled: false
-    # cert_file: ./certs/cert.pem
-    # key_file: ./certs/key.pem
+    # HTTPS/TLS configuration
+    tls_enabled: false
+    cert_file: ./certs/cert.pem
+    key_file: ./certs/key.pem
   
   # Logging configuration
   logging:
@@ -87,3 +104,20 @@ features:
   syntax_highlighting: true
   api_keys: true
   base_url: http://localhost:3000 
+
+# Redis configuration
+redis:
+  enabled: true
+  address: localhost:6379
+  password: ""
+  db: 0
+
+# Retention configuration
+retention:
+  no_key:
+    min_age: 15.0    # Minimum retention in days
+    max_age: 365.0  # Maximum retention in days (1 year)
+  with_key:
+    min_age: 30.0    # Minimum retention in days
+    max_age: 730.0   # Maximum retention in days (2 years)
+  points: 50         # Number of points to generate for the curve

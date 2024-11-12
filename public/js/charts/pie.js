@@ -1,4 +1,5 @@
 import Chart from './base.js';
+import Legend from './legend.js';
 
 class AsciiPieChart extends Chart {
     constructor(data, options = {}) {
@@ -6,7 +7,8 @@ class AsciiPieChart extends Chart {
             width: options.width || 19,
             dotChar: '•',
             legendChar: '■',
-            colors: ['pie1', 'pie2', 'pie3', 'pie4', 'pie5', 'pie6']
+            colors: ['pie1', 'pie2', 'pie3', 'pie4', 'pie5', 'pie6'],
+            legendPosition: options.legendPosition || 'right'
         };
 
         // Transform object data into array format if needed
@@ -17,7 +19,26 @@ class AsciiPieChart extends Chart {
         super(processedData, mergedOptions);
         
         this.total = this.values.reduce((sum, val) => sum + val, 0);
-        this.segments = this.calculateSegments();
+        
+        // Handle empty or zero-sum data
+        if (this.total === 0) {
+            this.segments = [{
+                label: 'No Data',
+                value: 1,
+                percentage: 100,
+                startAngle: 0,
+                endAngle: 360,
+                color: this.options.colors[0]
+            }];
+        } else {
+            this.segments = this.calculateSegments();
+        }
+
+        this.legend = new Legend({
+            position: mergedOptions.legendPosition,
+            legendDotChar: mergedOptions.legendChar,
+            showLegend: options.showLegend
+        });
     }
 
     processValues() {
@@ -55,7 +76,7 @@ class AsciiPieChart extends Chart {
         const legendRows = this.generateLegend();
         
         return this.wrapOutput(`
-<div class="chart-container">
+<div class="chart-container chart-container-${this.legend.options.position}">
     <div class="chart-pie">
 ${pieRows.join('\n')}
     </div>
@@ -100,11 +121,27 @@ ${legendRows.join('\n')}
     }
 
     generateLegend() {
-        return this.segments.map(segment => {
-            const percentage = segment.percentage.toFixed(1).padStart(5);
-            const value = segment.value.toString().padStart(4);
-            return `<span class="chart-legend-item" data-palette="${segment.color}">${this.options.legendChar}</span> ${percentage}% [${value}] ${segment.label}`;
-        });
+        if (this.total === 0) {
+            return this.legend.render([{
+                color: this.options.colors[0],
+                text: 'No data available'
+            }]);
+        }
+
+        const legendItems = this.segments.map(segment => ({
+            color: segment.color,
+            text: `${segment.percentage.toFixed(1).padStart(5)}% [${this.formatBytes(segment.value)}] ${segment.label}`
+        }));
+
+        return this.legend.render(legendItems);
+    }
+
+    // Helper function to format bytes into human-readable format
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
     }
 
     wrapOutput(content) {

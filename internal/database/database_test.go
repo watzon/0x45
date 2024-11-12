@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/watzon/paste69/internal/config"
-	"github.com/watzon/paste69/internal/models"
+	"github.com/watzon/0x45/internal/config"
+	"github.com/watzon/0x45/internal/models"
 )
 
 // newTestConfig returns a config suitable for testing

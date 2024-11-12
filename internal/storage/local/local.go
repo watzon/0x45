@@ -11,19 +11,21 @@ import (
 )
 
 type LocalStore struct {
-	basePath string
-	baseURL  string
+	basePath  string
+	baseURL   string
+	isDefault bool
 }
 
-func New(basePath, baseURL string) (*LocalStore, error) {
+func New(basePath, baseURL string, isDefault bool) (*LocalStore, error) {
 	// Ensure base path exists
 	if err := os.MkdirAll(basePath, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create storage directory: %w", err)
 	}
 
 	return &LocalStore{
-		basePath: basePath,
-		baseURL:  baseURL,
+		basePath:  basePath,
+		baseURL:   baseURL,
+		isDefault: isDefault,
 	}, nil
 }
 
@@ -83,6 +85,15 @@ func (s *LocalStore) SetExpiry(path string, expiry time.Time) error {
 	// Local filesystem doesn't support expiry directly
 	// This would be handled by a cleanup routine
 	return nil
+}
+
+func (s *LocalStore) SetDefault() error {
+	s.isDefault = true
+	return nil
+}
+
+func (s *LocalStore) IsDefault() bool {
+	return s.isDefault
 }
 
 func (s *LocalStore) Type() string {

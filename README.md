@@ -1,8 +1,8 @@
 # Paste69
 
-[![CI](https://github.com/watzon/paste69/actions/workflows/ci.yml/badge.svg)](https://github.com/watzon/paste69/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/watzon/paste69)](https://goreportcard.com/report/github.com/watzon/paste69)
-[![GoDoc](https://godoc.org/github.com/watzon/paste69?status.svg)](https://godoc.org/github.com/watzon/paste69)
+[![CI](https://github.com/watzon/0x45/actions/workflows/ci.yml/badge.svg)](https://github.com/watzon/0x45/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/watzon/0x45)](https://goreportcard.com/report/github.com/watzon/0x45)
+[![GoDoc](https://godoc.org/github.com/watzon/0x45?status.svg)](https://godoc.org/github.com/watzon/0x45)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A modern, Go-based pastebin service inspired by 0x0.st.
@@ -26,7 +26,7 @@ A modern, Go-based pastebin service inspired by 0x0.st.
 
 ```bash
 # Clone the repository
-git clone https://github.com/watzon/paste69
+git clone https://github.com/watzon/0x45
 cd paste69
 
 # Install dependencies

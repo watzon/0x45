@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/watzon/paste69/internal/utils"
+	"github.com/watzon/0x45/internal/utils"
 	"gorm.io/gorm"
 )
 

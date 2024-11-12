@@ -11,6 +11,7 @@ CREATE TABLE pastes (
     
     storage_path VARCHAR(512),
     storage_type VARCHAR(32),
+    storage_name VARCHAR(64),
     
     private BOOLEAN DEFAULT FALSE,
     delete_key VARCHAR(32) NOT NULL,

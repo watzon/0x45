@@ -1,9 +1,12 @@
+<section>
 <h1>Paste69</h1>
 
 <p>
-    Paste69 is a simple, fast, and secure pastebin written using Go and Fiber.
+    Paste69 is an open source pastebin, file bin, and link shortener; 
 </p>
+</section>
 
+<section>
 <h2>Usage</h2>
 <div class="code-block">
     <pre><code>curl -F 'file=@file.txt' {{baseUrl}}</code></pre>
@@ -35,7 +38,9 @@
     View detailed statistics at:
     <a href="{{baseUrl}}/stats">{{baseUrl}}/stats</a>
 </p>
+</section>
 
+<section>
 <h2>File Retention</h2>
 
 <p>
@@ -74,10 +79,11 @@
                   "label": "Days",
                   "points": 3,
                   "range": {
-                      "min": 30,
-                      "max": 730
+                      "min": {{retention.minAge}},
+                      "max": {{retention.maxAge}}
                   }
               }
           }'>
     </span>
 </div>
+</section>

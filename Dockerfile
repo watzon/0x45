@@ -36,7 +36,6 @@ RUN mkdir -p /app/data
 COPY --from=builder /app/paste69 .
 
 # Copy config and views
-COPY config/config.yaml ./config/
 COPY views ./views
 COPY public ./public
 

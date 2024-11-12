@@ -1,12 +1,3 @@
 {
-    "crystal-lang.mainFile": "${workspaceRoot}/src/main.cr",
-    "sqltools.connections": [
-        {
-            "previewLimit": 50,
-            "driver": "SQLite",
-            "name": "paste69",
-            "database": "${workspaceFolder:0x45}/paste69.db"
-        }
-    ],
-    "sqltools.useNodeRuntime": true
+
 }
