@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -42,13 +43,26 @@ type Paste struct {
 // BeforeCreate generates ID and DeleteKey if not set
 func (p *Paste) BeforeCreate(tx *gorm.DB) error {
 	if p.ID == "" {
-		p.ID = utils.GenerateID(8) // We'll implement this in utils
+		p.ID = utils.GenerateID(8)
 	}
 	if p.DeleteKey == "" {
 		p.DeleteKey = utils.GenerateID(32)
 	}
 
-	// If StorageName is not set, find the default storage config
+	// Handle file extension
+	// If Extension is not explicitly set, try to get it from filename
+	if p.Extension == "" && p.Filename != "" {
+		// Split filename by dots and get the last part
+		parts := strings.Split(p.Filename, ".")
+		if len(parts) > 1 {
+			p.Extension = parts[len(parts)-1]
+		}
+	}
+
+	// Clean the extension (remove any leading dots and whitespace)
+	p.Extension = strings.TrimSpace(strings.TrimPrefix(p.Extension, "."))
+
+	// Storage configuration handling
 	if p.StorageName == "" {
 		var cfg config.Config
 		if err := tx.Statement.Context.Value("config").(*config.Config); err != nil {
@@ -83,10 +97,15 @@ func (p *Paste) ToResponse() fiber.Map {
 		"private":    p.Private,
 	}
 
-	// Add URL paths
-	response["url"] = fmt.Sprintf("/%s", p.ID)
-	response["raw_url"] = fmt.Sprintf("/raw/%s", p.ID)
-	response["download_url"] = fmt.Sprintf("/download/%s", p.ID)
+	// Add URL paths with extension if available
+	urlSuffix := p.ID
+	if p.Extension != "" {
+		urlSuffix = p.ID + "." + p.Extension
+	}
+
+	response["url"] = fmt.Sprintf("/%s", urlSuffix)
+	response["raw_url"] = fmt.Sprintf("/raw/%s", urlSuffix)
+	response["download_url"] = fmt.Sprintf("/download/%s", urlSuffix)
 
 	// Only include delete_url if there's a delete key
 	if p.DeleteKey != "" {

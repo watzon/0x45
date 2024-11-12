@@ -146,8 +146,11 @@ func (s *Server) SetupRoutes() {
 	s.app.Get("/stats", s.handleStats)
 	s.app.Post("/", s.auth.Auth(false), s.handleUpload)
 	s.app.All("/delete/:id/:key", s.handleDeleteWithKey)
+	s.app.Get("/download/:id.:ext", s.handleDownload)
 	s.app.Get("/download/:id", s.handleDownload)
+	s.app.Get("/raw/:id.:ext", s.handleRawView)
 	s.app.Get("/raw/:id", s.handleRawView)
+	s.app.Get("/:id.:ext", s.handleView)
 	s.app.Get("/:id", s.handleView)
 }
 

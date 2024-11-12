@@ -720,38 +720,41 @@ func (s *Server) handleView(c *fiber.Ctx) error {
 		return err
 	}
 
-	id := c.Params("id")
+	id := getPasteID(c)
+	hasExtension := c.Params("ext") != ""
 
-	// Try shortlink first
-	if shortlink, err := s.findShortlink(id); err == nil {
-		// Log initial state
-		s.logger.Info("shortlink found",
-			zap.String("id", id),
-			zap.String("original_url", shortlink.TargetURL))
-
-		// Update click stats asynchronously
-		go s.updateShortlinkStats(shortlink, c)
-
-		// Clean and validate the URL
-		targetURL := strings.TrimSpace(shortlink.TargetURL)
-		s.logger.Info("cleaned url",
-			zap.String("id", id),
-			zap.String("cleaned_url", targetURL))
-
-		// Ensure URL has a protocol
-		if !strings.Contains(targetURL, "://") {
-			targetURL = "https://" + targetURL
-			s.logger.Info("added protocol",
+	// Only check for shortlink if there's no extension
+	if !hasExtension {
+		if shortlink, err := s.findShortlink(id); err == nil {
+			// Log initial state
+			s.logger.Info("shortlink found",
 				zap.String("id", id),
-				zap.String("final_url", targetURL))
+				zap.String("original_url", shortlink.TargetURL))
+
+			// Update click stats asynchronously
+			go s.updateShortlinkStats(shortlink)
+
+			// Clean and validate the URL
+			targetURL := strings.TrimSpace(shortlink.TargetURL)
+			s.logger.Info("cleaned url",
+				zap.String("id", id),
+				zap.String("cleaned_url", targetURL))
+
+			// Ensure URL has a protocol
+			if !strings.Contains(targetURL, "://") {
+				targetURL = "https://" + targetURL
+				s.logger.Info("added protocol",
+					zap.String("id", id),
+					zap.String("final_url", targetURL))
+			}
+
+			// Log final redirect attempt
+			s.logger.Info("attempting redirect",
+				zap.String("id", id),
+				zap.String("redirect_url", targetURL))
+
+			return c.Redirect(targetURL, fiber.StatusFound)
 		}
-
-		// Log final redirect attempt
-		s.logger.Info("attempting redirect",
-			zap.String("id", id),
-			zap.String("redirect_url", targetURL))
-
-		return c.Redirect(targetURL, fiber.StatusFound)
 	}
 
 	// Try paste
@@ -763,11 +766,116 @@ func (s *Server) handleView(c *fiber.Ctx) error {
 	c.Set("Cache-Control", "public, max-age=300") // Cache for 5 minutes
 
 	// Handle view based on content type
-	if isTextContent(paste.MimeType) {
+	switch {
+	case isTextContent(paste.MimeType):
 		return s.renderPasteView(c, paste)
+	case isImageContent(paste.MimeType):
+		return s.renderRawContent(c, paste)
+	default:
+		return c.Redirect("/download/"+id, fiber.StatusTemporaryRedirect)
+	}
+}
+
+// renderPasteView renders the paste view for text content
+// Includes syntax highlighting using Chroma
+// Supports language detection and line numbering
+func (s *Server) renderPasteView(c *fiber.Ctx, paste *models.Paste) error {
+	// Get content from storage
+	store, err := s.storage.GetStore(paste.StorageName)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Storage not found")
 	}
 
-	return c.Redirect("/download/"+id, fiber.StatusTemporaryRedirect)
+	content, err := store.Get(paste.StoragePath)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
+	}
+	defer content.Close()
+
+	// Read all content
+	data, err := io.ReadAll(content)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
+	}
+
+	// Get lexer based on extension or mime type
+	lexer := lexers.Get(paste.Extension)
+	if lexer == nil {
+		// Try to match by filename
+		lexer = lexers.Match(paste.Filename)
+		if lexer == nil {
+			// Try to analyze content
+			lexer = lexers.Analyse(string(data))
+			if lexer == nil {
+				lexer = lexers.Fallback
+			}
+		}
+	}
+	lexer = chroma.Coalesce(lexer)
+
+	// Create formatter without classes (will use inline styles)
+	formatter := html.New(
+		html.WithLineNumbers(true),
+		html.WithLinkableLineNumbers(true, ""),
+		html.TabWidth(4),
+	)
+
+	// Use gruvbox style (dark theme that matches our UI)
+	style := styles.Get("gruvbox")
+	if style == nil {
+		style = styles.Fallback
+	}
+
+	// Generate highlighted HTML
+	var highlightedContent strings.Builder
+	iterator, err := lexer.Tokenise(nil, string(data))
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to tokenize content")
+	}
+
+	err = formatter.Format(&highlightedContent, style, iterator)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to format content")
+	}
+
+	return c.Render("paste", fiber.Map{
+		"id":       paste.ID,
+		"filename": paste.Filename,
+		"content":  highlightedContent.String(),
+		"language": lexer.Config().Name,
+		"created":  paste.CreatedAt.Format(time.RFC3339),
+		"expires":  paste.ExpiresAt,
+		"baseUrl":  s.config.Server.BaseURL,
+	}, "layouts/main")
+}
+
+// renderRawContent serves the raw content with proper content type
+// Used for displaying images and other browser-viewable content
+func (s *Server) renderRawContent(c *fiber.Ctx, paste *models.Paste) error {
+	// Get the correct store for this paste
+	store, err := s.storage.GetStore(paste.StorageName)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Storage not found")
+	}
+
+	// Get content from storage
+	content, err := store.Get(paste.StoragePath)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
+	}
+	defer content.Close()
+
+	// Set appropriate headers
+	c.Set("Content-Type", paste.MimeType)
+	c.Set("Content-Length", fmt.Sprintf("%d", paste.Size))
+
+	// Read and send the content
+	data, err := io.ReadAll(content)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
+	}
+
+	return c.Send(data)
 }
 
 // handleRawView serves the raw content of a paste
@@ -778,7 +886,7 @@ func (s *Server) handleRawView(c *fiber.Ctx) error {
 		return err
 	}
 
-	id := c.Params("id")
+	id := getPasteID(c)
 
 	paste, err := s.findPaste(id)
 	if err != nil {
@@ -835,7 +943,7 @@ func (s *Server) handleDownload(c *fiber.Ctx) error {
 		return err
 	}
 
-	id := c.Params("id")
+	id := getPasteID(c)
 
 	paste, err := s.findPaste(id)
 	if err != nil {
@@ -914,78 +1022,6 @@ func (s *Server) handleDeleteWithKey(c *fiber.Ctx) error {
 
 // Helper Functions
 
-// renderPasteView renders the paste view for text content
-// Includes syntax highlighting using Chroma
-// Supports language detection and line numbering
-func (s *Server) renderPasteView(c *fiber.Ctx, paste *models.Paste) error {
-	// Get content from storage
-	store, err := s.storage.GetStore(paste.StorageName)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Storage not found")
-	}
-
-	content, err := store.Get(paste.StoragePath)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
-	}
-	defer content.Close()
-
-	// Read all content
-	data, err := io.ReadAll(content)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
-	}
-
-	// Get lexer based on extension or mime type
-	lexer := lexers.Get(paste.Extension)
-	if lexer == nil {
-		// Try to match by filename
-		lexer = lexers.Match(paste.Filename)
-		if lexer == nil {
-			// Try to analyze content
-			lexer = lexers.Analyse(string(data))
-			if lexer == nil {
-				lexer = lexers.Fallback
-			}
-		}
-	}
-	lexer = chroma.Coalesce(lexer)
-
-	// Create formatter without classes (will use inline styles)
-	formatter := html.New(
-		html.WithLineNumbers(true),
-		html.WithLinkableLineNumbers(true, ""),
-		html.TabWidth(4),
-	)
-
-	// Use gruvbox style (dark theme that matches our UI)
-	style := styles.Get("gruvbox")
-	if style == nil {
-		style = styles.Fallback
-	}
-
-	// Generate highlighted HTML
-	var highlightedContent strings.Builder
-	iterator, err := lexer.Tokenise(nil, string(data))
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to tokenize content")
-	}
-
-	err = formatter.Format(&highlightedContent, style, iterator)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to format content")
-	}
-
-	return c.Render("paste", fiber.Map{
-		"id":       paste.ID,
-		"filename": paste.Filename,
-		"content":  highlightedContent.String(),
-		"language": lexer.Config().Name,
-		"created":  paste.CreatedAt.Format(time.RFC3339),
-		"expires":  paste.ExpiresAt,
-	}, "layouts/main")
-}
-
 // getStorageSize returns total size of stored files in bytes
 // Calculated as sum of all paste sizes in database
 func (s *Server) getStorageSize() uint64 {
@@ -1011,4 +1047,14 @@ func (s *Server) addBaseURLToPasteResponse(response fiber.Map) {
 			}
 		}
 	}
+}
+
+// Helper function to extract paste ID from params
+func getPasteID(c *fiber.Ctx) string {
+	id := c.Params("id")
+	// If the ID includes an extension, remove it
+	if ext := c.Params("ext"); ext != "" {
+		return strings.TrimSuffix(id, "."+ext)
+	}
+	return id
 }

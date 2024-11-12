@@ -355,7 +355,7 @@ func (s *Server) findShortlink(id string) (*models.Shortlink, error) {
 
 // updateShortlinkStats increments the click count and updates last click time
 // for a given shortlink
-func (s *Server) updateShortlinkStats(shortlink *models.Shortlink, c *fiber.Ctx) {
+func (s *Server) updateShortlinkStats(shortlink *models.Shortlink) {
 	now := time.Now()
 	s.db.Model(shortlink).Updates(map[string]interface{}{
 		"clicks":     gorm.Expr("clicks + 1"),
