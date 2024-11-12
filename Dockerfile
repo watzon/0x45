@@ -29,6 +29,9 @@ RUN apk add --no-cache ca-certificates tzdata sqlite
 WORKDIR /app
 RUN mkdir -p /app/uploads
 
+# Create data directory for postgres
+RUN mkdir -p /app/data
+
 # Copy binary from builder
 COPY --from=builder /app/paste69 .
 
