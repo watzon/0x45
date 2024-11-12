@@ -181,5 +181,34 @@ func Load() (*Config, error) {
 		config.Database.SSLMode,
 	)
 
+	// Add support for multiple storage backends via environment variables
+	const maxStorageBackends = 10 // reasonable limit
+	storageConfigs := []StorageConfig{}
+
+	for i := 0; i < maxStorageBackends; i++ {
+		prefix := fmt.Sprintf("STORAGE_%d_", i)
+
+		// Check if this storage backend is configured
+		if name := viper.GetString(prefix + "NAME"); name != "" {
+			storage := StorageConfig{
+				Name:       name,
+				Type:       viper.GetString(prefix + "TYPE"),
+				IsDefault:  viper.GetBool(prefix + "DEFAULT"),
+				Path:       viper.GetString(prefix + "PATH"),
+				S3Bucket:   viper.GetString(prefix + "S3_BUCKET"),
+				S3Region:   viper.GetString(prefix + "S3_REGION"),
+				S3Key:      viper.GetString(prefix + "S3_KEY"),
+				S3Secret:   viper.GetString(prefix + "S3_SECRET"),
+				S3Endpoint: viper.GetString(prefix + "S3_ENDPOINT"),
+			}
+			storageConfigs = append(storageConfigs, storage)
+		}
+	}
+
+	// If no storage configs were found in env vars, use the default from viper
+	if len(storageConfigs) > 0 {
+		config.Storage = storageConfigs
+	}
+
 	return &config, nil
 }

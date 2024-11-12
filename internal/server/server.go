@@ -178,8 +178,12 @@ func (s *Server) Start(addr string) error {
 			defer ticker.Stop()
 
 			for range ticker.C {
-				s.cleanupUnverifiedKeys()
-				s.cleanupExpiredContent()
+				s.logger.Info("running cleanup")
+				unverifiedKeys := s.cleanupUnverifiedKeys()
+				expiredContent := s.cleanupExpiredContent()
+				s.logger.Info("cleanup completed",
+					zap.Int64("unverified_keys", unverifiedKeys),
+					zap.Int64("expired_content", expiredContent))
 			}
 		}()
 	}

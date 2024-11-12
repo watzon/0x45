@@ -492,20 +492,19 @@ func categorizeMimeType(mimeType string) string {
 	}
 }
 
-func (s *Server) cleanupUnverifiedKeys() {
-	if err := s.db.Where("verified = ? AND verify_expiry < ?",
-		false, time.Now()).Delete(&models.APIKey{}).Error; err != nil {
-		s.logger.Error("failed to cleanup unverified API keys", zap.Error(err))
-	}
+func (s *Server) cleanupUnverifiedKeys() int64 {
+	count := s.db.Where("verified = ? AND verify_expiry < ?",
+		false, time.Now()).Delete(&models.APIKey{}).RowsAffected
+	return count
 }
 
 // cleanupExpiredContent removes expired pastes and their associated files
-func (s *Server) cleanupExpiredContent() {
+func (s *Server) cleanupExpiredContent() int64 {
 	// Parse max age duration
 	maxAge, err := time.ParseDuration(s.config.Server.Cleanup.MaxAge)
 	if err != nil {
 		s.logger.Error("failed to parse cleanup max age", zap.Error(err))
-		return
+		return 0
 	}
 
 	// Find expired pastes
@@ -513,7 +512,7 @@ func (s *Server) cleanupExpiredContent() {
 	if err := s.db.Where("expires_at < ? OR (expires_at IS NULL AND created_at < ?)",
 		time.Now(), time.Now().Add(-maxAge)).Find(&expiredPastes).Error; err != nil {
 		s.logger.Error("failed to find expired pastes", zap.Error(err))
-		return
+		return 0
 	}
 
 	// Delete each expired paste
@@ -550,4 +549,6 @@ func (s *Server) cleanupExpiredContent() {
 
 	s.logger.Info("cleanup completed",
 		zap.Int("pastes_cleaned", len(expiredPastes)))
+
+	return int64(len(expiredPastes))
 }
