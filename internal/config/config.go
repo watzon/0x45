@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -99,16 +98,70 @@ func Load() (*Config, error) {
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./config")
 
-	// Set defaults AFTER binding environment variables
-	viper.SetDefault("database.driver", "sqlite")
-	viper.SetDefault("database.host", "localhost") // Add default host
-	viper.SetDefault("database.port", 5432)        // Add default port
-	viper.SetDefault("database.user", "")          // Add default user
-	viper.SetDefault("database.password", "")      // Add default password
-	viper.SetDefault("database.name", "paste69.db")
-	viper.SetDefault("database.sslmode", "disable") // Add default sslmode
+	// Database bindings
+	viper.BindEnv("database.driver", "0X_DATABASE_DRIVER")
+	viper.BindEnv("database.host", "0X_DATABASE_HOST")
+	viper.BindEnv("database.port", "0X_DATABASE_PORT")
+	viper.BindEnv("database.user", "0X_DATABASE_USER")
+	viper.BindEnv("database.password", "0X_DATABASE_PASSWORD")
+	viper.BindEnv("database.name", "0X_DATABASE_NAME")
+	viper.BindEnv("database.sslmode", "0X_DATABASE_SSLMODE")
 
-	// SMTP defaults
+	// Server bindings
+	viper.BindEnv("server.address", "0X_SERVER_ADDRESS")
+	viper.BindEnv("server.base_url", "0X_SERVER_BASE_URL")
+	viper.BindEnv("server.max_upload_size", "0X_SERVER_MAX_UPLOAD_SIZE")
+	viper.BindEnv("server.prefork", "0X_SERVER_PREFORK")
+	viper.BindEnv("server.server_header", "0X_SERVER_SERVER_HEADER")
+	viper.BindEnv("server.app_name", "0X_SERVER_APP_NAME")
+
+	// Server cleanup bindings
+	viper.BindEnv("server.cleanup.enabled", "0X_SERVER_CLEANUP_ENABLED")
+	viper.BindEnv("server.cleanup.interval", "0X_SERVER_CLEANUP_INTERVAL")
+	viper.BindEnv("server.cleanup.max_age", "0X_SERVER_CLEANUP_MAX_AGE")
+
+	// Rate limit bindings
+	viper.BindEnv("server.rate_limit.global.enabled", "0X_SERVER_RATE_LIMIT_GLOBAL_ENABLED")
+	viper.BindEnv("server.rate_limit.global.rate", "0X_SERVER_RATE_LIMIT_GLOBAL_RATE")
+	viper.BindEnv("server.rate_limit.global.burst", "0X_SERVER_RATE_LIMIT_GLOBAL_BURST")
+	viper.BindEnv("server.rate_limit.per_ip.enabled", "0X_SERVER_RATE_LIMIT_PER_IP_ENABLED")
+	viper.BindEnv("server.rate_limit.per_ip.rate", "0X_SERVER_RATE_LIMIT_PER_IP_RATE")
+	viper.BindEnv("server.rate_limit.per_ip.burst", "0X_SERVER_RATE_LIMIT_PER_IP_BURST")
+	viper.BindEnv("server.rate_limit.use_redis", "0X_SERVER_RATE_LIMIT_USE_REDIS")
+	viper.BindEnv("server.rate_limit.ip_cleanup_interval", "0X_SERVER_RATE_LIMIT_IP_CLEANUP_INTERVAL")
+
+	// SMTP bindings
+	viper.BindEnv("smtp.enabled", "0X_SMTP_ENABLED")
+	viper.BindEnv("smtp.host", "0X_SMTP_HOST")
+	viper.BindEnv("smtp.port", "0X_SMTP_PORT")
+	viper.BindEnv("smtp.username", "0X_SMTP_USERNAME")
+	viper.BindEnv("smtp.password", "0X_SMTP_PASSWORD")
+	viper.BindEnv("smtp.from", "0X_SMTP_FROM")
+	viper.BindEnv("smtp.from_name", "0X_SMTP_FROM_NAME")
+	viper.BindEnv("smtp.starttls", "0X_SMTP_STARTTLS")
+
+	// Redis bindings
+	viper.BindEnv("redis.enabled", "0X_REDIS_ENABLED")
+	viper.BindEnv("redis.address", "0X_REDIS_ADDRESS")
+	viper.BindEnv("redis.password", "0X_REDIS_PASSWORD")
+	viper.BindEnv("redis.db", "0X_REDIS_DB")
+
+	// Retention bindings
+	viper.BindEnv("retention.no_key.min_age", "0X_RETENTION_NO_KEY_MIN_AGE")
+	viper.BindEnv("retention.no_key.max_age", "0X_RETENTION_NO_KEY_MAX_AGE")
+	viper.BindEnv("retention.with_key.min_age", "0X_RETENTION_WITH_KEY_MIN_AGE")
+	viper.BindEnv("retention.with_key.max_age", "0X_RETENTION_WITH_KEY_MAX_AGE")
+	viper.BindEnv("retention.points", "0X_RETENTION_POINTS")
+
+	// Now set defaults
+	viper.SetDefault("database.driver", "sqlite")
+	viper.SetDefault("database.host", "localhost")
+	viper.SetDefault("database.port", 5432)
+	viper.SetDefault("database.user", "")
+	viper.SetDefault("database.password", "")
+	viper.SetDefault("database.name", "paste69.db")
+	viper.SetDefault("database.sslmode", "disable")
+
 	viper.SetDefault("smtp.enabled", false)
 	viper.SetDefault("smtp.port", 587)
 	viper.SetDefault("smtp.starttls", true)
@@ -133,7 +186,6 @@ func Load() (*Config, error) {
 	viper.SetDefault("server.cleanup.interval", 3600)
 	viper.SetDefault("server.cleanup.max_age", "168h")
 
-	// Rate limiting defaults
 	viper.SetDefault("server.rate_limit.global.enabled", true) // Enable global rate limiting by default
 	viper.SetDefault("server.rate_limit.global.rate", 100.0)   // 100 requests per second globally
 	viper.SetDefault("server.rate_limit.global.burst", 50)     // Allow bursts of up to 50 requests
@@ -143,22 +195,16 @@ func Load() (*Config, error) {
 	viper.SetDefault("server.rate_limit.use_redis", false)     // Use Redis for rate limiting if it's available (required for prefork)
 	viper.SetDefault("server.rate_limit.ip_cleanup_interval", "1h")
 
-	// Redis defaults
 	viper.SetDefault("redis.enabled", false)
 	viper.SetDefault("redis.address", "localhost:6379")
 	viper.SetDefault("redis.password", "")
 	viper.SetDefault("redis.db", 0)
 
-	// Set retention defaults
 	viper.SetDefault("retention.no_key.min_age", 7.0)     // 7 days minimum
 	viper.SetDefault("retention.no_key.max_age", 128.0)   // 128 days without key
 	viper.SetDefault("retention.with_key.min_age", 30.0)  // 30 days minimum
 	viper.SetDefault("retention.with_key.max_age", 730.0) // 2 years with key
 	viper.SetDefault("retention.points", 50)              // Number of points to generate
-
-	viper.AutomaticEnv()
-	viper.SetEnvPrefix("0X_")
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
@@ -171,16 +217,6 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("error unmarshaling config: %w", err)
 	}
 
-	// Debug output
-	fmt.Printf("Database Config: driver=%s host=%s port=%d user=%s dbname=%s sslmode=%s\n",
-		config.Database.Driver,
-		config.Database.Host,
-		config.Database.Port,
-		config.Database.User,
-		config.Database.Name,
-		config.Database.SSLMode,
-	)
-
 	// Add support for multiple storage backends via environment variables
 	const maxStorageBackends = 10 // reasonable limit
 	storageConfigs := []StorageConfig{}
@@ -188,18 +224,29 @@ func Load() (*Config, error) {
 	for i := 0; i < maxStorageBackends; i++ {
 		prefix := fmt.Sprintf("STORAGE_%d_", i)
 
+		// Bind storage config environment variables
+		viper.BindEnv(fmt.Sprintf("storage.%d.name", i), "0X_"+prefix+"NAME")
+		viper.BindEnv(fmt.Sprintf("storage.%d.type", i), "0X_"+prefix+"TYPE")
+		viper.BindEnv(fmt.Sprintf("storage.%d.default", i), "0X_"+prefix+"DEFAULT")
+		viper.BindEnv(fmt.Sprintf("storage.%d.path", i), "0X_"+prefix+"PATH")
+		viper.BindEnv(fmt.Sprintf("storage.%d.s3_bucket", i), "0X_"+prefix+"S3_BUCKET")
+		viper.BindEnv(fmt.Sprintf("storage.%d.s3_region", i), "0X_"+prefix+"S3_REGION")
+		viper.BindEnv(fmt.Sprintf("storage.%d.s3_key", i), "0X_"+prefix+"S3_KEY")
+		viper.BindEnv(fmt.Sprintf("storage.%d.s3_secret", i), "0X_"+prefix+"S3_SECRET")
+		viper.BindEnv(fmt.Sprintf("storage.%d.s3_endpoint", i), "0X_"+prefix+"S3_ENDPOINT")
+
 		// Check if this storage backend is configured
-		if name := viper.GetString(prefix + "NAME"); name != "" {
+		if name := viper.GetString(fmt.Sprintf("storage.%d.name", i)); name != "" {
 			storage := StorageConfig{
 				Name:       name,
-				Type:       viper.GetString(prefix + "TYPE"),
-				IsDefault:  viper.GetBool(prefix + "DEFAULT"),
-				Path:       viper.GetString(prefix + "PATH"),
-				S3Bucket:   viper.GetString(prefix + "S3_BUCKET"),
-				S3Region:   viper.GetString(prefix + "S3_REGION"),
-				S3Key:      viper.GetString(prefix + "S3_KEY"),
-				S3Secret:   viper.GetString(prefix + "S3_SECRET"),
-				S3Endpoint: viper.GetString(prefix + "S3_ENDPOINT"),
+				Type:       viper.GetString(fmt.Sprintf("storage.%d.type", i)),
+				IsDefault:  viper.GetBool(fmt.Sprintf("storage.%d.default", i)),
+				Path:       viper.GetString(fmt.Sprintf("storage.%d.path", i)),
+				S3Bucket:   viper.GetString(fmt.Sprintf("storage.%d.s3_bucket", i)),
+				S3Region:   viper.GetString(fmt.Sprintf("storage.%d.s3_region", i)),
+				S3Key:      viper.GetString(fmt.Sprintf("storage.%d.s3_key", i)),
+				S3Secret:   viper.GetString(fmt.Sprintf("storage.%d.s3_secret", i)),
+				S3Endpoint: viper.GetString(fmt.Sprintf("storage.%d.s3_endpoint", i)),
 			}
 			storageConfigs = append(storageConfigs, storage)
 		}
@@ -209,6 +256,9 @@ func Load() (*Config, error) {
 	if len(storageConfigs) > 0 {
 		config.Storage = storageConfigs
 	}
+
+	baseURL := config.Server.BaseURL
+	fmt.Println("baseURL", baseURL)
 
 	return &config, nil
 }

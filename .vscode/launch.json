@@ -8,7 +8,6 @@
             "mode": "debug",
             "program": "${workspaceFolder}/cmd/server/main.go",
             "cwd": "${workspaceFolder}",
-            "env": {},
             "args": []
         }
     ]
