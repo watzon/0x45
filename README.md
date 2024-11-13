@@ -4,8 +4,8 @@
     <img src="https://github.com/watzon/0x45/blob/main/public/images/0x45-og.png?raw=true" alt="0x45">
 </div>
 
-[![CI](https://github.com/watzon/0x45/actions/workflows/ci.yml/badge.svg)](https://github.com/watzon/0x45/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/watzon/0x45)](https://goreportcard.com/report/github.com/watzon/0x45)
+[![Docker Image Version](https://ghcr-badge.egpl.dev/watzon/0x45/latest_tag?trim=major&label=latest+image&ignore=sha256*)](https://github.com/watzon/0x45/pkgs/container/0x45)
 [![GoDoc](https://godoc.org/github.com/watzon/0x45?status.svg)](https://godoc.org/github.com/watzon/0x45)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
