@@ -251,27 +251,33 @@ func (s *Server) handleUpload(c *fiber.Ctx) error {
 }
 
 // handleMultipartUpload processes multipart form file uploads
-// Accepts: multipart/form-data with 'file' field
-// Optional query params: ext, expires, private, filename
 func (s *Server) handleMultipartUpload(c *fiber.Ctx) error {
 	file, err := c.FormFile("file")
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "No file provided")
 	}
 
-	// Get optional parameters
-	extension := c.Query("ext")
-	expiresIn := c.Query("expires")
-	private := c.QueryBool("private", false)
-	filename := c.Query("filename", file.Filename)
+	// Read file content
+	f, err := file.Open()
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read uploaded file")
+	}
+	defer f.Close()
 
-	// Create paste
-	paste, err := s.createPasteFromMultipart(c, file, &PasteOptions{
-		Extension: extension,
-		ExpiresIn: expiresIn,
-		Private:   private,
-		Filename:  filename,
-	})
+	content, err := io.ReadAll(f)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read upload")
+	}
+
+	req := &UploadRequest{
+		Content:   content,
+		Filename:  c.Query("filename", file.Filename),
+		Extension: c.Query("ext"),
+		ExpiresIn: c.Query("expires"),
+		Private:   c.QueryBool("private", false),
+	}
+
+	paste, err := s.processUpload(c, req)
 	if err != nil {
 		return err
 	}
@@ -285,36 +291,23 @@ func (s *Server) handleMultipartUpload(c *fiber.Ctx) error {
 	})
 }
 
-// handleRawUpload handles raw body uploads (direct file content)
-// Accepts: any content type
-// Optional query params: ext, expires, private, filename
-// Content-Type header is used for mime-type detection
+// handleRawUpload handles raw body uploads
 func (s *Server) handleRawUpload(c *fiber.Ctx) error {
 	content := c.Body()
 	if len(content) == 0 {
 		return fiber.NewError(fiber.StatusBadRequest, "Empty content")
 	}
 
-	// Get optional parameters
-	extension := c.Query("ext")
-	expiresIn := c.Query("expires")
-	private := c.QueryBool("private", false)
-	filename := c.Query("filename", "paste")
-
-	// Get API key if present (make it optional)
-	var apiKey *models.APIKey
-	if key := c.Locals("apiKey"); key != nil {
-		apiKey = key.(*models.APIKey)
+	req := &UploadRequest{
+		Content:     content,
+		Filename:    c.Query("filename", "paste"),
+		Extension:   c.Query("ext"),
+		ExpiresIn:   c.Query("expires"),
+		Private:     c.QueryBool("private", false),
+		ContentType: c.Get("Content-Type"),
 	}
 
-	// Create paste from raw content
-	paste, err := s.createPasteFromRaw(c, content, &PasteOptions{
-		Extension: extension,
-		ExpiresIn: expiresIn,
-		Private:   private,
-		Filename:  filename,
-		APIKey:    apiKey, // This can now be nil
-	})
+	paste, err := s.processUpload(c, req)
 	if err != nil {
 		return err
 	}
@@ -329,18 +322,8 @@ func (s *Server) handleRawUpload(c *fiber.Ctx) error {
 }
 
 // handleJSONUpload handles JSON payload uploads
-// Accepts: application/json with structure:
-//
-//	{
-//	  "content": "string",    // Required if url not provided
-//	  "url": "string",        // Required if content not provided
-//	  "filename": "string",   // Optional
-//	  "extension": "string",  // Optional
-//	  "expires_in": "string", // Optional (e.g., "24h")
-//	  "private": boolean      // Optional
-//	}
 func (s *Server) handleJSONUpload(c *fiber.Ctx) error {
-	var req struct {
+	var jsonReq struct {
 		Content   string `json:"content"`
 		URL       string `json:"url"`
 		Filename  string `json:"filename"`
@@ -349,32 +332,20 @@ func (s *Server) handleJSONUpload(c *fiber.Ctx) error {
 		Private   bool   `json:"private"`
 	}
 
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.BodyParser(&jsonReq); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid JSON")
 	}
 
-	// Get API key if present
-	apiKey, _ := c.Locals("apiKey").(*models.APIKey)
-
-	opts := &PasteOptions{
-		Extension: req.Extension,
-		ExpiresIn: req.ExpiresIn,
-		Private:   req.Private,
-		Filename:  req.Filename,
-		APIKey:    apiKey,
+	req := &UploadRequest{
+		Content:   []byte(jsonReq.Content),
+		URL:       jsonReq.URL,
+		Filename:  jsonReq.Filename,
+		Extension: jsonReq.Extension,
+		ExpiresIn: jsonReq.ExpiresIn,
+		Private:   jsonReq.Private,
 	}
 
-	var paste *models.Paste
-	var err error
-
-	if req.URL != "" {
-		paste, err = s.createPasteFromURL(c, req.URL, opts)
-	} else if req.Content != "" {
-		paste, err = s.createPasteFromRaw(c, []byte(req.Content), opts)
-	} else {
-		return fiber.NewError(fiber.StatusBadRequest, "Either content or URL must be provided")
-	}
-
+	paste, err := s.processUpload(c, req)
 	if err != nil {
 		return err
 	}

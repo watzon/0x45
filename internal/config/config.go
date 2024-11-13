@@ -19,77 +19,88 @@ type StorageConfig struct {
 	S3Endpoint string `mapstructure:"s3_endpoint"`
 }
 
+type DatabaseConfig struct {
+	Driver   string `mapstructure:"driver"`
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	User     string `mapstructure:"user"`
+	Password string `mapstructure:"password"`
+	Name     string `mapstructure:"name"`
+	SSLMode  string `mapstructure:"sslmode"`
+}
+
+type CleanupConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	Interval int    `mapstructure:"interval"` // in seconds
+	MaxAge   string `mapstructure:"max_age"`  // duration string (e.g., "168h")
+}
+
+type GlobalRateLimitConfig struct {
+	Enabled bool    `mapstructure:"enabled"` // Enable global rate limiting
+	Rate    float64 `mapstructure:"rate"`    // Requests per second
+	Burst   int     `mapstructure:"burst"`   // Maximum burst size
+}
+
+type PerIPRateLimitConfig struct {
+	Enabled bool    `mapstructure:"enabled"` // Enable per-IP rate limiting
+	Rate    float64 `mapstructure:"rate"`    // Requests per second per IP
+	Burst   int     `mapstructure:"burst"`   // Maximum burst size
+}
+
+type RateLimitConfig struct {
+	Global            GlobalRateLimitConfig `mapstructure:"global"`
+	PerIP             PerIPRateLimitConfig  `mapstructure:"per_ip"`
+	UseRedis          bool                  `mapstructure:"use_redis"`           // Use Redis for rate limiting if it's available (required for prefork)
+	IPCleanupInterval time.Duration         `mapstructure:"ip_cleanup_interval"` // Duration string (e.g., "1h")
+}
+
+type ServerConfig struct {
+	Address       string          `mapstructure:"address"`
+	BaseURL       string          `mapstructure:"base_url"`
+	MaxUploadSize int             `mapstructure:"max_upload_size"`
+	Prefork       bool            `mapstructure:"prefork"`
+	ServerHeader  string          `mapstructure:"server_header"`
+	AppName       string          `mapstructure:"app_name"`
+	Cleanup       CleanupConfig   `mapstructure:"cleanup"`
+	RateLimit     RateLimitConfig `mapstructure:"rate_limit"`
+}
+
+type SMTPConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+	From     string `mapstructure:"from"`
+	FromName string `mapstructure:"from_name"`
+	StartTLS bool   `mapstructure:"starttls"`
+}
+
+type RedisConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	Address  string `mapstructure:"address"`
+	Password string `mapstructure:"password"`
+	DB       int    `mapstructure:"db"`
+}
+
+type RetentionLimitConfig struct {
+	MinAge float64 `mapstructure:"min_age"`
+	MaxAge float64 `mapstructure:"max_age"`
+}
+
+type RetentionConfig struct {
+	NoKey   RetentionLimitConfig `mapstructure:"no_key"`
+	WithKey RetentionLimitConfig `mapstructure:"with_key"`
+	Points  int                  `mapstructure:"points"` // Number of points to generate for the curve
+}
+
 type Config struct {
-	Database struct {
-		Driver   string `mapstructure:"driver"`
-		Host     string `mapstructure:"host"`
-		Port     int    `mapstructure:"port"`
-		User     string `mapstructure:"user"`
-		Password string `mapstructure:"password"`
-		Name     string `mapstructure:"name"`
-		SSLMode  string `mapstructure:"sslmode"`
-	} `mapstructure:"database"`
-
-	Storage []StorageConfig `mapstructure:"storage"`
-
-	Server struct {
-		Address       string `mapstructure:"address"`
-		BaseURL       string `mapstructure:"base_url"`
-		MaxUploadSize int    `mapstructure:"max_upload_size"`
-		Prefork       bool   `mapstructure:"prefork"`
-		ServerHeader  string `mapstructure:"server_header"`
-		AppName       string `mapstructure:"app_name"`
-		Cleanup       struct {
-			Enabled  bool   `mapstructure:"enabled"`
-			Interval int    `mapstructure:"interval"` // in seconds
-			MaxAge   string `mapstructure:"max_age"`  // duration string (e.g., "168h")
-		} `mapstructure:"cleanup"`
-		RateLimit struct {
-			Global struct {
-				Enabled bool    `mapstructure:"enabled"` // Enable global rate limiting
-				Rate    float64 `mapstructure:"rate"`    // Requests per second
-				Burst   int     `mapstructure:"burst"`   // Maximum burst size
-			} `mapstructure:"global"`
-			PerIP struct {
-				Enabled bool    `mapstructure:"enabled"` // Enable per-IP rate limiting
-				Rate    float64 `mapstructure:"rate"`    // Requests per second per IP
-				Burst   int     `mapstructure:"burst"`   // Maximum burst size
-			} `mapstructure:"per_ip"`
-			UseRedis          bool          `mapstructure:"use_redis"`           // Use Redis for rate limiting if it's available (required for prefork)
-			IPCleanupInterval time.Duration `mapstructure:"ip_cleanup_interval"` // Duration string (e.g., "1h")
-		} `mapstructure:"rate_limit"`
-	} `mapstructure:"server"`
-
-	// Add SMTP configuration
-	SMTP struct {
-		Enabled  bool   `mapstructure:"enabled"`
-		Host     string `mapstructure:"host"`
-		Port     int    `mapstructure:"port"`
-		Username string `mapstructure:"username"`
-		Password string `mapstructure:"password"`
-		From     string `mapstructure:"from"`
-		FromName string `mapstructure:"from_name"`
-		StartTLS bool   `mapstructure:"starttls"`
-	} `mapstructure:"smtp"`
-
-	Redis struct {
-		Enabled  bool   `mapstructure:"enabled"`
-		Address  string `mapstructure:"address"`
-		Password string `mapstructure:"password"`
-		DB       int    `mapstructure:"db"`
-	} `mapstructure:"redis"`
-
-	Retention struct {
-		NoKey struct {
-			MinAge float64 `mapstructure:"min_age"` // Minimum retention in days
-			MaxAge float64 `mapstructure:"max_age"` // Maximum retention in days
-		} `mapstructure:"no_key"`
-		WithKey struct {
-			MinAge float64 `mapstructure:"min_age"`
-			MaxAge float64 `mapstructure:"max_age"`
-		} `mapstructure:"with_key"`
-		Points int `mapstructure:"points"` // Number of points to generate for the curve
-	} `mapstructure:"retention"`
+	Database  DatabaseConfig  `mapstructure:"database"`
+	Storage   []StorageConfig `mapstructure:"storage"`
+	Server    ServerConfig    `mapstructure:"server"`
+	SMTP      SMTPConfig      `mapstructure:"smtp"`
+	Redis     RedisConfig     `mapstructure:"redis"`
+	Retention RetentionConfig `mapstructure:"retention"`
 }
 
 func Load() (*Config, error) {

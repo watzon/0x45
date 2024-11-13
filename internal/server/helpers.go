@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/gofiber/fiber/v2"
+	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/models"
 	"go.uber.org/zap"
 	"golang.org/x/net/html"
@@ -22,7 +24,7 @@ import (
 // PasteOptions contains configuration options for creating a new paste
 type PasteOptions struct {
 	Extension string         // File extension (optional)
-	ExpiresIn string         // Duration string for paste expiry (e.g. "24h")
+	ExpiresAt *time.Time     // Expiration time for the paste
 	Private   bool           // Whether the paste is private
 	Filename  string         // Original filename
 	APIKey    *models.APIKey // Associated API key for authentication
@@ -50,6 +52,62 @@ type StatsHistory struct {
 	APIKeys    []ChartDataPoint
 	Extensions []ChartDataPoint // Top extensions per day
 	ErrorRates []ChartDataPoint // If we add error tracking
+}
+
+// UploadRequest represents a unified structure for all upload types
+type UploadRequest struct {
+	Content     []byte // Raw content bytes
+	Filename    string // Original filename
+	Extension   string // File extension
+	ExpiresIn   string // Expiration duration
+	Private     bool   // Privacy flag
+	ContentType string // MIME type
+	URL         string // Optional URL for URL-based uploads
+}
+
+// processUpload handles the common upload logic for all upload types
+func (s *Server) processUpload(c *fiber.Ctx, req *UploadRequest) (*models.Paste, error) {
+	// Get API key if present
+	var apiKey *models.APIKey
+	if key := c.Locals("apiKey"); key != nil {
+		apiKey = key.(*models.APIKey)
+	}
+
+	// Calculate expiration time
+	expiryTime, err := s.calculateExpiry(ExpiryOptions{
+		Size:            int64(len(req.Content)),
+		HasAPIKey:       apiKey != nil,
+		RequestedExpiry: req.ExpiresIn,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Create paste with calculated expiry
+	var paste *models.Paste
+	if req.URL != "" {
+		paste, err = s.createPasteFromURL(c, req.URL, &PasteOptions{
+			Extension: req.Extension,
+			ExpiresAt: expiryTime, // Use calculated expiry
+			Private:   req.Private,
+			Filename:  req.Filename,
+			APIKey:    apiKey,
+		})
+	} else {
+		paste, err = s.createPasteFromRaw(c, req.Content, &PasteOptions{
+			Extension: req.Extension,
+			ExpiresAt: expiryTime, // Use calculated expiry
+			Private:   req.Private,
+			Filename:  req.Filename,
+			APIKey:    apiKey,
+		})
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return paste, nil
 }
 
 // createPasteFromMultipart creates a new paste from a multipart file upload
@@ -193,12 +251,8 @@ func (s *Server) createPaste(content io.Reader, size int64, contentType string, 
 		paste.APIKey = opts.APIKey.Key
 	}
 
-	if opts.ExpiresIn != "" {
-		expiry, err := time.ParseDuration(opts.ExpiresIn)
-		if err == nil {
-			expiryTime := time.Now().Add(expiry)
-			paste.ExpiresAt = &expiryTime
-		}
+	if opts.ExpiresAt != nil {
+		paste.ExpiresAt = opts.ExpiresAt
 	}
 
 	// Save to database
@@ -562,14 +616,40 @@ func (s *Server) cleanupExpiredContent() int64 {
 
 	// Find expired pastes
 	var expiredPastes []models.Paste
-	if err := s.db.Where("expires_at < ? OR (expires_at IS NULL AND created_at < ?)",
+	if err := s.db.Where("expires_at < ? OR created_at < ?",
 		time.Now(), time.Now().Add(-maxAge)).Find(&expiredPastes).Error; err != nil {
 		s.logger.Error("failed to find expired pastes", zap.Error(err))
 		return 0
 	}
 
-	// Delete each expired paste
+	// For pastes without explicit expiry, check retention rules
+	var pastesToDelete []models.Paste
 	for _, paste := range expiredPastes {
+		if paste.ExpiresAt != nil {
+			// Paste has explicit expiry and is expired
+			pastesToDelete = append(pastesToDelete, paste)
+			continue
+		}
+
+		// Calculate retention based on paste properties
+		expiryTime, err := s.calculateExpiry(ExpiryOptions{
+			Size:      paste.Size,
+			HasAPIKey: paste.APIKey != "",
+		})
+		if err != nil {
+			s.logger.Error("failed to calculate paste retention",
+				zap.String("id", paste.ID),
+				zap.Error(err))
+			continue
+		}
+
+		if expiryTime != nil && time.Now().After(*expiryTime) {
+			pastesToDelete = append(pastesToDelete, paste)
+		}
+	}
+
+	// Delete expired pastes
+	for _, paste := range pastesToDelete {
 		// Get the storage backend
 		store, err := s.storage.GetStore(paste.StorageName)
 		if err != nil {
@@ -601,7 +681,82 @@ func (s *Server) cleanupExpiredContent() int64 {
 	}
 
 	s.logger.Info("cleanup completed",
-		zap.Int("pastes_cleaned", len(expiredPastes)))
+		zap.Int("pastes_cleaned", len(pastesToDelete)))
 
-	return int64(len(expiredPastes))
+	return int64(len(pastesToDelete))
+}
+
+// ExpiryOptions contains parameters for calculating paste expiration
+type ExpiryOptions struct {
+	Size            int64  // File size in bytes
+	HasAPIKey       bool   // Whether the paste is being created with an API key
+	RequestedExpiry string // User-requested expiry duration (optional)
+}
+
+// calculateExpiry determines the appropriate expiration time for a paste
+func (s *Server) calculateExpiry(opts ExpiryOptions) (*time.Time, error) {
+	// If explicit expiry is requested, validate it
+	if opts.RequestedExpiry != "" {
+		if opts.RequestedExpiry == "never" {
+			// Only API keys can set permanent pastes
+			if !opts.HasAPIKey {
+				return nil, fiber.NewError(fiber.StatusBadRequest, "Permanent pastes require an API key")
+			}
+			return nil, nil
+		}
+
+		// Parse and validate the requested duration
+		duration, err := time.ParseDuration(opts.RequestedExpiry)
+		if err != nil {
+			return nil, fiber.NewError(fiber.StatusBadRequest, "Invalid expiration format")
+		}
+
+		// Calculate maximum allowed retention based on file size
+		maxRetention := s.calculateMaxRetention(opts.Size, opts.HasAPIKey)
+
+		// Convert maxRetention (days) to duration
+		maxDuration := time.Duration(int(maxRetention) * 24 * int(time.Hour))
+
+		// Ensure requested duration doesn't exceed maximum
+		if duration > maxDuration {
+			return nil, fiber.NewError(fiber.StatusBadRequest,
+				fmt.Sprintf("Maximum allowed expiry for this file size is %.1f days", maxRetention))
+		}
+
+		expiryTime := time.Now().Add(duration)
+		return &expiryTime, nil
+	}
+
+	// If no explicit expiry is set, calculate based on retention rules
+	maxRetention := s.calculateMaxRetention(opts.Size, opts.HasAPIKey)
+	expiryTime := time.Now().Add(time.Duration(maxRetention*24) * time.Hour)
+	return &expiryTime, nil
+}
+
+// calculateMaxRetention determines the maximum retention period in days
+func (s *Server) calculateMaxRetention(size int64, hasAPIKey bool) float64 {
+	// Get retention limits based on API key status
+	var retention config.RetentionLimitConfig
+	if hasAPIKey {
+		retention = s.config.Retention.WithKey
+	} else {
+		retention = s.config.Retention.NoKey
+	}
+
+	// Calculate retention based on file size ratio
+	sizeRatio := float64(size) / float64(s.config.Server.MaxUploadSize)
+	maxRetention := retention.MinAge
+
+	if sizeRatio <= 1 {
+		if hasAPIKey {
+			// Gentler curve for authenticated users
+			maxRetention += (retention.MaxAge - retention.MinAge) * math.Pow(1-sizeRatio, 1.5)
+		} else {
+			// Steeper curve for anonymous users
+			maxRetention += (retention.MaxAge - retention.MinAge) * math.Pow(1-sizeRatio, 2)
+		}
+	}
+
+	// Ensure retention stays within configured bounds
+	return math.Max(retention.MinAge, math.Min(retention.MaxAge, maxRetention))
 }
