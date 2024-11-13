@@ -4,32 +4,77 @@
 
 <h1>Paste69 Statistics</h1>
 
-<h2>Stats</h2>
+<h2>Overview</h2>
 <h3>Total Pastes:</h3>
 <div class="chart">
-    <span data-chart data-chart-type="bar" data-chart-history='{{stats.pastesHistory}}' 
-          data-chart-options='{"color": "blue", "height": 5, "barWidth": 12}'>{{stats.pastes}}</span>
+    <span data-chart data-chart-type="bar" data-chart-history='{{stats.pastesHistory}}'
+        data-chart-options='{"color": "blue", "height": 5, "barWidth": 12}'>{{stats.pastes}}</span>
 </div>
 
 <h3>Total URLs:</h3>
 <div class="chart">
     <span data-chart data-chart-type="bar" data-chart-history='{{stats.urlsHistory}}'
-          data-chart-options='{"color": "green", "height": 5, "barWidth": 12}'>{{stats.urls}}</span>
+        data-chart-options='{"color": "green", "height": 5, "barWidth": 12}'>{{stats.urls}}</span>
 </div>
 
-<h3>Files Stored:</h3>
+<h3>Storage Used:</h3>
 <div class="chart">
     <span data-chart data-chart-type="bar" data-chart-history='{{stats.storageHistory}}'
-          data-chart-options='{"color": "yellow", "height": 5, "barWidth": 12}'>{{stats.storage}}</span>
+        data-chart-options='{"color": "yellow", "height": 5, "barWidth": 12}'>{{stats.storage}}</span>
 </div>
 
+<h2>Content Analysis</h2>
 <h3>Storage by File Type:</h3>
 <div class="chart">
-    <span data-chart data-chart-type="pie" 
-          data-chart-data='{{stats.storageByType}}'
-          data-chart-options='{
-              "color": "blue",
-              "width": 45
-          }'>
+    <span data-chart data-chart-type="pie" data-chart-data='{{stats.storageByType}}'
+        data-chart-options='{"color": "blue", "width": 45}'>
     </span>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-box">
+        <h3>Popular Extensions:</h3>
+        {{#if stats.extensionStats.length}}
+            <ul class="extension-list">
+                {{#each stats.extensionStats}}
+                <li><code>{{@key}}</code>: {{this}} files</li>
+                {{/each}}
+            </ul>
+        {{else}}
+            <p>Not enough data</p>
+        {{/if}}
+    </div>
+
+    <div class="stat-box">
+        <h3>Average Size:</h3>
+        <p>{{stats.avgSize}} per paste</p>
+    </div>
+</div>
+
+<h2>Usage Metrics</h2>
+<div class="stats-grid">
+    <div class="stat-box">
+        <h3>Privacy Stats:</h3>
+        <ul>
+            <li>Public Pastes: {{stats.publicPastes}}</li>
+            <li>Private Pastes: {{stats.privatePastes}}</li>
+            <li>Private Ratio: {{stats.privateRatio}}%</li>
+        </ul>
+    </div>
+
+    <div class="stat-box">
+        <h3>API Usage:</h3>
+        <ul>
+            <li>Active API Keys: {{stats.activeApiKeys}}</li>
+            <li>Average Views: {{stats.avgViews}}</li>
+        </ul>
+    </div>
+
+    <div class="stat-box">
+        <h3>Expiring Soon:</h3>
+        <ul>
+            <li>Pastes (24h): {{stats.expiringPastes24h}}</li>
+            <li>URLs (24h): {{stats.expiringUrls24h}}</li>
+        </ul>
+    </div>
 </div>

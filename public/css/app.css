@@ -496,3 +496,31 @@ section {
     color: #58a6ff;
     text-decoration: none;
 }
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.stat-box {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+.extension-list {
+    list-style: none;
+    padding: 0;
+}
+
+.extension-list li {
+    margin: 0.5rem 0;
+}
+
+.extension-list code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+}

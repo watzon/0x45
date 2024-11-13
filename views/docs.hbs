@@ -20,7 +20,7 @@
             <ul>
                 <li>ext: file extension</li>
                 <li>expires: expiration time (e.g. "24h")</li>
-                <li>private: true/false</li>
+                <li>private: true/false (requires API key)</li>
                 <li>filename: custom filename</li>
             </ul>
         </dd>
@@ -113,22 +113,22 @@
 
         <li><strong>Raw View</strong>
             <div class="code-block">
-                <code>GET {{baseUrl}}/raw/:id</code>
+                <code>GET {{baseUrl}}/raw/:id[.:ext]</code>
                 <button class="action-btn" data-content="GET {{baseUrl}}/raw/:id"><span>Copy</span></button>
             </div>
         </li>
 
         <li><strong>Download</strong>
             <div class="code-block">
-                <code>GET {{baseUrl}}/download/:id</code>
+                <code>GET {{baseUrl}}/download/:id[.:ext]</code>
                 <button class="action-btn" data-content="GET {{baseUrl}}/download/:id"><span>Copy</span></button>
             </div>
         </li>
 
         <li><strong>Delete with Key</strong>
             <div class="code-block">
-                <code>DELETE {{baseUrl}}/delete/:id.:key</code>
-                <button class="action-btn" data-content="DELETE {{baseUrl}}/delete/:id.:key"><span>Copy</span></button>
+                <code>DELETE {{baseUrl}}/delete/:id/:key</code>
+                <button class="action-btn" data-content="DELETE {{baseUrl}}/delete/:id/:key"><span>Copy</span></button>
             </div>
         </li>
     </ul>
@@ -176,21 +176,23 @@
 </section>
 
 <section>
-    <h3>API Key Features</h3>
+    <h2>API Key Features</h2>
     <ul>
-        <li>Extended retention</li>
+        <li>Extended retention ({{retention.withKey}})</li>
         <li>URL shortening capabilities</li>
         <li>Private paste support</li>
         <li>Higher rate limits</li>
+        <li>Paste management API</li>
     </ul>
-
     {{else}}
     <h2>API Keys</h2>
     <p class="notice">
         API key requests are currently disabled. Please contact the administrator for access.
     </p>
     {{/if}}
+</section>
 
+<section>
     <h2>Support</h2>
     <p>
         For support or issues: <a href="https://github.com/watzon/0x45">https://github.com/watzon/0x45</a>

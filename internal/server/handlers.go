@@ -54,38 +54,133 @@ func (s *Server) handleStats(c *fiber.Ctx) error {
 	s.db.Model(&models.Paste{}).Count(&totalPastes)
 	s.db.Model(&models.Shortlink{}).Count(&totalUrls)
 
-	// Get historical data
-	history, err := s.getStatsHistory(7) // Last 7 days
-	if err != nil {
-		s.logger.Error("failed to get stats history", zap.Error(err))
-		// Continue without history
+	// Get historical data with empty defaults
+	history := &StatsHistory{
+		Pastes:  make([]ChartDataPoint, 7),
+		URLs:    make([]ChartDataPoint, 7),
+		Storage: make([]ChartDataPoint, 7),
 	}
 
-	// Convert data to JSON strings
+	if histData, err := s.getStatsHistory(7); err == nil {
+		history = histData
+	} else {
+		s.logger.Error("failed to get stats history", zap.Error(err))
+	}
+
+	// Convert data to JSON strings with empty array fallbacks
 	pastesHistory, _ := json.Marshal(history.Pastes)
 	urlsHistory, _ := json.Marshal(history.URLs)
 	storageHistory, _ := json.Marshal(history.Storage)
 
-	// Get storage by file type data
-	storageByType, err := s.getStorageByFileType()
-	if err != nil {
+	// Get storage by file type data with empty map fallback
+	storageByType := make(map[string]int64)
+	if typeData, err := s.getStorageByFileType(); err == nil {
+		storageByType = typeData
+	} else {
 		s.logger.Error("failed to get storage by file type", zap.Error(err))
-		// Continue with empty data
-		storageByType = make(map[string]int64)
 	}
 
 	// Convert storageByType to JSON
 	storageByTypeJSON, _ := json.Marshal(storageByType)
 
+	// Get average paste size with zero default
+	var avgSize float64
+	if err := s.db.Model(&models.Paste{}).
+		Select("COALESCE(AVG(NULLIF(size, 0)), 0)").
+		Row().
+		Scan(&avgSize); err != nil {
+		s.logger.Error("failed to get average size", zap.Error(err))
+		avgSize = 0
+	}
+
+	// Get active API keys count
+	var activeApiKeys int64
+	s.db.Model(&models.APIKey{}).Where("verified = ?", true).Count(&activeApiKeys)
+
+	// Get popular extensions with empty map fallback
+	extensionStats := make(map[string]int64)
+	rows, err := s.db.Model(&models.Paste{}).
+		Select("extension, COUNT(*) as count").
+		Where("extension != ''").
+		Group("extension").
+		Order("count DESC").
+		Limit(10).
+		Rows()
+
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var ext string
+			var count int64
+			if err := rows.Scan(&ext, &count); err == nil {
+				extensionStats[ext] = count
+			}
+		}
+	} else {
+		s.logger.Error("failed to get extension stats", zap.Error(err))
+	}
+
+	// Get expiring content counts
+	var expiringPastes, expiringUrls int64
+	twentyFourHours := time.Now().Add(24 * time.Hour)
+	s.db.Model(&models.Paste{}).
+		Where("expires_at < ? AND expires_at > ?", twentyFourHours, time.Now()).
+		Count(&expiringPastes)
+	s.db.Model(&models.Shortlink{}).
+		Where("expires_at < ? AND expires_at > ?", twentyFourHours, time.Now()).
+		Count(&expiringUrls)
+
+	// Get private vs public paste ratio with zero defaults
+	var privatePastes int64
+	s.db.Model(&models.Paste{}).Where("private = ?", true).Count(&privatePastes)
+	publicPastes := totalPastes - privatePastes
+
+	// Calculate private ratio safely
+	var privateRatio float64
+	if totalPastes > 0 {
+		privateRatio = float64(privatePastes) / float64(totalPastes) * 100
+	}
+
+	// Get average paste views safely
+	var avgViews float64
+	if err := s.db.Model(&models.Paste{}).
+		Select("COALESCE(AVG(NULLIF(views, 0)), 0)").
+		Row().
+		Scan(&avgViews); err != nil {
+		s.logger.Error("failed to get average views", zap.Error(err))
+		avgViews = 0
+	}
+
+	// Get total storage used with zero default
+	totalStorage := s.getStorageSize()
+
 	return c.Render("stats", fiber.Map{
 		"stats": fiber.Map{
-			"pastes":         totalPastes,
-			"urls":           totalUrls,
-			"storage":        humanize.IBytes(s.getStorageSize()),
+			// Current totals (these are safe as Count returns 0 if no rows)
+			"pastes":        totalPastes,
+			"urls":          totalUrls,
+			"storage":       humanize.IBytes(totalStorage),
+			"activeApiKeys": activeApiKeys,
+
+			// Historical data (already has empty defaults)
 			"pastesHistory":  string(pastesHistory),
 			"urlsHistory":    string(urlsHistory),
 			"storageHistory": string(storageHistory),
+
+			// File type statistics (already has empty defaults)
 			"storageByType":  string(storageByTypeJSON),
+			"extensionStats": extensionStats,
+			"avgSize":        humanize.IBytes(uint64(avgSize)),
+
+			// Expiring content (safe as Count returns 0 if no rows)
+			"expiringPastes24h": expiringPastes,
+			"expiringUrls24h":   expiringUrls,
+
+			// Additional metrics (with safe defaults)
+			"privatePastes": privatePastes,
+			"publicPastes":  publicPastes,
+			"privateRatio":  privateRatio,
+			"avgViews":      avgViews,
 		},
 		"baseUrl": s.config.Server.BaseURL,
 	}, "layouts/main")
