@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
@@ -108,46 +107,6 @@ func (s *Server) processUpload(c *fiber.Ctx, req *UploadRequest) (*models.Paste,
 	}
 
 	return paste, nil
-}
-
-// createPasteFromMultipart creates a new paste from a multipart file upload
-// It handles file reading, MIME type detection, and storage
-func (s *Server) createPasteFromMultipart(c *fiber.Ctx, file *multipart.FileHeader, opts *PasteOptions) (*models.Paste, error) {
-	// Add API key from context if available
-	if apiKey, ok := c.Locals("apiKey").(*models.APIKey); ok {
-		opts.APIKey = apiKey
-	}
-
-	f, err := file.Open()
-	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to read uploaded file")
-	}
-	defer f.Close()
-
-	// Read all content first
-	content, err := io.ReadAll(f)
-	if err != nil {
-		s.logger.Error("failed to read multipart content",
-			zap.String("filename", file.Filename),
-			zap.Error(err),
-		)
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to read upload")
-	}
-
-	// Detect mime type from the byte slice
-	mime := mimetype.Detect(content)
-	mimeType := mime.String()
-	if mimeType == "" {
-		mimeType = file.Header.Get("Content-Type")
-	}
-
-	s.logger.Debug("processing multipart upload",
-		zap.String("filename", file.Filename),
-		zap.Int("content_size", len(content)),
-		zap.String("mime_type", mimeType),
-	)
-
-	return s.createPaste(bytes.NewReader(content), int64(len(content)), mimeType, opts)
 }
 
 // createPasteFromRaw creates a new paste from raw content bytes

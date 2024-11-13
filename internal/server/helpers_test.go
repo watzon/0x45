@@ -147,7 +147,7 @@ func TestCalculateExpiry(t *testing.T) {
 			assert.NotNil(t, expiryTime)
 
 			// Calculate days and compare with nearlyEqual
-			days := expiryTime.Sub(time.Now()).Hours() / 24
+			days := time.Until(*expiryTime).Hours() / 24
 			if !nearlyEqual(days, tt.wantDays, tt.epsilon) {
 				t.Errorf("Expected %.10f days, got %.10f days", tt.wantDays, days)
 			}

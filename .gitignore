@@ -8,3 +8,5 @@
 *.db
 *.out
 *.log
+
+coverage.txt

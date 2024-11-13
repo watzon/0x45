@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Run make test
+echo "Testing and linting..."
+make test
+
+# Capture the exit code
+RESULT=$?
+
+# If make test failed, prevent the commit
+if [ $RESULT -ne 0 ]; then
+    echo "Testing or linting failed! Please fix the issues before committing."
+    exit 1
+fi
+
+exit 0
