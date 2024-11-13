@@ -18,7 +18,7 @@ func (j JSON) Value() (driver.Value, error) {
 }
 
 // Scan implement sql.Scanner interface
-func (j *JSON) Scan(value interface{}) error {
+func (j *JSON) Scan(value any) error {
 	if value == nil {
 		*j = nil
 		return nil

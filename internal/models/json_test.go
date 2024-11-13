@@ -50,7 +50,7 @@ func TestJSON_Value(t *testing.T) {
 func TestJSON_Scan(t *testing.T) {
 	tests := []struct {
 		name    string
-		value   interface{}
+		value   any
 		want    JSON
 		wantErr bool
 	}{

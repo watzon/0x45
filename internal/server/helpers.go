@@ -37,8 +37,8 @@ type ShortlinkOptions struct {
 
 // ChartDataPoint represents a single point of data in time-series statistics
 type ChartDataPoint struct {
-	Value interface{} `json:"value"` // The value at this point (can be number or string)
-	Date  time.Time   `json:"date"`  // The timestamp for this data point
+	Value any       `json:"value"` // The value at this point (can be number or string)
+	Date  time.Time `json:"date"`  // The timestamp for this data point
 }
 
 // StatsHistory contains time-series data for system statistics
@@ -362,7 +362,7 @@ func (s *Server) findShortlink(id string) (*models.Shortlink, error) {
 // for a given shortlink
 func (s *Server) updateShortlinkStats(shortlink *models.Shortlink) {
 	now := time.Now()
-	s.db.Model(shortlink).Updates(map[string]interface{}{
+	s.db.Model(shortlink).Updates(map[string]any{
 		"clicks":     gorm.Expr("clicks + 1"),
 		"last_click": now,
 	})

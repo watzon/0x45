@@ -168,7 +168,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("smtp.tls_verify", true)
 	viper.SetDefault("smtp.from_name", "Paste69")
 
-	viper.SetDefault("storage", []map[string]interface{}{
+	viper.SetDefault("storage", []map[string]any{
 		{
 			"name":    "local",
 			"type":    "local",

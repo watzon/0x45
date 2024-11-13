@@ -58,7 +58,7 @@ func (m *AuthMiddleware) validateAPIKey(key string) (*models.APIKey, error) {
 	}
 
 	// Update last used timestamp
-	m.db.Model(&apiKey).Updates(map[string]interface{}{
+	m.db.Model(&apiKey).Updates(map[string]any{
 		"last_used_at": time.Now(),
 		"usage_count":  gorm.Expr("usage_count + 1"),
 	})
