@@ -29,13 +29,13 @@ func TestGenerateID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := GenerateID(tt.length)
+			got := MustGenerateID(tt.length)
 			if len(got) != tt.want {
 				t.Errorf("GenerateID() length = %v, want %v", len(got), tt.want)
 			}
 
 			// Test uniqueness by generating another ID
-			got2 := GenerateID(tt.length)
+			got2 := MustGenerateID(tt.length)
 			if got == got2 {
 				t.Error("GenerateID() generated duplicate IDs")
 			}

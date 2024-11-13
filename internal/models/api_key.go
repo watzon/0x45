@@ -43,7 +43,7 @@ type APIKey struct {
 
 // GenerateKey generates a new API key string
 func GenerateAPIKey() string {
-	return utils.GenerateID(64)
+	return utils.MustGenerateID(64)
 }
 
 // BeforeCreate sets defaults and generates the API key if not set

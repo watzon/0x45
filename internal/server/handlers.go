@@ -679,7 +679,7 @@ func (s *Server) handleRequestAPIKey(c *fiber.Ctx) error {
 		tempKey := models.NewAPIKey()
 		tempKey.Email = req.Email
 		tempKey.Name = req.Name
-		tempKey.VerifyToken = utils.GenerateID(64)
+		tempKey.VerifyToken = utils.MustGenerateID(64)
 		tempKey.VerifyExpiry = time.Now().Add(24 * time.Hour)
 		tempKey.IsReset = true
 
@@ -715,7 +715,7 @@ func (s *Server) handleRequestAPIKey(c *fiber.Ctx) error {
 	apiKey := models.NewAPIKey()
 	apiKey.Email = req.Email
 	apiKey.Name = req.Name
-	apiKey.VerifyToken = utils.GenerateID(64)
+	apiKey.VerifyToken = utils.MustGenerateID(64)
 	apiKey.VerifyExpiry = time.Now().Add(24 * time.Hour)
 
 	if err := s.db.Create(apiKey).Error; err != nil {
