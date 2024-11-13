@@ -51,8 +51,15 @@ func (d *Database) Migrate(config *config.Config) error {
 
 	switch config.Database.Driver {
 	case "postgres":
-		pgConfig := d.DB.Config.Dialector.(*postgres.Dialector)
-		return migrations.RunMigrations(pgConfig.DSN)
+		pgURL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+			config.Database.User,
+			config.Database.Password,
+			config.Database.Host,
+			config.Database.Port,
+			config.Database.Name,
+			config.Database.SSLMode,
+		)
+		return migrations.RunMigrations(pgURL)
 	case "sqlite":
 		return migrations.RunMigrations("sqlite://" + config.Database.Name)
 	}
