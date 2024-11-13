@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"log"
+	"os"
+	"os/signal"
 
 	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/database"
@@ -33,13 +36,30 @@ func main() {
 		log.Fatalf("Failed to initialize storage: %v", err)
 	}
 
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
 	// Initialize server with storage manager
 	srv := server.New(db, storageManager, cfg)
 
 	// Create and setup server
 	srv.SetupRoutes()
 
-	// Start server
-	log.Printf("Starting server on %s", cfg.Server.Address)
-	log.Fatal(srv.Start(cfg.Server.Address))
+	go func() {
+		// Start server
+		log.Printf("Starting server on %s", cfg.Server.Address)
+		log.Fatal(srv.Start(cfg.Server.Address))
+	}()
+
+	// Wait for shutdown signal and initiate graceful shutdown once received.
+	<-ctx.Done()
+	defer func() {
+		if err := srv.Cleanup(); err != nil {
+			log.Printf("failed cleaning up server: %v", err)
+		}
+	}()
+	log.Print("shutdown signal received, initiate shutdown")
+	if err := srv.Shutdown(context.Background()); err != nil {
+		log.Printf("failed shutting down gracefully: %v", err)
+	}
 }

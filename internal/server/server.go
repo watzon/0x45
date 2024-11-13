@@ -194,8 +194,13 @@ func (s *Server) Start(addr string) error {
 	return s.app.Listen(addr)
 }
 
-func (s *Server) Cleanup() {
-	if s.logger != nil {
-		s.logger.Sync() // flush any buffered log entries
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.app.ShutdownWithContext(ctx)
+}
+
+func (s *Server) Cleanup() error {
+	if s.logger == nil {
+		return nil
 	}
+	return s.logger.Sync() // flush any buffered log entries
 }
