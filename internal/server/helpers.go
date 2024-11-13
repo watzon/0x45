@@ -416,19 +416,25 @@ func (s *Server) getStatsHistory(days int) (*StatsHistory, error) {
 			Where("created_at BETWEEN ? AND ?", startOfDay, endOfDay).
 			Count(&urlCount)
 
-		s.db.Model(&models.Paste{}).
+		err := s.db.Model(&models.Paste{}).
 			Where("created_at <= ?", endOfDay).
 			Select("COALESCE(SUM(size), 0)").
 			Row().
 			Scan(&storageSize)
+		if err != nil {
+			return nil, fmt.Errorf("getting storage size: %w", err)
+		}
 
 		// New metrics
 		var avgSize float64
-		s.db.Model(&models.Paste{}).
+		err = s.db.Model(&models.Paste{}).
 			Where("created_at BETWEEN ? AND ?", startOfDay, endOfDay).
 			Select("COALESCE(AVG(size), 0)").
 			Row().
 			Scan(&avgSize)
+		if err != nil {
+			return nil, fmt.Errorf("getting avg size: %w", err)
+		}
 
 		var activeAPIKeys int64
 		s.db.Model(&models.APIKey{}).

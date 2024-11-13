@@ -152,7 +152,10 @@ func (s *Server) handleStats(c *fiber.Ctx) error {
 	}
 
 	// Get total storage used with zero default
-	totalStorage := s.getStorageSize()
+	totalStorage, err := s.getStorageSize()
+	if err != nil {
+		return fmt.Errorf("failed getting storage size: %w", err)
+	}
 
 	return c.Render("stats", fiber.Map{
 		"stats": fiber.Map{
@@ -1264,13 +1267,13 @@ func (s *Server) handleDeleteURL(c *fiber.Ctx) error {
 
 // getStorageSize returns total size of stored files in bytes
 // Calculated as sum of all paste sizes in database
-func (s *Server) getStorageSize() uint64 {
+func (s *Server) getStorageSize() (uint64, error) {
 	var total uint64
-	s.db.Model(&models.Paste{}).
+	err := s.db.Model(&models.Paste{}).
 		Select("COALESCE(SUM(size), 0)").
 		Row().
 		Scan(&total)
-	return total
+	return total, err
 }
 
 // addBaseURLToPasteResponse adds the configured base URL to all URL fields
