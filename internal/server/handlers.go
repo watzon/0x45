@@ -681,7 +681,7 @@ func (s *Server) handleRequestAPIKey(c *fiber.Ctx) error {
 		tempKey.Name = req.Name
 		tempKey.VerifyToken = utils.GenerateID(64)
 		tempKey.VerifyExpiry = time.Now().Add(24 * time.Hour)
-		tempKey.IsReset = true // Add this field to APIKey model
+		tempKey.IsReset = true
 
 		if err := s.db.Create(tempKey).Error; err != nil {
 			s.logger.Error("failed to create temporary verification",
