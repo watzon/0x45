@@ -1,5 +1,9 @@
 # Paste69
 
+<div align="center">
+    <img src="public/0x45-og.png" alt="0x45" width="300">
+</div>
+
 [![CI](https://github.com/watzon/0x45/actions/workflows/ci.yml/badge.svg)](https://github.com/watzon/0x45/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/watzon/0x45)](https://goreportcard.com/report/github.com/watzon/0x45)
 [![GoDoc](https://godoc.org/github.com/watzon/0x45?status.svg)](https://godoc.org/github.com/watzon/0x45)
