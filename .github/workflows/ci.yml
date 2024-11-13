@@ -1,0 +1,30 @@
+on: [push, pull_request]
+name: CI
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.3"
+          check-latest: true
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Lint
+      - name: Run go vet
+        continue-on-error: true
+        run: go vet ./...
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+      # Test
+      - name: Test and calculate coverage
+        run: go test -v -covermode=count -coverprofile=coverage.out ./...
+
+      # Try compile
+      - name: Compile
+        run: go build -o /dev/null ./cmd/server
