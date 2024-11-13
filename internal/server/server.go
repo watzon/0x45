@@ -129,7 +129,10 @@ func (s *Server) hasMailer() bool {
 func (s *Server) SetupRoutes() {
 	// URL shortener routes (requires API key)
 	s.app.Post("/url", s.auth.Auth(true), s.handleURLShorten)
+	s.app.Get("/urls", s.auth.Auth(true), s.handleListURLs)
 	s.app.Get("/url/:id/stats", s.auth.Auth(true), s.handleURLStats)
+	s.app.Put("/url/:id/expire", s.auth.Auth(true), s.handleUpdateURLExpiration)
+	s.app.Delete("/url/:id", s.auth.Auth(true), s.handleDeleteURL)
 
 	// Management routes (requires API key)
 	s.app.Get("/pastes", s.auth.Auth(true), s.handleListPastes)

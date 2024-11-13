@@ -1115,6 +1115,151 @@ func (s *Server) handleDeleteWithKey(c *fiber.Ctx) error {
 	})
 }
 
+// handleListURLs returns a paginated list of URLs for the API key
+// Optional query params:
+//   - page: page number (default: 1)
+//   - limit: items per page (default: 20)
+//   - sort: sort order (default: "created_at desc")
+func (s *Server) handleListURLs(c *fiber.Ctx) error {
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
+
+	apiKey := c.Locals("apiKey").(*models.APIKey)
+
+	// Get pagination params
+	page := c.QueryInt("page", 1)
+	limit := c.QueryInt("limit", 20)
+	sort := c.Query("sort", "created_at desc")
+
+	var urls []models.Shortlink
+	var total int64
+
+	// Build query
+	query := s.db.Model(&models.Shortlink{}).Where("api_key = ?", apiKey.Key)
+
+	// Get total count
+	query.Count(&total)
+
+	// Get paginated results
+	err := query.Order(sort).
+		Offset((page - 1) * limit).
+		Limit(limit).
+		Find(&urls).Error
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to fetch URLs")
+	}
+
+	// Convert to response format
+	items := []fiber.Map{}
+	for _, url := range urls {
+		response := url.ToResponse()
+		s.addBaseURLToPasteResponse(response)
+		items = append(items, response)
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data": fiber.Map{
+			"items": items,
+			"total": total,
+			"page":  page,
+			"limit": limit,
+		},
+	})
+}
+
+// handleUpdateURLExpiration updates a URL's expiration time
+// Accepts: application/json with structure:
+//
+//	{
+//	  "expires_in": "string" // Required (e.g., "24h", or "never")
+//	}
+func (s *Server) handleUpdateURLExpiration(c *fiber.Ctx) error {
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
+
+	id := c.Params("id")
+	apiKey := c.Locals("apiKey").(*models.APIKey)
+
+	var req struct {
+		ExpiresIn string `json:"expires_in"`
+	}
+
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid JSON")
+	}
+
+	// Find URL
+	var shortlink models.Shortlink
+	if err := s.db.First(&shortlink, "id = ?", id).Error; err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "URL not found")
+	}
+
+	// Check ownership
+	if shortlink.APIKey != apiKey.Key {
+		return fiber.NewError(fiber.StatusForbidden, "Not authorized to modify this URL")
+	}
+
+	// Update expiration
+	if req.ExpiresIn == "never" {
+		shortlink.ExpiresAt = nil
+	} else {
+		expiry, err := time.ParseDuration(req.ExpiresIn)
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "Invalid expiration format")
+		}
+		expiryTime := time.Now().Add(expiry)
+		shortlink.ExpiresAt = &expiryTime
+	}
+
+	// Save changes
+	if err := s.db.Save(&shortlink).Error; err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to update URL")
+	}
+
+	response := shortlink.ToResponse()
+	s.addBaseURLToPasteResponse(response)
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    response,
+	})
+}
+
+// handleDeleteURL deletes a URL (requires API key ownership)
+func (s *Server) handleDeleteURL(c *fiber.Ctx) error {
+	if err := s.rateLimiter.Check(c.IP()); err != nil {
+		return err
+	}
+
+	id := c.Params("id")
+	apiKey := c.Locals("apiKey").(*models.APIKey)
+
+	// Find URL
+	var shortlink models.Shortlink
+	if err := s.db.First(&shortlink, "id = ?", id).Error; err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "URL not found")
+	}
+
+	// Check ownership
+	if shortlink.APIKey != apiKey.Key {
+		return fiber.NewError(fiber.StatusForbidden, "Not authorized to delete this URL")
+	}
+
+	// Delete from database
+	if err := s.db.Delete(&shortlink).Error; err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to delete URL")
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "URL deleted successfully",
+	})
+}
+
 // Helper Functions
 
 // getStorageSize returns total size of stored files in bytes
