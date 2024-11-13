@@ -65,7 +65,7 @@ func (p *Paste) BeforeCreate(tx *gorm.DB) error {
 	// Storage configuration handling
 	if p.StorageName == "" {
 		var cfg config.Config
-		if err := tx.Statement.Context.Value("config").(*config.Config); err != nil {
+		if _, ok := tx.Statement.Context.Value("config").(*config.Config); !ok {
 			return fmt.Errorf("config not found in context")
 		}
 
