@@ -18,6 +18,8 @@ on:
       - '.github/workflows/docker-publish.yml'
       - 'config/**'
       - 'internal/**'
+      - 'views/**'
+      - 'public/**'
       - 'cmd/**'
   pull_request:
     branches: [ "main" ]
@@ -30,6 +32,8 @@ on:
       - '.github/workflows/docker-publish.yml'
       - 'config/**'
       - 'internal/**'
+      - 'views/**'
+      - 'public/**'
       - 'cmd/**'
 
 env:
