@@ -1,56 +1,13 @@
-# Build stage
-FROM golang:1.23.3-alpine AS builder
+FROM golang:1.23.3 AS build
 
-# Install build dependencies
-RUN apk add --no-cache gcc musl-dev
+WORKDIR /build/src
 
-# Set working directory
-WORKDIR /app
-
-# Copy go mod files
-COPY go.mod go.sum ./
-
-# Download dependencies
-RUN go mod download
-
-# Copy source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/paste69 ./cmd/server
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o app ./cmd/server/main.go
 
-# Final stage
-FROM alpine:3.19
+FROM scratch
 
-# Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata sqlite
+COPY --from=build /build/src/app /usr/bin/app
 
-# Create app directory and uploads directory
-WORKDIR /app
-RUN mkdir -p /app/uploads
-
-# Create data directory for postgres
-RUN mkdir -p /app/data
-
-# Copy binary from builder
-COPY --from=builder /app/paste69 .
-
-# Copy config and views
-COPY views ./views
-COPY public ./public
-
-# Create non-root user
-RUN adduser -D -g '' appuser && \
-    chown -R appuser:appuser /app
-
-# Switch to non-root user
-USER appuser
-
-# Expose default port
-EXPOSE 3000
-
-# Set environment variables
-ENV GIN_MODE=release
-
-# Run the application
-CMD ["./paste69"]
+ENTRYPOINT ["/usr/bin/app"]
