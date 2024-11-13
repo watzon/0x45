@@ -1,7 +1,7 @@
 # Paste69
 
 <div align="center">
-    <img src="https://github.com/watzon/0x45/blob/main/public/images/0x45-og.png?raw=true" alt="0x45" width="300">
+    <img src="https://github.com/watzon/0x45/blob/main/public/images/0x45-og.png?raw=true" alt="0x45">
 </div>
 
 [![CI](https://github.com/watzon/0x45/actions/workflows/ci.yml/badge.svg)](https://github.com/watzon/0x45/actions/workflows/ci.yml)
