@@ -152,7 +152,10 @@ func (s *Server) handleStats(c *fiber.Ctx) error {
 	}
 
 	// Get total storage used with zero default
-	totalStorage := s.getStorageSize()
+	totalStorage, err := s.getStorageSize()
+	if err != nil {
+		return fmt.Errorf("failed getting storage size: %w", err)
+	}
 
 	return c.Render("stats", fiber.Map{
 		"stats": fiber.Map{
@@ -679,7 +682,7 @@ func (s *Server) handleRequestAPIKey(c *fiber.Ctx) error {
 		tempKey := models.NewAPIKey()
 		tempKey.Email = req.Email
 		tempKey.Name = req.Name
-		tempKey.VerifyToken = utils.GenerateID(64)
+		tempKey.VerifyToken = utils.MustGenerateID(64)
 		tempKey.VerifyExpiry = time.Now().Add(24 * time.Hour)
 		tempKey.IsReset = true
 
@@ -715,7 +718,7 @@ func (s *Server) handleRequestAPIKey(c *fiber.Ctx) error {
 	apiKey := models.NewAPIKey()
 	apiKey.Email = req.Email
 	apiKey.Name = req.Name
-	apiKey.VerifyToken = utils.GenerateID(64)
+	apiKey.VerifyToken = utils.MustGenerateID(64)
 	apiKey.VerifyExpiry = time.Now().Add(24 * time.Hour)
 
 	if err := s.db.Create(apiKey).Error; err != nil {
@@ -1264,13 +1267,13 @@ func (s *Server) handleDeleteURL(c *fiber.Ctx) error {
 
 // getStorageSize returns total size of stored files in bytes
 // Calculated as sum of all paste sizes in database
-func (s *Server) getStorageSize() uint64 {
+func (s *Server) getStorageSize() (uint64, error) {
 	var total uint64
-	s.db.Model(&models.Paste{}).
+	err := s.db.Model(&models.Paste{}).
 		Select("COALESCE(SUM(size), 0)").
 		Row().
 		Scan(&total)
-	return total
+	return total, err
 }
 
 // addBaseURLToPasteResponse adds the configured base URL to all URL fields

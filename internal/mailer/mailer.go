@@ -40,7 +40,7 @@ func (m *Mailer) SendVerification(to, token string) error {
 	}
 
 	// Render the template with data
-	body, err := tpl.Exec(map[string]interface{}{
+	body, err := tpl.Exec(map[string]any{
 		"baseUrl": m.config.Server.BaseURL,
 		"token":   token,
 	})

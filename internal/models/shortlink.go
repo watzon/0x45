@@ -34,10 +34,10 @@ type Shortlink struct {
 
 func (s *Shortlink) BeforeCreate(tx *gorm.DB) error {
 	if s.ID == "" {
-		s.ID = utils.GenerateID(6) // Shorter IDs for URLs
+		s.ID = utils.MustGenerateID(6) // Shorter IDs for URLs
 	}
 	if s.DeleteKey == "" {
-		s.DeleteKey = utils.GenerateID(32)
+		s.DeleteKey = utils.MustGenerateID(32)
 	}
 	return nil
 }

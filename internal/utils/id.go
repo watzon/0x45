@@ -5,9 +5,11 @@ import (
 	"encoding/base64"
 )
 
-// GenerateID creates a URL-safe random string of specified length
-func GenerateID(length int) string {
+// MustGenerateID creates a URL-safe random string of specified length
+func MustGenerateID(length int) string {
 	b := make([]byte, length)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
 	return base64.URLEncoding.EncodeToString(b)[:length]
 }

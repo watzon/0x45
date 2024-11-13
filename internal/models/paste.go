@@ -43,10 +43,10 @@ type Paste struct {
 // BeforeCreate generates ID and DeleteKey if not set
 func (p *Paste) BeforeCreate(tx *gorm.DB) error {
 	if p.ID == "" {
-		p.ID = utils.GenerateID(8)
+		p.ID = utils.MustGenerateID(8)
 	}
 	if p.DeleteKey == "" {
-		p.DeleteKey = utils.GenerateID(32)
+		p.DeleteKey = utils.MustGenerateID(32)
 	}
 
 	// Handle file extension
@@ -65,7 +65,7 @@ func (p *Paste) BeforeCreate(tx *gorm.DB) error {
 	// Storage configuration handling
 	if p.StorageName == "" {
 		var cfg config.Config
-		if err := tx.Statement.Context.Value("config").(*config.Config); err != nil {
+		if _, ok := tx.Statement.Context.Value("config").(*config.Config); !ok {
 			return fmt.Errorf("config not found in context")
 		}
 

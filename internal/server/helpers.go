@@ -37,8 +37,8 @@ type ShortlinkOptions struct {
 
 // ChartDataPoint represents a single point of data in time-series statistics
 type ChartDataPoint struct {
-	Value interface{} `json:"value"` // The value at this point (can be number or string)
-	Date  time.Time   `json:"date"`  // The timestamp for this data point
+	Value any       `json:"value"` // The value at this point (can be number or string)
+	Date  time.Time `json:"date"`  // The timestamp for this data point
 }
 
 // StatsHistory contains time-series data for system statistics
@@ -362,7 +362,7 @@ func (s *Server) findShortlink(id string) (*models.Shortlink, error) {
 // for a given shortlink
 func (s *Server) updateShortlinkStats(shortlink *models.Shortlink) {
 	now := time.Now()
-	s.db.Model(shortlink).Updates(map[string]interface{}{
+	s.db.Model(shortlink).Updates(map[string]any{
 		"clicks":     gorm.Expr("clicks + 1"),
 		"last_click": now,
 	})
@@ -416,19 +416,25 @@ func (s *Server) getStatsHistory(days int) (*StatsHistory, error) {
 			Where("created_at BETWEEN ? AND ?", startOfDay, endOfDay).
 			Count(&urlCount)
 
-		s.db.Model(&models.Paste{}).
+		err := s.db.Model(&models.Paste{}).
 			Where("created_at <= ?", endOfDay).
 			Select("COALESCE(SUM(size), 0)").
 			Row().
 			Scan(&storageSize)
+		if err != nil {
+			return nil, fmt.Errorf("getting storage size: %w", err)
+		}
 
 		// New metrics
 		var avgSize float64
-		s.db.Model(&models.Paste{}).
+		err = s.db.Model(&models.Paste{}).
 			Where("created_at BETWEEN ? AND ?", startOfDay, endOfDay).
 			Select("COALESCE(AVG(size), 0)").
 			Row().
 			Scan(&avgSize)
+		if err != nil {
+			return nil, fmt.Errorf("getting avg size: %w", err)
+		}
 
 		var activeAPIKeys int64
 		s.db.Model(&models.APIKey{}).

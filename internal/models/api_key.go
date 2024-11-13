@@ -43,7 +43,7 @@ type APIKey struct {
 
 // GenerateKey generates a new API key string
 func GenerateAPIKey() string {
-	return utils.GenerateID(64)
+	return utils.MustGenerateID(64)
 }
 
 // BeforeCreate sets defaults and generates the API key if not set
@@ -72,6 +72,6 @@ func (k *APIKey) BeforeCreate(tx *gorm.DB) error {
 // NewAPIKey creates a new APIKey with default values
 func NewAPIKey() *APIKey {
 	key := &APIKey{}
-	key.BeforeCreate(nil) // Set defaults
+	_ = key.BeforeCreate(nil) // Set defaults
 	return key
 }

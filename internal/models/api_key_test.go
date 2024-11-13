@@ -75,7 +75,7 @@ func TestAPIKey_UsageTracking(t *testing.T) {
 
 	// Update usage
 	now := time.Now()
-	err = db.Model(apiKey).Updates(map[string]interface{}{
+	err = db.Model(apiKey).Updates(map[string]any{
 		"last_used_at": now,
 		"usage_count":  1,
 	}).Error
