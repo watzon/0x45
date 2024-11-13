@@ -31,7 +31,7 @@ A modern, Go-based pastebin service inspired by 0x0.st.
 ```bash
 # Clone the repository
 git clone https://github.com/watzon/0x45.git
-cd paste69
+cd 0x45
 
 # Install dependencies
 go mod download

@@ -46,7 +46,11 @@ class AsciiDotChart extends Chart {
                 label: "File Size",
                 unit: "MiB",
                 points: 3,
-                maxSize: null,
+                range: {
+                    min: null,
+                    max: null,
+                    ...((options.xAxis && options.xAxis.range) || {})
+                },
                 ...(options.xAxis || {}),
                 format: (options.xAxis && options.xAxis.format) || defaultFormatters.xAxis.format
             },
@@ -82,11 +86,16 @@ class AsciiDotChart extends Chart {
             values: this.processValues(series.data)
         }));
         
-        // Calculate ranges
+        // Calculate ranges for both axes
         const allValues = this.series.flatMap(s => s.values);
-        this.max = this.options.yAxis.range.max || Math.max(...allValues);
-        this.min = this.options.yAxis.range.min || Math.min(...allValues);
-        this.valueRange = this.max - this.min;
+        this.yMax = this.options.yAxis.range.max || Math.max(...allValues);
+        this.yMin = this.options.yAxis.range.min || Math.min(...allValues);
+        this.yRange = this.yMax - this.yMin;
+
+        // X-axis range
+        this.xMax = this.options.xAxis.range.max || 512; // Default if not specified
+        this.xMin = this.options.xAxis.range.min || 0;
+        this.xRange = this.xMax - this.xMin;
 
         // Initialize legend
         this.legend = new Legend({
@@ -102,10 +111,10 @@ class AsciiDotChart extends Chart {
 
         const height = this.options.height * 2;
         const scalePoints = [];
-        const step = (this.max - this.min) / (this.options.yAxis.points - 1);
+        const step = (this.yMax - this.yMin) / (this.options.yAxis.points - 1);
         
         for (let i = 0; i < this.options.yAxis.points; i++) {
-            scalePoints.push(this.max - (step * i));
+            scalePoints.push(this.yMax - (step * i));
         }
         
         const padding = this.options.yAxisPadding;
@@ -136,20 +145,20 @@ class AsciiDotChart extends Chart {
         const padding = this.options.yAxisPadding;
         const rows = [];
         
-        // Add x-axis padding
         rows.push('\n'.repeat(this.options.xAxisPadding));
         
         const points = this.options.xAxis.points;
-        const scalePoints = Array.from({length: points}, (_, i) => 
-            Math.floor((i / (points - 1)) * (width - 1)));
+        const step = (this.xMax - this.xMin) / (points - 1);
         
-        // Parse maxSize
-        let maxSize = this.parseSize(this.options.xAxis.maxSize);
+        // Calculate scale points based on the range
+        const scalePoints = Array.from({length: points}, (_, i) => ({
+            value: this.xMin + (step * i),
+            x: Math.floor((i / (points - 1)) * (width - 1))
+        }));
         
         // Create scale line
         let scaleLine = ' '.repeat(padding);
-        scalePoints.forEach(x => {
-            const value = Math.round((x / (width - 1)) * maxSize);
+        scalePoints.forEach(({value, x}) => {
             const label = this.options.xAxis.format(value);
             const position = Math.floor(x + padding);
             scaleLine += label.padStart(position - scaleLine.length + label.length);
@@ -168,26 +177,6 @@ class AsciiDotChart extends Chart {
         return rows;
     }
 
-    parseSize(size) {
-        if (typeof size === 'number') return size;
-        if (typeof size === 'string') {
-            const match = size.match(/(\d+)\s*([KMGT]i?B)?/i);
-            if (match) {
-                const num = parseInt(match[1]);
-                const unit = match[2]?.toUpperCase() || 'B';
-                const units = {
-                    'B': 1,
-                    'KIB': 1024,
-                    'MIB': 1024*1024,
-                    'GIB': 1024*1024*1024,
-                    'TIB': 1024*1024*1024*1024
-                };
-                return num * (units[unit] || 1) / (1024 * 1024);
-            }
-        }
-        return 512; // Default fallback
-    }
-
     renderLegend() {
         const legendItems = this.series.map(series => ({
             color: series.palette,
@@ -200,7 +189,7 @@ class AsciiDotChart extends Chart {
     drawSeriesLine(grid, series) {
         const width = this.options.barWidth * 2;
         const height = this.options.height * 2;
-        const data = series.data;
+        const data = series.values;
         const padding = this.options.yAxisPadding;
         
         let lastX = null;
@@ -208,11 +197,10 @@ class AsciiDotChart extends Chart {
         
         data.forEach((point, index) => {
             const x = Math.floor((index / (data.length - 1)) * (width - 1)) + padding;
-            const normalizedValue = (point.value - this.min) / (this.max - this.min);
+            const normalizedValue = (point - this.yMin) / (this.yMax - this.yMin);
             const y = Math.floor((1 - normalizedValue) * (height - 1));
             
             if (y >= 0 && y < height && x >= 0 && x < grid[0].length) {
-                // Update to use palette
                 grid[y][x] = `<span class="chart-dot" data-palette="${series.palette}">${this.options.dotChar}</span>`;
                 
                 if (this.options.connectLines && lastX !== null) {

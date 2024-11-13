@@ -38,7 +38,7 @@ func (s *Server) handleIndex(c *fiber.Ctx) error {
 			"withKey":        retentionStats.WithKeyRange,
 			"minAge":         s.config.Retention.NoKey.MinAge,
 			"maxAge":         s.config.Retention.WithKey.MaxAge,
-			"maxSize":        humanize.IBytes(uint64(s.config.Server.MaxUploadSize)),
+			"maxSize":        s.config.Server.MaxUploadSize / (1024 * 1024),
 			"noKeyHistory":   string(noKeyHistory),
 			"withKeyHistory": string(withKeyHistory),
 		},
