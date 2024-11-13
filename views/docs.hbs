@@ -4,7 +4,20 @@
 
 <h1>Paste69 API Documentation</h1>
 
-<section>
+<!-- Table of Contents -->
+<h2>Table of Contents</h2>
+<ul>
+    <li><a href="#file-upload-endpoints">File Upload Endpoints</a></li>
+    <li><a href="#file-management">File Management</a></li>
+    <li><a href="#url-shortener">URL Shortener</a></li>
+    <li><a href="#url-management">URL Management</a></li>
+    <li><a href="#limits-retention">Limits & Retention</a></li>
+    <li><a href="#getting-an-api-key">Getting an API Key</a></li>
+    <li><a href="#api-key-features">API Key Features</a></li>
+    <li><a href="#support">Support</a></li>
+</ul>
+
+<section id="file-upload-endpoints">
     <h2>File Upload Endpoints</h2>
 
     <strong>1. Multipart Upload</strong>
@@ -20,9 +33,31 @@
             <ul>
                 <li>ext: file extension</li>
                 <li>expires: expiration time (e.g. "24h")</li>
-                <li>private: true/false</li>
+                <li>private: true/false (requires API key)</li>
                 <li>filename: custom filename</li>
             </ul>
+        </dd>
+        <dt>Response:</dt>
+        <dd>
+            <div class="code-block json">
+                <pre><code>{
+    "success": true,
+    "data": {
+        "id": "abc12345",
+        "filename": "example.txt",
+        "size": 1234,
+        "mime_type": "text/plain",
+        "created_at": "2024-03-20T15:30:00Z",
+        "expires_at": "2024-03-21T15:30:00Z",
+        "private": false,
+        "url": "/abc12345.txt",
+        "raw_url": "/raw/abc12345.txt",
+        "download_url": "/download/abc12345.txt",
+        "delete_url": "/delete/abc12345/deletekey123"
+    }
+}</code></pre>
+                <button class="action-btn" data-clipboard="#multipart-upload-response"><span>Copy</span></button>
+            </div>
         </dd>
     </dl>
 </section>
@@ -38,6 +73,28 @@
         <dd>raw file content</dd>
         <dt>Query params:</dt>
         <dd>Same query params as multipart</dd>
+        <dt>Response:</dt>
+        <dd>
+            <div class="code-block json">
+                <pre><code>{
+    "success": true,
+    "data": {
+        "id": "abc12345",
+        "filename": "paste.txt",
+        "size": 1234,
+        "mime_type": "text/plain",
+        "created_at": "2024-03-20T15:30:00Z",
+        "expires_at": "2024-03-21T15:30:00Z",
+        "private": false,
+        "url": "/abc12345.txt",
+        "raw_url": "/raw/abc12345.txt",
+        "download_url": "/download/abc12345.txt",
+        "delete_url": "/delete/abc12345/deletekey123"
+    }
+}</code></pre>
+                <button class="action-btn" data-clipboard="#raw-upload-response"><span>Copy</span></button>
+            </div>
+        </dd>
     </dl>
 </section>
 
@@ -64,10 +121,90 @@
                 <button class="action-btn" data-clipboard="#json-upload-body"><span>Copy</span></button>
             </div>
         </dd>
+        <dt>Response:</dt>
+        <dd>
+            <div class="code-block json">
+                <pre><code>{
+    "success": true,
+    "data": {
+        "id": "abc12345",
+        "filename": "example.txt",
+        "size": 1234,
+        "mime_type": "text/plain",
+        "created_at": "2024-03-20T15:30:00Z",
+        "expires_at": "2024-03-21T15:30:00Z",
+        "private": false,
+        "url": "/abc12345.txt",
+        "raw_url": "/raw/abc12345.txt",
+        "download_url": "/download/abc12345.txt",
+        "delete_url": "/delete/abc12345/deletekey123"
+    }
+}</code></pre>
+                <button class="action-btn" data-clipboard="#json-upload-response"><span>Copy</span></button>
+            </div>
+        </dd>
     </dl>
 </section>
 
-<section>
+<section id="file-management">
+    <h2>File Management</h2>
+
+    <ul>
+        <li><strong>View File</strong>
+            <div class="code-block">
+                <code>GET {{baseUrl}}/:id</code>
+                <button class="action-btn" data-content="GET {{baseUrl}}/:id"><span>Copy</span></button>
+            </div>
+            <dl>
+                <dt>Response:</dt>
+                <dd>HTML page with syntax-highlighted content (for text files) or appropriate viewer</dd>
+            </dl>
+        </li>
+
+        <li><strong>Raw View</strong>
+            <div class="code-block">
+                <code>GET {{baseUrl}}/raw/:id[.:ext]</code>
+                <button class="action-btn" data-content="GET {{baseUrl}}/raw/:id"><span>Copy</span></button>
+            </div>
+            <dl>
+                <dt>Response:</dt>
+                <dd>Raw file content with appropriate Content-Type header</dd>
+            </dl>
+        </li>
+
+        <li><strong>Download</strong>
+            <div class="code-block">
+                <code>GET {{baseUrl}}/download/:id[.:ext]</code>
+                <button class="action-btn" data-content="GET {{baseUrl}}/download/:id"><span>Copy</span></button>
+            </div>
+            <dl>
+                <dt>Response:</dt>
+                <dd>File download with Content-Disposition: attachment</dd>
+            </dl>
+        </li>
+
+        <li><strong>Delete with Key</strong>
+            <div class="code-block">
+                <code>DELETE {{baseUrl}}/delete/:id/:key</code>
+                <button class="action-btn" data-content="DELETE {{baseUrl}}/delete/:id/:key"><span>Copy</span></button>
+            </div>
+            <dl>
+                <dt>Response:</dt>
+                <dd>
+                    <div class="code-block json">
+                        <pre><code>{
+    "success": true,
+    "message": "Paste deleted successfully"
+}</code></pre>
+                        <button class="action-btn" data-clipboard="#delete-response"><span>Copy</span></button>
+                    </div>
+                </dd>
+            </dl>
+        </li>
+    </ul>
+</section>
+
+<section id="url-shortener">
     <h2>URL Shortener (Requires API Key)</h2>
 
     <strong>1. Shorten URL</strong>
@@ -89,52 +226,158 @@
                 <button class="action-btn" data-clipboard="#json-url-body"><span>Copy</span></button>
             </div>
         </dd>
+        <dt>Response:</dt>
+        <dd>
+            <div class="code-block json">
+                <pre><code>{
+    "success": true,
+    "data": {
+        "id": "abc123",
+        "url": "https://example.com",
+        "title": "Example Site",
+        "created_at": "2024-03-20T15:30:00Z",
+        "expires_at": "2024-03-21T15:30:00Z",
+        "clicks": 0,
+        "last_click": null,
+        "short_url": "/abc123",
+        "delete_url": "/delete/abc123/deletekey123"
+    }
+}</code></pre>
+                <button class="action-btn" data-clipboard="#json-url-response"><span>Copy</span></button>
+            </div>
+        </dd>
     </dl>
 </section>
 
-<section>
+<section id="url-management">
+    <h2>URL Management (Requires API Key)</h2>
+
+    <strong>1. List URLs</strong>
+    <div class="code-block">
+        <code>GET {{baseUrl}}/urls</code>
+        <button class="action-btn" data-clipboard data-content="GET {{baseUrl}}/urls"><span>Copy</span></button>
+    </div>
+    <dl>
+        <dt>Query params:</dt>
+        <dd>
+            <ul>
+                <li>page: page number (default: 1)</li>
+                <li>limit: items per page (default: 20)</li>
+                <li>sort: sort order (default: "created_at desc")</li>
+            </ul>
+        </dd>
+        <dt>Response:</dt>
+        <dd>
+            <div class="code-block json">
+                <pre><code>{
+    "success": true,
+    "data": {
+        "items": [{
+            "id": "abc123",
+            "url": "https://example.com",
+            "title": "Example Site",
+            "created_at": "2024-03-20T15:30:00Z",
+            "expires_at": "2024-03-21T15:30:00Z",
+            "clicks": 5,
+            "last_click": "2024-03-20T16:45:00Z",
+            "short_url": "/abc123",
+            "delete_url": "/delete/abc123/deletekey123"
+        }],
+        "total": 1,
+        "page": 1,
+        "limit": 20
+    }
+}</code></pre>
+                <button class="action-btn" data-clipboard="#json-urls-list-response"><span>Copy</span></button>
+            </div>
+        </dd>
+    </dl>
+
     <strong>2. URL Stats</strong>
     <div class="code-block">
         <code>GET {{baseUrl}}/url/:id/stats</code>
         <button class="action-btn" data-content="GET {{baseUrl}}/url/:id/stats"><span>Copy</span></button>
     </div>
+    <dl>
+        <dt>Response:</dt>
+        <dd>
+            <div class="code-block json">
+                <pre><code>{
+    "success": true,
+    "data": {
+        "id": "abc123",
+        "url": "https://example.com",
+        "title": "Example Site",
+        "clicks": 5,
+        "created_at": "2024-03-20T15:30:00Z",
+        "last_click": "2024-03-20T16:45:00Z",
+        "expires_at": "2024-03-21T15:30:00Z"
+    }
+}</code></pre>
+                <button class="action-btn" data-clipboard="#json-url-stats-response"><span>Copy</span></button>
+            </div>
+        </dd>
+    </dl>
+
+    <strong>3. Update URL Expiration</strong>
+    <div class="code-block">
+        <code>PUT {{baseUrl}}/url/:id/expire</code>
+        <button class="action-btn" data-clipboard data-content="PUT {{baseUrl}}/url/:id/expire"><span>Copy</span></button>
+    </div>
+    <dl>
+        <dt>Content-Type:</dt>
+        <dd>application/json</dd>
+        <dt>Body:</dt>
+        <dd>
+            <div class="code-block json">
+                <pre><code>{
+    "expires_in": "string"   // Required (e.g., "24h" or "never")
+}</code></pre>
+                <button class="action-btn" data-clipboard="#json-url-expire-body"><span>Copy</span></button>
+            </div>
+        </dd>
+        <dt>Response:</dt>
+        <dd>
+            <div class="code-block json">
+                <pre><code>{
+    "success": true,
+    "data": {
+        "id": "abc123",
+        "url": "https://example.com",
+        "title": "Example Site",
+        "created_at": "2024-03-20T15:30:00Z",
+        "expires_at": "2024-03-21T15:30:00Z",
+        "clicks": 5,
+        "last_click": "2024-03-20T16:45:00Z",
+        "short_url": "/abc123",
+        "delete_url": "/delete/abc123/deletekey123"
+    }
+}</code></pre>
+                <button class="action-btn" data-clipboard="#json-url-expire-response"><span>Copy</span></button>
+            </div>
+        </dd>
+    </dl>
+
+    <strong>4. Delete URL</strong>
+    <div class="code-block">
+        <code>DELETE {{baseUrl}}/url/:id</code>
+        <button class="action-btn" data-clipboard data-content="DELETE {{baseUrl}}/url/:id"><span>Copy</span></button>
+    </div>
+    <dl>
+        <dt>Response:</dt>
+        <dd>
+            <div class="code-block json">
+                <pre><code>{
+    "success": true,
+    "message": "URL deleted successfully"
+}</code></pre>
+                <button class="action-btn" data-clipboard="#json-url-delete-response"><span>Copy</span></button>
+            </div>
+        </dd>
+    </dl>
 </section>
 
-<section>
-    <h2>File Management</h2>
-
-    <ul>
-        <li><strong>View File</strong>
-            <div class="code-block">
-                <code>GET {{baseUrl}}/:id</code>
-                <button class="action-btn" data-content="GET {{baseUrl}}/:id"><span>Copy</span></button>
-            </div>
-        </li>
-
-        <li><strong>Raw View</strong>
-            <div class="code-block">
-                <code>GET {{baseUrl}}/raw/:id</code>
-                <button class="action-btn" data-content="GET {{baseUrl}}/raw/:id"><span>Copy</span></button>
-            </div>
-        </li>
-
-        <li><strong>Download</strong>
-            <div class="code-block">
-                <code>GET {{baseUrl}}/download/:id</code>
-                <button class="action-btn" data-content="GET {{baseUrl}}/download/:id"><span>Copy</span></button>
-            </div>
-        </li>
-
-        <li><strong>Delete with Key</strong>
-            <div class="code-block">
-                <code>DELETE {{baseUrl}}/delete/:id.:key</code>
-                <button class="action-btn" data-content="DELETE {{baseUrl}}/delete/:id.:key"><span>Copy</span></button>
-            </div>
-        </li>
-    </ul>
-</section>
-
-<section>
+<section id="limits-retention">
     <h2>Limits & Retention</h2>
 
     <ul>
@@ -162,6 +405,21 @@
         </button>
     </div>
 
+    <p>Response:</p>
+    <div class="code-block json">
+        <pre><code>{
+    "success": true,
+    "message": "API key request submitted. Please check your email for verification.",
+    "data": {
+        "email": "your@email.com",
+        "verify_expires": "2024-03-20T16:30:00Z"
+    }
+}</code></pre>
+        <button class="action-btn" data-clipboard="#api-key-response">
+            <span>Copy</span>
+        </button>
+    </div>
+
     <p>
         You will receive a verification email with a link to activate your API key.
         Once verified, your API key can be used by including it in the Authorization header:
@@ -175,22 +433,24 @@
     </div>
 </section>
 
-<section>
-    <h3>API Key Features</h3>
+<section id="api-key-features">
+    <h2>API Key Features</h2>
     <ul>
-        <li>Extended retention</li>
+        <li>Extended retention ({{retention.withKey}})</li>
         <li>URL shortening capabilities</li>
         <li>Private paste support</li>
         <li>Higher rate limits</li>
+        <li>Paste management API</li>
     </ul>
-
     {{else}}
     <h2>API Keys</h2>
     <p class="notice">
         API key requests are currently disabled. Please contact the administrator for access.
     </p>
     {{/if}}
+</section>
 
+<section id="support">
     <h2>Support</h2>
     <p>
         For support or issues: <a href="https://github.com/watzon/0x45">https://github.com/watzon/0x45</a>

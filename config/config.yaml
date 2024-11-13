@@ -20,13 +20,13 @@ storage:
     path: ./uploads
     default: true
     
-  - name: s3
-    type: s3
-    s3_bucket: paste69-bucket
-    s3_region: us-east-1
-    s3_key: your-access-key
-    s3_secret: your-secret-key
-    s3_endpoint: https://localhost.localstack.cloud:4566
+  # - name: s3
+  #   type: s3
+  #   s3_bucket: paste69-bucket
+  #   s3_region: us-east-1
+  #   s3_key: your-access-key
+  #   s3_secret: your-secret-key
+  #   s3_endpoint: https://localhost.localstack.cloud:4566
 
 # Server configuration
 server:
@@ -57,7 +57,7 @@ server:
       burst: 5     # Maximum burst size
     
     # Use Redis for rate limiting if it's available (required for prefork)
-    use_redis: true
+    use_redis: false
 
     # How often to clean up inactive IP limiters
     ip_cleanup_interval: 1h
@@ -97,17 +97,9 @@ smtp:
   starttls: false
   tls_verify: false
 
-# Feature flags
-features:
-  url_shortener: true
-  file_preview: true
-  syntax_highlighting: true
-  api_keys: true
-  base_url: http://localhost:3000 
-
 # Redis configuration
 redis:
-  enabled: true
+  enabled: false
   address: localhost:6379
   password: ""
   db: 0
@@ -121,3 +113,11 @@ retention:
     min_age: 30.0    # Minimum retention in days
     max_age: 730.0   # Maximum retention in days (2 years)
   points: 50         # Number of points to generate for the curve
+
+# Feature flags (TODO)
+features:
+  url_shortener: true
+  file_preview: true
+  syntax_highlighting: true
+  api_keys: true
+  base_url: http://localhost:3000 

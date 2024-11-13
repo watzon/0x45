@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -42,9 +43,13 @@ type ChartDataPoint struct {
 
 // StatsHistory contains time-series data for system statistics
 type StatsHistory struct {
-	Pastes  []ChartDataPoint // Daily paste creation counts
-	URLs    []ChartDataPoint // Daily URL shortening counts
-	Storage []ChartDataPoint // Daily total storage usage
+	Pastes     []ChartDataPoint
+	URLs       []ChartDataPoint
+	Storage    []ChartDataPoint
+	AvgSize    []ChartDataPoint
+	APIKeys    []ChartDataPoint
+	Extensions []ChartDataPoint // Top extensions per day
+	ErrorRates []ChartDataPoint // If we add error tracking
 }
 
 // createPasteFromMultipart creates a new paste from a multipart file upload
@@ -384,12 +389,15 @@ func isImageContent(mimeType string) bool {
 }
 
 // getStatsHistory generates usage statistics for the specified number of days
-// It returns counts of pastes and URLs created per day, plus total storage used
 func (s *Server) getStatsHistory(days int) (*StatsHistory, error) {
 	history := &StatsHistory{
-		Pastes:  make([]ChartDataPoint, days),
-		URLs:    make([]ChartDataPoint, days),
-		Storage: make([]ChartDataPoint, days),
+		Pastes:     make([]ChartDataPoint, days),
+		URLs:       make([]ChartDataPoint, days),
+		Storage:    make([]ChartDataPoint, days),
+		AvgSize:    make([]ChartDataPoint, days),
+		APIKeys:    make([]ChartDataPoint, days),
+		Extensions: make([]ChartDataPoint, days),
+		ErrorRates: make([]ChartDataPoint, days),
 	}
 
 	// Get data for each day
@@ -398,27 +406,49 @@ func (s *Server) getStatsHistory(days int) (*StatsHistory, error) {
 		startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 		endOfDay := startOfDay.AddDate(0, 0, 1)
 
-		// Count pastes for this day
-		var pasteCount int64
+		// Existing metrics
+		var pasteCount, urlCount, storageSize int64
 		s.db.Model(&models.Paste{}).
 			Where("created_at BETWEEN ? AND ?", startOfDay, endOfDay).
 			Count(&pasteCount)
 
-		// Count URLs for this day
-		var urlCount int64
 		s.db.Model(&models.Shortlink{}).
 			Where("created_at BETWEEN ? AND ?", startOfDay, endOfDay).
 			Count(&urlCount)
 
-		// Get storage size for this day
-		var storageSize int64
 		s.db.Model(&models.Paste{}).
 			Where("created_at <= ?", endOfDay).
 			Select("COALESCE(SUM(size), 0)").
 			Row().
 			Scan(&storageSize)
 
-		// Format the values appropriately
+		// New metrics
+		var avgSize float64
+		s.db.Model(&models.Paste{}).
+			Where("created_at BETWEEN ? AND ?", startOfDay, endOfDay).
+			Select("COALESCE(AVG(size), 0)").
+			Row().
+			Scan(&avgSize)
+
+		var activeAPIKeys int64
+		s.db.Model(&models.APIKey{}).
+			Where("created_at <= ? AND verified = ?", endOfDay, true).
+			Count(&activeAPIKeys)
+
+		// Get top extension for the day
+		var topExtension struct {
+			Extension string
+			Count     int64
+		}
+		s.db.Model(&models.Paste{}).
+			Select("extension, COUNT(*) as count").
+			Where("created_at BETWEEN ? AND ? AND extension != ''", startOfDay, endOfDay).
+			Group("extension").
+			Order("count DESC").
+			Limit(1).
+			Scan(&topExtension)
+
+		// Store all values
 		history.Pastes[i] = ChartDataPoint{
 			Value: pasteCount,
 			Date:  startOfDay,
@@ -429,6 +459,23 @@ func (s *Server) getStatsHistory(days int) (*StatsHistory, error) {
 		}
 		history.Storage[i] = ChartDataPoint{
 			Value: humanize.IBytes(uint64(storageSize)),
+			Date:  startOfDay,
+		}
+		history.AvgSize[i] = ChartDataPoint{
+			Value: humanize.IBytes(uint64(avgSize)),
+			Date:  startOfDay,
+		}
+		history.APIKeys[i] = ChartDataPoint{
+			Value: activeAPIKeys,
+			Date:  startOfDay,
+		}
+		history.Extensions[i] = ChartDataPoint{
+			Value: fmt.Sprintf("%s (%d)", topExtension.Extension, topExtension.Count),
+			Date:  startOfDay,
+		}
+		// Error rates would need to be tracked elsewhere in the application
+		history.ErrorRates[i] = ChartDataPoint{
+			Value: 0, // Placeholder until we implement error tracking
 			Date:  startOfDay,
 		}
 	}
