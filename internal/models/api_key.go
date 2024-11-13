@@ -72,6 +72,6 @@ func (k *APIKey) BeforeCreate(tx *gorm.DB) error {
 // NewAPIKey creates a new APIKey with default values
 func NewAPIKey() *APIKey {
 	key := &APIKey{}
-	key.BeforeCreate(nil) // Set defaults
+	_ = key.BeforeCreate(nil) // Set defaults
 	return key
 }
