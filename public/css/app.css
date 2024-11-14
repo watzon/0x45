@@ -229,6 +229,8 @@ tr:nth-child(even) {
 
 .labeled-code-block {
     margin-bottom: 15px;
+    width: 100%;
+    display: block;
 }
 
 .labeled-code-block .code-block {
@@ -236,11 +238,14 @@ tr:nth-child(even) {
     border-top: none;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
-    padding-top: 2px;
+    padding: 8px;
 }
 
 .labeled-code-block .code-block pre {
     margin: 0;
+    width: 100%;
+    overflow-x: auto;
+    box-sizing: border-box;
 }
 
 /* Code Blocks */
@@ -250,7 +255,38 @@ tr:nth-child(even) {
     border-radius: var(--border-radius);
     padding: var(--space-sm);
     position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0;
+}
+
+.labeled-code-block .code-block {
+    margin: 0;
+    border-top: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.code-block pre,
+.code-block code {
+    font-size: 14px;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    box-sizing: border-box;
+    display: block;
+    line-height: 1.4;
+    background: none;
+}
+
+.code-block pre {
     overflow-x: auto;
+}
+
+.code-block .action-btn {
+    position: absolute;
+    right: 8px;
+    top: 8px;
 }
 
 /* Action Buttons */
@@ -362,12 +398,6 @@ tr:nth-child(even) {
     padding: 0;
 }
 
-/* Position copy notification relative to button */
-.action-btn .copy-notification {
-    top: -25px;
-    white-space: nowrap;
-}
-
 /* Code block with copy button */
 .code-block {
     position: relative;
@@ -381,7 +411,7 @@ tr:nth-child(even) {
 .code-block .action-btn {
     position: absolute;
     right: 8px;
-    top: 8px;
+    top: 12px;
     padding: var(--space-xs);
     font-size: 0.8em;
     width: 24px;
@@ -424,7 +454,10 @@ tr:nth-child(even) {
 /* Ensure code doesn't wrap under button */
 .code-block code {
     display: block;
-    padding-right: 3em;
+    padding: 1em 2em 1em 0.5em;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: auto;
 }
 
 /* Toast notification */
@@ -610,6 +643,11 @@ tr:nth-child(even) {
     li {
         margin: var(--space-sm) 0;
         line-height: 1.6;
+    }
+
+    .nav-bar {
+        font-size: 1.1em;
+        padding: var(--space-sm);
     }
 }
 
