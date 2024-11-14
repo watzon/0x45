@@ -565,6 +565,27 @@ tr:nth-child(even) {
     border-radius: var(--border-radius);
 }
 
+/* Charts
+   ========================================================================== */
+.chart-container {
+    width: 100%;
+    overflow-x: auto;
+    margin: var(--space-md) 0;
+    font-size: 14px;
+}
+
+@media screen and (max-width: 480px) {
+    .chart-container {
+        font-size: 12px;
+    }
+    
+    .chart-bar,
+    .chart-label,
+    .chart-spacer {
+        font-size: inherit;
+    }
+}
+
 /* Mobile Responsiveness */
 @media screen and (max-width: 768px) {
     .container {
