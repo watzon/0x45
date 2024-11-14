@@ -11,34 +11,93 @@
 </section>
 
 <section>
+<div class="info-box">
+    <h3>📦 CLI Tool Available!</h3>
+    <p>Install our CLI tool for easier interaction:</p>
+    <div class="code-block">
+        <code>go install github.com/watzon/0x45-cli/cmd/0x45@latest</code>
+        <button class="action-btn" data-clipboard data-content="go install github.com/watzon/0x45-cli/cmd/0x45@latest">
+            <span>Copy</span>
+        </button>
+    </div>
+</div>
+</section>
+
+<section>
 <h2>Usage</h2>
-<div class="code-block">
-    <pre><code>curl -F 'file=@file.txt' {{baseUrl}}</code></pre>
-    <button class="action-btn" data-clipboard data-content="curl -F 'file=@file.txt' {{baseUrl}}">
-        <span>Copy</span>
-    </button>
+
+<div class="command-group">
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <pre><code>curl -F 'file=@file.txt' {{baseUrl}}</code></pre>
+            <button class="action-btn" data-clipboard data-content="curl -F 'file=@file.txt' {{baseUrl}}">
+                <span>Copy</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="labeled-code-block">
+        <span class="command-label cli-label">0X45 CLI</span>
+        <div class="code-block">
+            <pre><code>0x45 upload file.txt</code></pre>
+            <button class="action-btn" data-clipboard data-content="0x45 upload file.txt">
+                <span>Copy</span>
+            </button>
+        </div>
+    </div>
 </div>
 
-<div class="code-block">
-    <pre><code>curl -X POST --data-binary @file.txt {{baseUrl}}</code></pre>
-    <button class="action-btn" data-clipboard data-content="curl -X POST --data-binary @file.txt {{baseUrl}}">
-        <span>Copy</span>
-    </button>
+<div class="command-group">
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <pre><code>curl -X POST --data-binary @file.txt {{baseUrl}}</code></pre>
+            <button class="action-btn" data-clipboard data-content="curl -X POST --data-binary @file.txt {{baseUrl}}">
+                <span>Copy</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="labeled-code-block">
+        <span class="command-label cli-label">0X45 CLI</span>
+        <div class="code-block">
+            <pre><code>cat file.txt | 0x45 upload -</code></pre>
+            <button class="action-btn" data-clipboard data-content="cat file.txt | 0x45 upload -">
+                <span>Copy</span>
+            </button>
+        </div>
+    </div>
 </div>
 
-<div class="code-block">
-    <pre><code>curl -d '{"url":"https://example.com"}' {{baseUrl}}/url</code></pre>
-    <button class="action-btn" data-clipboard data-content="curl -d '{" url":"https://example.com"}' {{baseUrl}}/url">
-        <span>Copy</span>
-    </button>
+<div class="command-group">
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <pre><code>curl -d '{"url":"https://example.com"}' {{baseUrl}}/url</code></pre>
+            <button class="action-btn" data-clipboard data-content="curl -d '{\"url\":\"https://example.com\"}' {{baseUrl}}/url">
+                <span>Copy</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="labeled-code-block">
+        <span class="command-label cli-label">0X45 CLI</span>
+        <div class="code-block">
+            <pre><code>0x45 shorten https://example.com</code></pre>
+            <button class="action-btn" data-clipboard data-content="0x45 shorten https://example.com">
+                <span>Copy</span>
+            </button>
+        </div>
+    </div>
 </div>
 
-<p style="margin-top: 20px;">
+<p>
     For more examples and API docs, visit:
     <a href="{{baseUrl}}/docs">{{baseUrl}}/docs</a>
 </p>
 
-<p style="margin-bottom: 20px;">
+<p>
     View detailed statistics at:
     <a href="{{baseUrl}}/stats">{{baseUrl}}/stats</a>
 </p>

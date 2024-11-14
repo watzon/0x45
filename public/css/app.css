@@ -81,13 +81,6 @@ code {
     border-radius: 3px;
 }
 
-pre code {
-    display: block;
-    padding: 1em;
-    margin: 0;
-    overflow-x: auto;
-}
-
 blockquote {
     border-left: 4px solid #30363d;
     margin: 1em 0;
@@ -361,14 +354,10 @@ section {
 .code-block {
     position: relative;
     background: #161b22;
-    border-radius: 6px;
+    border-radius: 3px;
+    border: 1px solid #30363d;
     margin: 0.5em 0;
     padding: 0.5em;
-}
-
-.code-block pre {
-    margin: 0;
-    padding-right: 2.5em; /* Reduced padding for smaller button */
 }
 
 .code-block .action-btn {
@@ -523,4 +512,63 @@ section {
     background: rgba(255, 255, 255, 0.1);
     padding: 0.2rem 0.4rem;
     border-radius: 3px;
+}
+
+/* Info Box */
+.info-box {
+    margin: 20px 0;
+    padding: 15px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+}
+
+.info-box h3 {
+    margin-top: 0;
+}
+
+/* Command Labels and Code Blocks */
+.command-label {
+    display: block;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    padding: 5px 0 0 1.5em;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+}
+
+.curl-label {
+    color: #2ea043;
+}
+
+.cli-label {
+    color: #1f6feb;
+}
+
+.labeled-code-block {
+    margin-bottom: 15px;
+}
+
+.code-block {
+    border-radius: 3px;
+    border: 1px solid #30363d;
+}
+
+.labeled-code-block .code-block {
+    margin-top: 0;
+    border-top: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    padding-top: 2px;
+}
+
+.labeled-code-block .code-block pre {
+    margin: 0;
+}
+
+.command-group {
+    margin-bottom: 20px;
 }

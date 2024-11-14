@@ -8,6 +8,7 @@
 <h2>Table of Contents</h2>
 <ul>
     <li><a href="#file-upload-endpoints">File Upload Endpoints</a></li>
+    <li><a href="#cli-usage">CLI Usage</a></li>
     <li><a href="#file-management">File Management</a></li>
     <li><a href="#url-shortener">URL Shortener</a></li>
     <li><a href="#url-management">URL Management</a></li>
@@ -17,13 +18,216 @@
     <li><a href="#support">Support</a></li>
 </ul>
 
+<section id="cli-usage">
+    <h2>CLI Usage</h2>
+    
+    <p>The 0x45 CLI tool provides a convenient way to interact with the service from your terminal.</p>
+
+    <strong>Installation</strong>
+    <div class="labeled-code-block">
+        <span class="command-label cli-label">0X45 CLI</span>
+        <div class="code-block">
+            <code>go install github.com/watzon/0x45-cli/cmd/0x45@latest</code>
+            <button class="action-btn" data-clipboard data-content="go install github.com/watzon/0x45-cli/cmd/0x45@latest"><span>Copy</span></button>
+        </div>
+    </div>
+
+    <p>Alternatively, you can build from source:</p>
+    <div class="labeled-code-block">
+        <span class="command-label cli-label">0X45 CLI</span>
+        <div class="code-block">
+            <pre><code>git clone https://github.com/watzon/0x45-cli.git
+cd 0x45-cli
+go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+
+    <strong>Initial Setup</strong>
+    <p>Before using the CLI, configure your API key and optionally the API URL:</p>
+    <div class="command-group">
+        <div class="labeled-code-block">
+            <span class="command-label cli-label">0X45 CLI</span>
+            <div class="code-block">
+                <code>0x45 config set api_key YOUR_API_KEY</code>
+                <button class="action-btn" data-clipboard><span>Copy</span></button>
+            </div>
+        </div>
+
+        <div class="labeled-code-block">
+            <span class="command-label cli-label">0X45 CLI</span>
+            <div class="code-block">
+                <code>0x45 config set api_url https://your-instance.com</code>
+                <button class="action-btn" data-clipboard><span>Copy</span></button>
+            </div>
+        </div>
+    </div>
+
+    <strong>Getting an API Key</strong>
+    <div class="labeled-code-block">
+        <span class="command-label cli-label">0X45 CLI</span>
+        <div class="code-block">
+            <code>0x45 key request --name "Your Name" --email "your@email.com"</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+
+    <strong>File Operations</strong>
+    <p>1. Upload a file</p>
+    <div class="command-group">
+        <div class="labeled-code-block">
+            <span class="command-label curl-label">CURL</span>
+            <div class="code-block">
+                <code>curl -F "file=@path/to/file.txt" {{baseUrl}}</code>
+                <button class="action-btn" data-clipboard><span>Copy</span></button>
+            </div>
+        </div>
+
+        <div class="labeled-code-block">
+            <span class="command-label cli-label">0X45 CLI</span>
+            <div class="code-block">
+                <code>0x45 upload path/to/file.txt</code>
+                <button class="action-btn" data-clipboard><span>Copy</span></button>
+            </div>
+        </div>
+    </div>
+
+    <p>2. Upload a private file with expiration</p>
+    <div class="command-group">
+        <div class="labeled-code-block">
+            <span class="command-label curl-label">CURL</span>
+            <div class="code-block">
+                <code>curl -F "file=@path/to/file.txt" "{{baseUrl}}?private=true&expires=24h"</code>
+                <button class="action-btn" data-clipboard><span>Copy</span></button>
+            </div>
+        </div>
+
+        <div class="labeled-code-block">
+            <span class="command-label cli-label">0X45 CLI</span>
+            <div class="code-block">
+                <code>0x45 upload --private --expires 24h path/to/file.txt</code>
+                <button class="action-btn" data-clipboard><span>Copy</span></button>
+            </div>
+        </div>
+    </div>
+
+    <p>3. Upload from stdin</p>
+    <div class="command-group">
+        <div class="labeled-code-block">
+            <span class="command-label curl-label">CURL</span>
+            <div class="code-block">
+                <code>echo "Hello, World!" | curl --data-binary @- {{baseUrl}}</code>
+                <button class="action-btn" data-clipboard><span>Copy</span></button>
+            </div>
+        </div>
+
+        <div class="labeled-code-block">
+            <span class="command-label cli-label">0X45 CLI</span>
+            <div class="code-block">
+                <code>echo "Hello, World!" | 0x45 upload -</code>
+                <button class="action-btn" data-clipboard><span>Copy</span></button>
+            </div>
+        </div>
+    </div>
+
+    <strong>URL Operations</strong>
+    <p>1. Shorten a URL</p>
+    <div class="command-group">
+        <div class="labeled-code-block">
+            <span class="command-label curl-label">CURL</span>
+            <div class="code-block">
+                <code>curl -X POST -d "url=https://example.com" {{baseUrl}}/api/urls</code>
+                <button class="action-btn" data-clipboard><span>Copy</span></button>
+            </div>
+        </div>
+
+        <div class="labeled-code-block">
+            <span class="command-label cli-label">0X45 CLI</span>
+            <div class="code-block">
+                <code>0x45 shorten https://example.com</code>
+                <button class="action-btn" data-clipboard><span>Copy</span></button>
+            </div>
+        </div>
+    </div>
+
+    <p>2. Shorten a private URL with expiration</p>
+    <div class="labeled-code-block">
+        <span class="command-label cli-label">0X45 CLI</span>
+        <div class="code-block">
+            <code>0x45 shorten --private --expires 7d https://example.com</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+
+    <strong>Content Management</strong>
+    <p>1. List your uploads</p>
+    <div class="command-group">
+        <div class="labeled-code-block">
+            <span class="command-label cli-label">0X45 CLI</span>
+            <div class="code-block">
+                <code>0x45 list pastes</code>
+                <button class="action-btn" data-clipboard><span>Copy</span></button>
+            </div>
+        </div>
+    </div>
+
+    <p>2. List your shortened URLs</p>
+    <div class="labeled-code-block">
+        <span class="command-label cli-label">0X45 CLI</span>
+        <div class="code-block">
+            <code>0x45 list urls</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+
+    <p>3. List with pagination</p>
+    <div class="labeled-code-block">
+        <span class="command-label cli-label">0X45 CLI</span>
+        <div class="code-block">
+            <code>0x45 list pastes --page 2 --limit 10</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+
+    <p>4. Delete content</p>
+    <div class="labeled-code-block">
+        <span class="command-label cli-label">0X45 CLI</span>
+        <div class="code-block">
+            <code>0x45 delete CONTENT_ID</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+
+    <strong>Configuration Management</strong>
+    <p>1. Get a config value</p>
+    <div class="labeled-code-block">
+        <span class="command-label cli-label">0X45 CLI</span>
+        <div class="code-block">
+            <code>0x45 config get KEY</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+
+    <p>2. Set a config value</p>
+    <div class="labeled-code-block">
+        <span class="command-label cli-label">0X45 CLI</span>
+        <div class="code-block">
+            <code>0x45 config set KEY VALUE</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+</section>
+
 <section id="file-upload-endpoints">
     <h2>File Upload Endpoints</h2>
 
     <strong>1. Multipart Upload</strong>
-    <div class="code-block">
-        <code>POST {{baseUrl}}</code>
-        <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>POST {{baseUrl}}</code>
+            <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
+        </div>
     </div>
     <dl>
         <dt>Form field:</dt>
@@ -64,9 +268,12 @@
 
 <section>
     <strong>2. Raw Upload</strong>
-    <div class="code-block">
-        <code>POST {{baseUrl}}</code>
-        <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>POST {{baseUrl}}</code>
+            <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
+        </div>
     </div>
     <dl>
         <dt>Body:</dt>
@@ -100,9 +307,12 @@
 
 <section>
     <strong>3. JSON Upload</strong>
-    <div class="code-block">
-        <code>POST {{baseUrl}}</code>
-        <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>POST {{baseUrl}}</code>
+            <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
+        </div>
     </div>
     <dl>
         <dt>Content-Type:</dt>
@@ -151,9 +361,12 @@
 
     <ul>
         <li><strong>View File</strong>
-            <div class="code-block">
-                <code>GET {{baseUrl}}/:id</code>
-                <button class="action-btn" data-content="GET {{baseUrl}}/:id"><span>Copy</span></button>
+            <div class="labeled-code-block">
+                <span class="command-label curl-label">CURL</span>
+                <div class="code-block">
+                    <code>GET {{baseUrl}}/:id</code>
+                    <button class="action-btn" data-content="GET {{baseUrl}}/:id"><span>Copy</span></button>
+                </div>
             </div>
             <dl>
                 <dt>Response:</dt>
@@ -162,9 +375,12 @@
         </li>
 
         <li><strong>Raw View</strong>
-            <div class="code-block">
-                <code>GET {{baseUrl}}/raw/:id[.:ext]</code>
-                <button class="action-btn" data-content="GET {{baseUrl}}/raw/:id"><span>Copy</span></button>
+            <div class="labeled-code-block">
+                <span class="command-label curl-label">CURL</span>
+                <div class="code-block">
+                    <code>GET {{baseUrl}}/raw/:id[.:ext]</code>
+                    <button class="action-btn" data-content="GET {{baseUrl}}/raw/:id"><span>Copy</span></button>
+                </div>
             </div>
             <dl>
                 <dt>Response:</dt>
@@ -173,9 +389,12 @@
         </li>
 
         <li><strong>Download</strong>
-            <div class="code-block">
-                <code>GET {{baseUrl}}/download/:id[.:ext]</code>
-                <button class="action-btn" data-content="GET {{baseUrl}}/download/:id"><span>Copy</span></button>
+            <div class="labeled-code-block">
+                <span class="command-label curl-label">CURL</span>
+                <div class="code-block">
+                    <code>GET {{baseUrl}}/download/:id[.:ext]</code>
+                    <button class="action-btn" data-content="GET {{baseUrl}}/download/:id"><span>Copy</span></button>
+                </div>
             </div>
             <dl>
                 <dt>Response:</dt>
@@ -184,9 +403,12 @@
         </li>
 
         <li><strong>Delete with Key</strong>
-            <div class="code-block">
-                <code>DELETE {{baseUrl}}/delete/:id/:key</code>
-                <button class="action-btn" data-content="DELETE {{baseUrl}}/delete/:id/:key"><span>Copy</span></button>
+            <div class="labeled-code-block">
+                <span class="command-label curl-label">CURL</span>
+                <div class="code-block">
+                    <code>DELETE {{baseUrl}}/delete/:id/:key</code>
+                    <button class="action-btn" data-content="DELETE {{baseUrl}}/delete/:id/:key"><span>Copy</span></button>
+                </div>
             </div>
             <dl>
                 <dt>Response:</dt>
@@ -208,9 +430,12 @@
     <h2>URL Shortener (Requires API Key)</h2>
 
     <strong>1. Shorten URL</strong>
-    <div class="code-block">
-        <code>POST {{baseUrl}}/url</code>
-        <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}/url"><span>Copy</span></button>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>POST {{baseUrl}}/url</code>
+            <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}/url"><span>Copy</span></button>
+        </div>
     </div>
     <dl>
         <dt>Content-Type:</dt>
@@ -253,9 +478,12 @@
     <h2>URL Management (Requires API Key)</h2>
 
     <strong>1. List URLs</strong>
-    <div class="code-block">
-        <code>GET {{baseUrl}}/urls</code>
-        <button class="action-btn" data-clipboard data-content="GET {{baseUrl}}/urls"><span>Copy</span></button>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>GET {{baseUrl}}/urls</code>
+            <button class="action-btn" data-clipboard data-content="GET {{baseUrl}}/urls"><span>Copy</span></button>
+        </div>
     </div>
     <dl>
         <dt>Query params:</dt>
@@ -294,9 +522,12 @@
     </dl>
 
     <strong>2. URL Stats</strong>
-    <div class="code-block">
-        <code>GET {{baseUrl}}/url/:id/stats</code>
-        <button class="action-btn" data-content="GET {{baseUrl}}/url/:id/stats"><span>Copy</span></button>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>GET {{baseUrl}}/url/:id/stats</code>
+            <button class="action-btn" data-content="GET {{baseUrl}}/url/:id/stats"><span>Copy</span></button>
+        </div>
     </div>
     <dl>
         <dt>Response:</dt>
@@ -320,9 +551,12 @@
     </dl>
 
     <strong>3. Update URL Expiration</strong>
-    <div class="code-block">
-        <code>PUT {{baseUrl}}/url/:id/expire</code>
-        <button class="action-btn" data-clipboard data-content="PUT {{baseUrl}}/url/:id/expire"><span>Copy</span></button>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>PUT {{baseUrl}}/url/:id/expire</code>
+            <button class="action-btn" data-clipboard data-content="PUT {{baseUrl}}/url/:id/expire"><span>Copy</span></button>
+        </div>
     </div>
     <dl>
         <dt>Content-Type:</dt>
@@ -359,9 +593,12 @@
     </dl>
 
     <strong>4. Delete URL</strong>
-    <div class="code-block">
-        <code>DELETE {{baseUrl}}/url/:id</code>
-        <button class="action-btn" data-clipboard data-content="DELETE {{baseUrl}}/url/:id"><span>Copy</span></button>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>DELETE {{baseUrl}}/url/:id</code>
+            <button class="action-btn" data-clipboard data-content="DELETE {{baseUrl}}/url/:id"><span>Copy</span></button>
+        </div>
     </div>
     <dl>
         <dt>Response:</dt>
@@ -393,16 +630,19 @@
         API keys are required for URL shortening and extended features. To request an API key:
     </p>
 
-    <div class="code-block">
-        <pre><code id="api-key-curl">curl -X POST {{baseUrl}}/api-key \
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <pre><code id="api-key-curl">curl -X POST {{baseUrl}}/api-key \
     -H "Content-Type: application/json" \
     -d '{
     "email": "your@email.com",
     "name": "Your Name"
 }'</code></pre>
-        <button class="action-btn" data-clipboard="#api-key-curl">
-            <span>Copy</span>
-        </button>
+            <button class="action-btn" data-clipboard="#api-key-curl">
+                <span>Copy</span>
+            </button>
+        </div>
     </div>
 
     <p>Response:</p>
@@ -425,11 +665,14 @@
         Once verified, your API key can be used by including it in the Authorization header:
     </p>
 
-    <div class="code-block">
-        <pre><code>Authorization: Bearer your-api-key</code></pre>
-        <button class="action-btn" data-clipboard data-content="Authorization: Bearer your-api-key">
-            <span>Copy</span>
-        </button>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <pre><code>Authorization: Bearer your-api-key</code></pre>
+            <button class="action-btn" data-clipboard data-content="Authorization: Bearer your-api-key">
+                <span>Copy</span>
+            </button>
+        </div>
     </div>
 </section>
 
