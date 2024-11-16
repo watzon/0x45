@@ -64,6 +64,7 @@ func New(db *database.Database, storageManager *storage.StorageManager, config *
 	// Serve static files
 	app.Static("/public", "./public")
 
+<<<<<<< HEAD
 	// Initialize Redis if enabled
 	if config.Redis.Enabled {
 		redisClient := redis.NewClient(&redis.Options{
@@ -84,6 +85,8 @@ func New(db *database.Database, storageManager *storage.StorageManager, config *
 		// }
 	}
 
+=======
+>>>>>>> 93ecaf71dc264753f2c0a764986b65cc964a2d1a
 	return &Server{
 		app:        app,
 		db:         db,

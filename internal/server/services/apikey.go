@@ -14,10 +14,24 @@ import (
 )
 
 type APIKeyService struct {
-	db      *gorm.DB
-	logger  *zap.Logger
-	config  *config.Config
-	mailer  *mailer.Mailer
+	db     *gorm.DB
+	logger *zap.Logger
+	config *config.Config
+	mailer *mailer.Mailer
+}
+
+type APIKeyRequest struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
+type APIKeyResponse struct {
+	Message string `json:"message"`
+	Key     string `json:"key"`
+}
+
+type VerifyAPIKeyRequest struct {
+	Token string `json:"token"`
 }
 
 func NewAPIKeyService(db *gorm.DB, logger *zap.Logger, config *config.Config) *APIKeyService {
@@ -27,19 +41,16 @@ func NewAPIKeyService(db *gorm.DB, logger *zap.Logger, config *config.Config) *A
 	}
 
 	return &APIKeyService{
-		db:      db,
-		logger:  logger,
-		config:  config,
-		mailer:  m,
+		db:     db,
+		logger: logger,
+		config: config,
+		mailer: m,
 	}
 }
 
 // RequestKey handles the initial API key request
 func (s *APIKeyService) RequestKey(c *fiber.Ctx) error {
-	var req struct {
-		Email string `json:"email"`
-		Name  string `json:"name"`
-	}
+	var req APIKeyRequest
 
 	if err := c.BodyParser(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
@@ -119,10 +130,10 @@ func (s *APIKeyService) VerifyKey(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to verify API key")
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "API key verified successfully",
-		"key":     apiKey.Key,
-	})
+	return c.Render("verify_success", fiber.Map{
+		"baseUrl": s.config.Server.BaseURL,
+		"apiKey":  apiKey.Key,
+	}, "layouts/main")
 }
 
 // Helper functions

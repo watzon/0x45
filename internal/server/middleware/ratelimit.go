@@ -1,7 +1,11 @@
 package middleware
 
 import (
+	"context"
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/redis/go-redis/v9"
 	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/ratelimit"
 	"go.uber.org/zap"
@@ -35,7 +39,21 @@ func NewRateLimiter(logger *zap.Logger, config *config.Config) *RateLimiter {
 			Burst:   config.Server.RateLimit.PerIP.Burst,
 		},
 		UseRedis: config.Redis.Enabled,
-		Redis:    nil, // Will be set by server if Redis is enabled
+	}
+
+	if config.Redis.Enabled {
+		redisClient := redis.NewClient(&redis.Options{
+			Addr:     config.Redis.Address,
+			Password: config.Redis.Password,
+			DB:       config.Redis.DB,
+		})
+
+		// Test Redis connection
+		if _, err := redisClient.Ping(context.Background()).Result(); err != nil {
+			logger.Error("failed to connect to Redis", zap.Error(err))
+		}
+
+		limiterConfig.Redis = redisClient
 	}
 
 	return &RateLimiter{
@@ -48,6 +66,11 @@ func NewRateLimiter(logger *zap.Logger, config *config.Config) *RateLimiter {
 // RateLimit returns a middleware that limits requests
 func (m *RateLimiter) RateLimit() fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		// Skip rate limiting on non-API routes
+		if !strings.HasPrefix(c.Path(), "/api/") {
+			return c.Next()
+		}
+
 		// Skip rate limiting if request has a valid API key
 		if c.Locals("apiKey") != nil {
 			return c.Next()
