@@ -49,10 +49,13 @@ func (p *Paste) BeforeCreate(tx *gorm.DB) error {
 		p.DeleteKey = utils.MustGenerateID(32)
 	}
 
-	// Handle file extension
-	// If Extension is not explicitly set, try to get it from filename
+	// Set default filename if not provided
+	if p.Filename == "" {
+		p.Filename = "untitled"
+	}
+
+	// Handle file extension from filename if not already set
 	if p.Extension == "" && p.Filename != "" {
-		// Split filename by dots and get the last part
 		parts := strings.Split(p.Filename, ".")
 		if len(parts) > 1 {
 			p.Extension = parts[len(parts)-1]
@@ -64,8 +67,8 @@ func (p *Paste) BeforeCreate(tx *gorm.DB) error {
 
 	// Storage configuration handling
 	if p.StorageName == "" {
-		var cfg config.Config
-		if _, ok := tx.Statement.Context.Value("config").(*config.Config); !ok {
+		cfg, ok := tx.Statement.Context.Value("config").(*config.Config)
+		if !ok {
 			return fmt.Errorf("config not found in context")
 		}
 
@@ -86,7 +89,7 @@ func (p *Paste) BeforeCreate(tx *gorm.DB) error {
 }
 
 // ToResponse returns a map of the paste data for API responses
-func (p *Paste) ToResponse() fiber.Map {
+func (p *Paste) ToResponse(baseURL string) fiber.Map {
 	response := fiber.Map{
 		"id":         p.ID,
 		"filename":   p.Filename,
@@ -103,13 +106,16 @@ func (p *Paste) ToResponse() fiber.Map {
 		urlSuffix = p.ID + "." + p.Extension
 	}
 
-	response["url"] = fmt.Sprintf("/%s", urlSuffix)
-	response["raw_url"] = fmt.Sprintf("/raw/%s", urlSuffix)
-	response["download_url"] = fmt.Sprintf("/download/%s", urlSuffix)
+	// Ensure baseURL doesn't end with a slash
+	baseURL = strings.TrimSuffix(baseURL, "/")
+
+	response["url"] = fmt.Sprintf("%s/%s", baseURL, urlSuffix)
+	response["raw_url"] = fmt.Sprintf("%s/raw/%s", baseURL, urlSuffix)
+	response["download_url"] = fmt.Sprintf("%s/download/%s", baseURL, urlSuffix)
 
 	// Only include delete_url if there's a delete key
 	if p.DeleteKey != "" {
-		response["delete_url"] = fmt.Sprintf("/delete/%s/%s", p.ID, p.DeleteKey)
+		response["delete_url"] = fmt.Sprintf("%s/delete/%s/%s", baseURL, p.ID, p.DeleteKey)
 	}
 
 	return response

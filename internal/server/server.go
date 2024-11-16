@@ -2,38 +2,51 @@ package server
 
 import (
 	"context"
-	"time"
+	"fmt"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/template/handlebars/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/database"
-	"github.com/watzon/0x45/internal/mailer"
-	"github.com/watzon/0x45/internal/middleware"
-	"github.com/watzon/0x45/internal/ratelimit"
+	"github.com/watzon/0x45/internal/server/handlers"
+	"github.com/watzon/0x45/internal/server/middleware"
+	"github.com/watzon/0x45/internal/server/services"
 	"github.com/watzon/0x45/internal/storage"
 	"go.uber.org/zap"
 )
 
 type Server struct {
-	app         *fiber.App
-	db          *database.Database
-	auth        *middleware.AuthMiddleware
-	storage     *storage.StorageManager
-	config      *config.Config
-	rateLimiter *ratelimit.RateLimiter
-	logger      *zap.Logger
-	mailer      *mailer.Mailer
+	app        *fiber.App
+	db         *database.Database
+	storage    *storage.StorageManager
+	config     *config.Config
+	logger     *zap.Logger
+	services   *services.Services
+	handlers   *handlers.Handlers
+	middleware *middleware.Middleware
 }
 
 func New(db *database.Database, storageManager *storage.StorageManager, config *config.Config) *Server {
+	// Initialize logger
+	logger, err := zap.NewProduction()
+	if err != nil {
+		return nil
+	}
+
 	// Initialize template engine
 	engine := handlebars.New("./views", ".hbs")
 
+	// Initialize services
+	svc := services.NewServices(db.DB, logger, config)
+
+	// Initialize middleware
+	mw := middleware.NewMiddleware(db.DB, logger, config, svc)
+
+	// Initialize handlers
+	hdl := handlers.NewHandlers(db.DB, logger, config, svc)
+
+	// Initialize Fiber app
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errorHandler,
 		BodyLimit:    config.Server.MaxUploadSize,
@@ -43,34 +56,17 @@ func New(db *database.Database, storageManager *storage.StorageManager, config *
 		AppName:      config.Server.AppName,
 	})
 
-	// Global middleware
-	app.Use(recover.New())
-	app.Use(logger.New())
-	app.Use(cors.New())
+	// Add all middleware in the correct order
+	for _, middleware := range mw.GetMiddleware() {
+		app.Use(middleware)
+	}
 
 	// Serve static files
 	app.Static("/public", "./public")
 
-	// Initialize logger
-	logger, err := zap.NewProduction()
-	if err != nil {
-		return nil
-	}
-
-	// Initialize mailer if enabled
-	var mailClient *mailer.Mailer
-	if config.SMTP.Enabled {
-		mailClient, err = mailer.New(config)
-		if err != nil {
-			logger.Error("failed to initialize mailer", zap.Error(err))
-			// Continue without mailer
-		}
-	}
-
 	// Initialize Redis if enabled
-	var redisClient *redis.Client
 	if config.Redis.Enabled {
-		redisClient = redis.NewClient(&redis.Options{
+		redisClient := redis.NewClient(&redis.Options{
 			Addr:     config.Redis.Address,
 			Password: config.Redis.Password,
 			DB:       config.Redis.DB,
@@ -81,80 +77,89 @@ func New(db *database.Database, storageManager *storage.StorageManager, config *
 			logger.Error("failed to connect to Redis", zap.Error(err))
 			return nil
 		}
+
+		// Set Redis client in rate limiter if using Redis
+		if config.Server.Prefork {
+			// TODO: Set Redis client in rate limiter
+		}
 	}
 
-	// Initialize rate limiter
-	rateLimiterConfig := ratelimit.Config{
-		Global: struct {
-			Enabled bool
-			Rate    float64
-			Burst   int
-		}{
-			Enabled: config.Server.RateLimit.Global.Enabled,
-			Rate:    config.Server.RateLimit.Global.Rate,
-			Burst:   config.Server.RateLimit.Global.Burst,
-		},
-		PerIP: struct {
-			Enabled bool
-			Rate    float64
-			Burst   int
-		}{
-			Enabled: config.Server.RateLimit.PerIP.Enabled,
-			Rate:    config.Server.RateLimit.PerIP.Rate,
-			Burst:   config.Server.RateLimit.PerIP.Burst,
-		},
-		Redis:    redisClient, // Will be nil if Redis is not enabled
-		UseRedis: config.Server.RateLimit.UseRedis,
+	return &Server{
+		app:        app,
+		db:         db,
+		storage:    storageManager,
+		config:     config,
+		logger:     logger,
+		services:   svc,
+		handlers:   hdl,
+		middleware: mw,
 	}
-
-	server := &Server{
-		app:         app,
-		db:          db,
-		auth:        middleware.NewAuthMiddleware(db.DB),
-		storage:     storageManager,
-		config:      config,
-		rateLimiter: ratelimit.New(rateLimiterConfig),
-		logger:      logger,
-		mailer:      mailClient,
-	}
-
-	return server
 }
 
-// Add a helper method to check if email features are available
-func (s *Server) hasMailer() bool {
-	return s.config.SMTP.Enabled && s.mailer != nil
-}
-
+// SetupRoutes configures all the routes for the server
 func (s *Server) SetupRoutes() {
-	// URL shortener routes (requires API key)
-	s.app.Post("/url", s.auth.Auth(true), s.handleURLShorten)
-	s.app.Get("/urls", s.auth.Auth(true), s.handleListURLs)
-	s.app.Get("/url/:id/stats", s.auth.Auth(true), s.handleURLStats)
-	s.app.Put("/url/:id/expire", s.auth.Auth(true), s.handleUpdateURLExpiration)
-	s.app.Delete("/url/:id", s.auth.Auth(true), s.handleDeleteURL)
+	// Web interface routes
+	s.app.Get("/", s.handlers.Web.HandleIndex)
+	s.app.Get("/stats", s.handlers.Web.HandleStats)
+	s.app.Get("/docs", s.handlers.Web.HandleDocs)
 
-	// Management routes (requires API key)
-	s.app.Get("/pastes", s.auth.Auth(true), s.handleListPastes)
-	s.app.Delete("/pastes/:id", s.auth.Auth(true), s.handleDeletePaste)
-	s.app.Put("/pastes/:id/expire", s.auth.Auth(true), s.handleUpdateExpiration)
+	// API Key routes
+	apiKeys := s.app.Group("/api/keys")
+	apiKeys.Post("/request", s.handlers.APIKey.HandleRequestAPIKey)
+	apiKeys.Get("/verify", s.handlers.APIKey.HandleVerifyAPIKey)
 
-	// API Key management
-	s.app.Post("/api-key", s.handleRequestAPIKey)
-	s.app.Get("/verify/:token", s.handleVerifyAPIKey)
+	// Paste routes
+	pastes := s.app.Group("/api/pastes")
+	pastes.Use(s.middleware.Auth.Auth(true))
+	pastes.Post("/", s.handlers.Paste.HandleUpload)
+	pastes.Get("/", s.handlers.Paste.HandleListPastes)
+	pastes.Delete("/:id", s.handlers.Paste.HandleDeletePaste)
+	pastes.Put("/:id/expiry", s.handlers.Paste.HandleUpdateExpiration)
+
+	// URL routes
+	urls := s.app.Group("/api/urls")
+	urls.Use(s.middleware.Auth.Auth(true))
+	urls.Post("/", s.handlers.URL.HandleURLShorten)
+	urls.Get("/", s.handlers.URL.HandleListURLs)
+	urls.Get("/:id/stats", s.handlers.URL.HandleURLStats)
+	urls.Delete("/:id", s.handlers.URL.HandleDeleteURL)
+	urls.Put("/:id/expiry", s.handlers.URL.HandleUpdateURLExpiration)
 
 	// Public routes
-	s.app.Get("/", s.handleIndex)
-	s.app.Get("/docs", s.handleDocs)
-	s.app.Get("/stats", s.handleStats)
-	s.app.Post("/", s.auth.Auth(false), s.handleUpload)
-	s.app.All("/delete/:id/:key", s.handleDeleteWithKey)
-	s.app.Get("/download/:id.:ext", s.handleDownload)
-	s.app.Get("/download/:id", s.handleDownload)
-	s.app.Get("/raw/:id.:ext", s.handleRawView)
-	s.app.Get("/raw/:id", s.handleRawView)
-	s.app.Get("/:id.:ext", s.handleView)
-	s.app.Get("/:id", s.handleView)
+	// Handle paste routes with extensions
+	s.app.Get("/:id.:ext", func(c *fiber.Ctx) error {
+		// Set the extension in locals for the paste handler to use
+		c.Locals("extension", c.Params("ext"))
+		return s.handlers.Paste.HandleView(c)
+	})
+	s.app.Get("/:id/raw.:ext", func(c *fiber.Ctx) error {
+		c.Locals("extension", c.Params("ext"))
+		return s.handlers.Paste.HandleRawView(c)
+	})
+	s.app.Get("/:id/download.:ext", func(c *fiber.Ctx) error {
+		c.Locals("extension", c.Params("ext"))
+		return s.handlers.Paste.HandleDownload(c)
+	})
+
+	// Handle paste routes without extensions
+	s.app.Get("/:id/raw", s.handlers.Paste.HandleRawView)
+	s.app.Get("/:id/download", s.handlers.Paste.HandleDownload)
+	s.app.Delete("/:id/:key", s.handlers.Paste.HandleDeleteWithKey)
+
+	// Handle base /:id route - try paste first, fallback to URL redirect
+	s.app.Get("/:id", func(c *fiber.Ctx) error {
+		// Try to get paste first
+		if paste, err := s.services.Paste.GetPaste(c.Params("id")); err == nil {
+			// Log the view
+			if err := s.services.Analytics.LogPasteView(c, paste.ID); err != nil {
+				s.logger.Error("failed to log paste view", zap.Error(err))
+			}
+			return s.handlers.Paste.HandleView(c)
+		}
+
+		// If paste not found, try URL redirect
+		return s.handlers.URL.HandleRedirect(c)
+	})
 }
 
 // Error handler
@@ -168,29 +173,23 @@ func errorHandler(c *fiber.Ctx, err error) error {
 	}
 
 	return c.Status(code).JSON(fiber.Map{
-		"success": false,
-		"error":   message,
+		"error": message,
 	})
 }
 
 func (s *Server) Start(addr string) error {
-	// Start cleanup goroutine if enabled
+	// Start cleanup scheduler
 	if s.config.Server.Cleanup.Enabled {
-		go func() {
-			ticker := time.NewTicker(time.Duration(s.config.Server.Cleanup.Interval) * time.Second)
-			defer ticker.Stop()
-
-			for range ticker.C {
-				s.logger.Info("running cleanup")
-				unverifiedKeys := s.cleanupUnverifiedKeys()
-				expiredContent := s.cleanupExpiredContent()
-				s.logger.Info("cleanup completed",
-					zap.Int64("unverified_keys", unverifiedKeys),
-					zap.Int64("expired_content", expiredContent))
-			}
-		}()
+		interval := fmt.Sprintf("%ds", s.config.Server.Cleanup.Interval)
+		if err := s.services.StartCleanupScheduler(interval); err != nil {
+			s.logger.Error("failed to start cleanup scheduler", zap.Error(err))
+		}
 	}
 
+	// Setup routes
+	s.SetupRoutes()
+
+	// Start server
 	return s.app.Listen(addr)
 }
 
@@ -199,8 +198,8 @@ func (s *Server) Shutdown(ctx context.Context) error {
 }
 
 func (s *Server) Cleanup() error {
-	if s.logger == nil {
-		return nil
+	if s.db != nil && s.db.DB != nil {
+		return s.db.DB.Error
 	}
-	return s.logger.Sync() // flush any buffered log entries
+	return nil
 }

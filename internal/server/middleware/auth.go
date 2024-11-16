@@ -5,16 +5,27 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/models"
+	"github.com/watzon/0x45/internal/server/services"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type AuthMiddleware struct {
-	db *gorm.DB
+	db       *gorm.DB
+	logger   *zap.Logger
+	config   *config.Config
+	services *services.Services
 }
 
-func NewAuthMiddleware(db *gorm.DB) *AuthMiddleware {
-	return &AuthMiddleware{db: db}
+func NewAuthMiddleware(db *gorm.DB, logger *zap.Logger, config *config.Config, services *services.Services) *AuthMiddleware {
+	return &AuthMiddleware{
+		db:       db,
+		logger:   logger,
+		config:   config,
+		services: services,
+	}
 }
 
 // Auth returns a middleware that validates API keys
@@ -61,16 +72,25 @@ func (m *AuthMiddleware) Auth(required bool) fiber.Handler {
 
 func (m *AuthMiddleware) validateAPIKey(key string) (*models.APIKey, error) {
 	var apiKey models.APIKey
-	err := m.db.Where("key = ?", key).First(&apiKey).Error
+	err := m.db.Where("key = ? AND verified = ?", key, true).First(&apiKey).Error
 	if err != nil {
 		return nil, err
 	}
 
-	// Update last used timestamp
-	m.db.Model(&apiKey).Updates(map[string]any{
+	// if apiKey.ExpiresAt != nil && apiKey.ExpiresAt.Before(time.Now()) {
+	// 	return nil, fiber.NewError(fiber.StatusUnauthorized, "API key has expired")
+	// }
+
+	// Update last used timestamp and usage count
+	if err := m.db.Model(&apiKey).Updates(map[string]any{
 		"last_used_at": time.Now(),
 		"usage_count":  gorm.Expr("usage_count + 1"),
-	})
+	}).Error; err != nil {
+		m.logger.Error("failed to update API key usage",
+			zap.String("key", key),
+			zap.Error(err),
+		)
+	}
 
 	return &apiKey, nil
 }
@@ -86,6 +106,11 @@ func (m *AuthMiddleware) checkRateLimit(key *models.APIKey) error {
 	}
 
 	if count >= int64(key.RateLimit) {
+		m.logger.Warn("rate limit exceeded",
+			zap.String("key", key.Key),
+			zap.Int("limit", key.RateLimit),
+			zap.Int64("count", count),
+		)
 		return fiber.NewError(fiber.StatusTooManyRequests, "Rate limit exceeded")
 	}
 

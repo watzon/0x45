@@ -63,6 +63,7 @@ type ServerConfig struct {
 	AppName       string          `mapstructure:"app_name"`
 	Cleanup       CleanupConfig   `mapstructure:"cleanup"`
 	RateLimit     RateLimitConfig `mapstructure:"rate_limit"`
+	CORSOrigins   []string        `mapstructure:"cors_origins"`
 }
 
 type SMTPConfig struct {
@@ -125,6 +126,7 @@ func Load() (*Config, error) {
 	_ = viper.BindEnv("server.prefork", "0X_SERVER_PREFORK")
 	_ = viper.BindEnv("server.server_header", "0X_SERVER_SERVER_HEADER")
 	_ = viper.BindEnv("server.app_name", "0X_SERVER_APP_NAME")
+	_ = viper.BindEnv("server.cors_origins", "0X_SERVER_CORS_ORIGINS")
 
 	// Server cleanup bindings
 	_ = viper.BindEnv("server.cleanup.enabled", "0X_SERVER_CLEANUP_ENABLED")
@@ -196,6 +198,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("server.cleanup.enabled", true)
 	viper.SetDefault("server.cleanup.interval", 3600)
 	viper.SetDefault("server.cleanup.max_age", "168h")
+	viper.SetDefault("server.cors_origins", []string{"*"})
 
 	viper.SetDefault("server.rate_limit.global.enabled", true) // Enable global rate limiting by default
 	viper.SetDefault("server.rate_limit.global.rate", 100.0)   // 100 requests per second globally

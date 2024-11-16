@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -24,10 +25,6 @@ type Shortlink struct {
 	DeleteKey string     `gorm:"type:varchar(32);not null"`
 	ExpiresAt *time.Time `gorm:"index"`
 
-	// Analytics (optional)
-	Clicks    int64
-	LastClick *time.Time
-
 	// Optional metadata (referrer stats, etc.)
 	Metadata JSON `gorm:"type:jsonb"`
 }
@@ -42,23 +39,25 @@ func (s *Shortlink) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-func (s *Shortlink) ToResponse() fiber.Map {
+func (s *Shortlink) ToResponse(baseURL string) fiber.Map {
 	response := fiber.Map{
 		"id":         s.ID,
 		"url":        s.TargetURL,
 		"title":      s.Title,
 		"created_at": s.CreatedAt,
 		"expires_at": s.ExpiresAt,
-		"clicks":     s.Clicks,
-		"last_click": s.LastClick,
 	}
 
-	// Add URL paths (similar to how Paste does it)
-	response["short_url"] = fmt.Sprintf("/%s", s.ID)
+	// Ensure baseURL doesn't end with a slash
+	baseURL = strings.TrimSuffix(baseURL, "/")
+
+	// Add URL paths
+	response["short_url"] = fmt.Sprintf("%s/%s", baseURL, s.ID)
+	response["stats_url"] = fmt.Sprintf("%s/api/urls/%s/stats", baseURL, s.ID)
 
 	// Only include delete_url if there's a delete key
 	if s.DeleteKey != "" {
-		response["delete_url"] = fmt.Sprintf("/delete/%s/%s", s.ID, s.DeleteKey)
+		response["delete_url"] = fmt.Sprintf("%s/delete/%s/%s", baseURL, s.ID, s.DeleteKey)
 	}
 
 	return response

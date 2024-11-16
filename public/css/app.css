@@ -380,7 +380,9 @@ tr:nth-child(even) {
 
 .paste-content {
     background: var(--color-bg-secondary);
-    padding: var(--space-sm);
+    padding-top: var(--space-sm);
+    padding-bottom: var(--space-sm);
+    padding-right: var(--space-sm);
     border-radius: var(--border-radius);
     overflow-x: auto;
 }
