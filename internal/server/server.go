@@ -5,8 +5,9 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/swagger"
 	"github.com/gofiber/template/handlebars/v2"
-	"github.com/redis/go-redis/v9"
+	_ "github.com/watzon/0x45/docs"
 	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/database"
 	"github.com/watzon/0x45/internal/server/handlers"
@@ -105,6 +106,7 @@ func (s *Server) SetupRoutes() {
 	s.app.Get("/", s.handlers.Web.HandleIndex)
 	s.app.Get("/stats", s.handlers.Web.HandleStats)
 	s.app.Get("/docs", s.handlers.Web.HandleDocs)
+	s.app.Get("/api-docs/*", swagger.HandlerDefault)
 
 	// API Key routes
 	apiKeys := s.app.Group("/api/keys")
