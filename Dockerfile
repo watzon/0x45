@@ -6,7 +6,7 @@ COPY . .
 
 RUN mkdir -p /build/src/app
 
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o app/0x45 ./cmd/server/main.go
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o app/0x45 .
 
 FROM scratch
 

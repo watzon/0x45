@@ -12,6 +12,13 @@ import (
 	"github.com/watzon/0x45/internal/storage"
 )
 
+// @title 0x45 API
+// @version 1.0
+// @description API for 0x45
+// @license.name MIT
+// @license.url https://github.com/watzon/0x45/blob/main/LICENSE
+// @host localhost:3000
+// @BasePath /
 func main() {
 	// Load config
 	cfg, err := config.Load()

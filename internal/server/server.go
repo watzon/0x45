@@ -5,8 +5,9 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/swagger"
 	"github.com/gofiber/template/handlebars/v2"
-	"github.com/redis/go-redis/v9"
+	_ "github.com/watzon/0x45/docs"
 	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/database"
 	"github.com/watzon/0x45/internal/server/handlers"
@@ -64,26 +65,6 @@ func New(db *database.Database, storageManager *storage.StorageManager, config *
 	// Serve static files
 	app.Static("/public", "./public")
 
-	// Initialize Redis if enabled
-	if config.Redis.Enabled {
-		redisClient := redis.NewClient(&redis.Options{
-			Addr:     config.Redis.Address,
-			Password: config.Redis.Password,
-			DB:       config.Redis.DB,
-		})
-
-		// Test Redis connection
-		if _, err := redisClient.Ping(context.Background()).Result(); err != nil {
-			logger.Error("failed to connect to Redis", zap.Error(err))
-			return nil
-		}
-
-		// Set Redis client in rate limiter if using Redis
-		if config.Server.Prefork {
-			// TODO: Set Redis client in rate limiter
-		}
-	}
-
 	return &Server{
 		app:        app,
 		db:         db,
@@ -102,6 +83,7 @@ func (s *Server) SetupRoutes() {
 	s.app.Get("/", s.handlers.Web.HandleIndex)
 	s.app.Get("/stats", s.handlers.Web.HandleStats)
 	s.app.Get("/docs", s.handlers.Web.HandleDocs)
+	s.app.Get("/api-docs/*", swagger.HandlerDefault)
 
 	// API Key routes
 	apiKeys := s.app.Group("/api/keys")
