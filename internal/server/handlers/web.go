@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 
+	"github.com/dustin/go-humanize"
 	"github.com/gofiber/fiber/v2"
 	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/server/services"
@@ -41,6 +43,7 @@ func (h *WebHandlers) HandleIndex(c *fiber.Ctx) error {
 			"minAge":         h.config.Retention.NoKey.MinAge,
 			"maxAge":         h.config.Retention.WithKey.MaxAge,
 			"maxSize":        h.config.Server.MaxUploadSize / (1024 * 1024),
+			"maxSizeMiB":     humanize.IBytes(uint64(h.config.Server.MaxUploadSize)),
 			"noKeyHistory":   string(noKeyHistory),
 			"withKeyHistory": string(withKeyHistory),
 		},
@@ -69,7 +72,18 @@ func (h *WebHandlers) HandleDocs(c *fiber.Ctx) error {
 	}
 
 	return c.Render("docs", fiber.Map{
-		"retention": retentionStats,
-		"baseUrl":   h.config.Server.BaseURL,
+		"baseUrl":        h.config.Server.BaseURL,
+		"apiKeysEnabled": h.services.APIKey.HasMailer(),
+		"retention": fiber.Map{
+			"noKey":   retentionStats.NoKeyRange,
+			"withKey": retentionStats.WithKeyRange,
+			"minAge":  h.config.Retention.NoKey.MinAge,
+			"maxAge":  h.config.Retention.WithKey.MaxAge,
+		},
+		"rateLimits": fiber.Map{
+			"global": fmt.Sprintf("%.0f/s", h.config.Server.RateLimit.Global.Rate),
+			"perIP":  fmt.Sprintf("%.0f/s", h.config.Server.RateLimit.PerIP.Rate),
+		},
+		"maxSize": h.config.Server.MaxUploadSize / (1024 * 1024),
 	}, "layouts/main")
 }

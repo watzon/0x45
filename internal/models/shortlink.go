@@ -52,12 +52,12 @@ func (s *Shortlink) ToResponse(baseURL string) fiber.Map {
 	baseURL = strings.TrimSuffix(baseURL, "/")
 
 	// Add URL paths
-	response["short_url"] = fmt.Sprintf("%s/%s", baseURL, s.ID)
-	response["stats_url"] = fmt.Sprintf("%s/api/urls/%s/stats", baseURL, s.ID)
+	response["short_url"] = fmt.Sprintf("%s/u/%s", baseURL, s.ID)
+	response["stats_url"] = fmt.Sprintf("%s/u/%s/stats", baseURL, s.ID)
 
 	// Only include delete_url if there's a delete key
 	if s.DeleteKey != "" {
-		response["delete_url"] = fmt.Sprintf("%s/delete/%s/%s", baseURL, s.ID, s.DeleteKey)
+		response["delete_url"] = fmt.Sprintf("%s/u/%s/%s", baseURL, s.ID, s.DeleteKey)
 	}
 
 	return response

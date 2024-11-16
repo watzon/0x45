@@ -115,6 +115,5 @@ func (m *Middleware) GetMiddleware() []fiber.Handler {
 		m.CORS(),
 		m.Compression(),
 		m.ETag(),
-		m.RateLimit.RateLimit(), // Global rate limiting
 	}
 }

@@ -201,10 +201,10 @@ func Load() (*Config, error) {
 	viper.SetDefault("server.cors_origins", []string{"*"})
 
 	viper.SetDefault("server.rate_limit.global.enabled", true) // Enable global rate limiting by default
-	viper.SetDefault("server.rate_limit.global.rate", 100.0)   // 100 requests per second globally
-	viper.SetDefault("server.rate_limit.global.burst", 50)     // Allow bursts of up to 50 requests
+	viper.SetDefault("server.rate_limit.global.rate", 6969.0)  // 6969 requests per second globally
+	viper.SetDefault("server.rate_limit.global.burst", 250)    // Allow bursts of up to 250 requests
 	viper.SetDefault("server.rate_limit.per_ip.enabled", true) // Enable per-IP rate limiting by default
-	viper.SetDefault("server.rate_limit.per_ip.rate", 1.0)     // 1 request per second per IP
+	viper.SetDefault("server.rate_limit.per_ip.rate", 2.0)     // 2 request per second per IP
 	viper.SetDefault("server.rate_limit.per_ip.burst", 5)      // Allow bursts of up to 5 requests
 	viper.SetDefault("server.rate_limit.use_redis", false)     // Use Redis for rate limiting if it's available (required for prefork)
 	viper.SetDefault("server.rate_limit.ip_cleanup_interval", "1h")

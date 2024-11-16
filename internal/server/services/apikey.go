@@ -136,6 +136,10 @@ func (s *APIKeyService) VerifyKey(c *fiber.Ctx) error {
 	}, "layouts/main")
 }
 
+func (s *APIKeyService) HasMailer() bool {
+	return s.mailer != nil
+}
+
 // Helper functions
 
 func (s *APIKeyService) sendVerificationEmail(email, token string) error {

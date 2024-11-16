@@ -30,8 +30,8 @@
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <pre><code>curl -F 'file=@file.txt' {{baseUrl}}</code></pre>
-            <button class="action-btn" data-clipboard data-content="curl -F 'file=@file.txt' {{baseUrl}}">
+            <pre><code>curl -F 'file=@file.txt' {{baseUrl}}/p</code></pre>
+            <button class="action-btn" data-clipboard data-content="curl -F 'file=@file.txt' {{baseUrl}}/p">
                 <span>Copy</span>
             </button>
         </div>
@@ -52,8 +52,8 @@
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <pre><code>curl -X POST --data-binary @file.txt {{baseUrl}}</code></pre>
-            <button class="action-btn" data-clipboard data-content="curl -X POST --data-binary @file.txt {{baseUrl}}">
+            <pre><code>curl -X POST --data-binary @file.txt {{baseUrl}}/p</code></pre>
+            <button class="action-btn" data-clipboard data-content="curl -X POST --data-binary @file.txt {{baseUrl}}/p">
                 <span>Copy</span>
             </button>
         </div>
@@ -74,8 +74,9 @@
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <pre><code>curl -d '{"url":"https://example.com"}' {{baseUrl}}/url</code></pre>
-            <button class="action-btn" data-clipboard data-content="curl -d '{\"url\":\"https://example.com\"}' {{baseUrl}}/url">
+            <pre><code># Requires an API key
+curl -d '{"url":"https://example.com"}' {{baseUrl}}/u</code></pre>
+            <button class="action-btn" data-clipboard data-content="curl -d '{\"url\":\"https://example.com\"}' {{baseUrl}}/u">
                 <span>Copy</span>
             </button>
         </div>
@@ -84,7 +85,8 @@
     <div class="labeled-code-block">
         <span class="command-label cli-label">0X45 CLI</span>
         <div class="code-block">
-            <pre><code>0x45 shorten https://example.com</code></pre>
+            <pre><code>#Requires an API key
+0x45 shorten https://example.com</code></pre>
             <button class="action-btn" data-clipboard data-content="0x45 shorten https://example.com">
                 <span>Copy</span>
             </button>
@@ -115,7 +117,7 @@
     <ul>
         <li>No API Key: {{retention.noKey}}</li>
         <li>With API Key: {{retention.withKey}}</li>
-        <li>Maximum Size: {{retention.maxSize}}</li>
+        <li>Maximum Size: {{retention.maxSizeMiB}}</li>
     </ul>
 </ul>
 

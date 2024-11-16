@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/swagger"
 	"github.com/gofiber/template/handlebars/v2"
-	_ "github.com/watzon/0x45/docs"
 	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/database"
 	"github.com/watzon/0x45/internal/server/handlers"
@@ -65,29 +63,6 @@ func New(db *database.Database, storageManager *storage.StorageManager, config *
 	// Serve static files
 	app.Static("/public", "./public")
 
-<<<<<<< HEAD
-	// Initialize Redis if enabled
-	if config.Redis.Enabled {
-		redisClient := redis.NewClient(&redis.Options{
-			Addr:     config.Redis.Address,
-			Password: config.Redis.Password,
-			DB:       config.Redis.DB,
-		})
-
-		// Test Redis connection
-		if _, err := redisClient.Ping(context.Background()).Result(); err != nil {
-			logger.Error("failed to connect to Redis", zap.Error(err))
-			return nil
-		}
-
-		// Set Redis client in rate limiter if using Redis
-		// if config.Server.Prefork {
-		// 	// TODO: Set Redis client in rate limiter
-		// }
-	}
-
-=======
->>>>>>> 93ecaf71dc264753f2c0a764986b65cc964a2d1a
 	return &Server{
 		app:        app,
 		db:         db,
@@ -106,65 +81,50 @@ func (s *Server) SetupRoutes() {
 	s.app.Get("/", s.handlers.Web.HandleIndex)
 	s.app.Get("/stats", s.handlers.Web.HandleStats)
 	s.app.Get("/docs", s.handlers.Web.HandleDocs)
-	s.app.Get("/api-docs/*", swagger.HandlerDefault)
 
 	// API Key routes
-	apiKeys := s.app.Group("/api/keys")
-	apiKeys.Post("/request", s.handlers.APIKey.HandleRequestAPIKey)
-	apiKeys.Get("/verify", s.handlers.APIKey.HandleVerifyAPIKey)
+	keys := s.app.Group("/keys")
+	keys.Post("/request", s.handlers.APIKey.HandleRequestAPIKey)
+	keys.Get("/verify", s.handlers.APIKey.HandleVerifyAPIKey)
 
 	// Paste routes
-	pastes := s.app.Group("/api/pastes")
-	pastes.Use(s.middleware.Auth.Auth(true))
-	pastes.Post("/", s.handlers.Paste.HandleUpload)
-	pastes.Get("/", s.handlers.Paste.HandleListPastes)
-	pastes.Delete("/:id", s.handlers.Paste.HandleDeletePaste)
-	pastes.Put("/:id/expiry", s.handlers.Paste.HandleUpdateExpiration)
+	pastes := s.app.Group("/p")
+	pastes.Post("/", s.middleware.Auth.Auth(false), s.handlers.Paste.HandleUpload)
+	pastes.Get("/list", s.middleware.Auth.Auth(true), s.handlers.Paste.HandleListPastes)
+	pastes.Delete("/:id", s.middleware.Auth.Auth(false), s.handlers.Paste.HandleDeletePaste)
+	pastes.Put("/:id/expiry", s.middleware.Auth.Auth(true), s.handlers.Paste.HandleUpdateExpiration)
 
 	// URL routes
-	urls := s.app.Group("/api/urls")
+	urls := s.app.Group("/u")
 	urls.Use(s.middleware.Auth.Auth(true))
 	urls.Post("/", s.handlers.URL.HandleURLShorten)
-	urls.Get("/", s.handlers.URL.HandleListURLs)
+	urls.Get("/list", s.handlers.URL.HandleListURLs)
 	urls.Get("/:id/stats", s.handlers.URL.HandleURLStats)
 	urls.Delete("/:id", s.handlers.URL.HandleDeleteURL)
 	urls.Put("/:id/expiry", s.handlers.URL.HandleUpdateURLExpiration)
 
-	// Public routes
+	// Public paste routes
 	// Handle paste routes with extensions
-	s.app.Get("/:id.:ext", func(c *fiber.Ctx) error {
-		// Set the extension in locals for the paste handler to use
+	s.app.Get("/p/:id.:ext", func(c *fiber.Ctx) error {
 		c.Locals("extension", c.Params("ext"))
 		return s.handlers.Paste.HandleView(c)
 	})
-	s.app.Get("/:id/raw.:ext", func(c *fiber.Ctx) error {
+	s.app.Get("/p/:id/raw.:ext", func(c *fiber.Ctx) error {
 		c.Locals("extension", c.Params("ext"))
 		return s.handlers.Paste.HandleRawView(c)
 	})
-	s.app.Get("/:id/download.:ext", func(c *fiber.Ctx) error {
+	s.app.Get("/p/:id/download.:ext", func(c *fiber.Ctx) error {
 		c.Locals("extension", c.Params("ext"))
 		return s.handlers.Paste.HandleDownload(c)
 	})
 
 	// Handle paste routes without extensions
-	s.app.Get("/:id/raw", s.handlers.Paste.HandleRawView)
-	s.app.Get("/:id/download", s.handlers.Paste.HandleDownload)
-	s.app.Delete("/:id/:key", s.handlers.Paste.HandleDeleteWithKey)
+	s.app.Get("/p/:id/raw", s.handlers.Paste.HandleRawView)
+	s.app.Get("/p/:id/download", s.handlers.Paste.HandleDownload)
+	s.app.Delete("/p/:id/:key", s.handlers.Paste.HandleDeleteWithKey)
 
-	// Handle base /:id route - try paste first, fallback to URL redirect
-	s.app.Get("/:id", func(c *fiber.Ctx) error {
-		// Try to get paste first
-		if paste, err := s.services.Paste.GetPaste(c.Params("id")); err == nil {
-			// Log the view
-			if err := s.services.Analytics.LogPasteView(c, paste.ID); err != nil {
-				s.logger.Error("failed to log paste view", zap.Error(err))
-			}
-			return s.handlers.Paste.HandleView(c)
-		}
-
-		// If paste not found, try URL redirect
-		return s.handlers.URL.HandleRedirect(c)
-	})
+	// Handle URL redirects
+	s.app.Get("/u/:id", s.handlers.URL.HandleRedirect)
 }
 
 // Error handler

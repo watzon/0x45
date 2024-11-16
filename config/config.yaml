@@ -47,13 +47,13 @@ server:
     # Global rate limit (across all IPs)
     global:
       enabled: true  # Enable/disable global rate limiting
-      rate: 100.0   # Requests per second
-      burst: 50     # Maximum burst size
+      rate: 6969.0   # Requests per second
+      burst: 250     # Maximum burst size
     
     # Per-IP rate limit
     per_ip:
       enabled: true # Enable/disable per-IP rate limiting
-      rate: 1.0    # Requests per second per IP
+      rate: 2.0    # Requests per second per IP
       burst: 5     # Maximum burst size
     
     # Use Redis for rate limiting if it's available (required for prefork)

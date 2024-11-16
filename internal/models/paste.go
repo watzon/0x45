@@ -109,13 +109,12 @@ func (p *Paste) ToResponse(baseURL string) fiber.Map {
 	// Ensure baseURL doesn't end with a slash
 	baseURL = strings.TrimSuffix(baseURL, "/")
 
-	response["url"] = fmt.Sprintf("%s/%s", baseURL, urlSuffix)
-	response["raw_url"] = fmt.Sprintf("%s/raw/%s", baseURL, urlSuffix)
-	response["download_url"] = fmt.Sprintf("%s/download/%s", baseURL, urlSuffix)
+	response["url"] = fmt.Sprintf("%s/p/%s", baseURL, urlSuffix)
+	response["raw_url"] = fmt.Sprintf("%s/p/%s/raw", baseURL, urlSuffix)
+	response["download_url"] = fmt.Sprintf("%s/p/%s/download", baseURL, urlSuffix)
 
-	// Only include delete_url if there's a delete key
 	if p.DeleteKey != "" {
-		response["delete_url"] = fmt.Sprintf("%s/delete/%s/%s", baseURL, p.ID, p.DeleteKey)
+		response["delete_url"] = fmt.Sprintf("%s/p/%s/%s", baseURL, p.ID, p.DeleteKey)
 	}
 
 	return response

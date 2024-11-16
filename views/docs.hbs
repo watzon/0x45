@@ -7,14 +7,15 @@
 <!-- Table of Contents -->
 <h2>Table of Contents</h2>
 <ul>
+    <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#file-upload-endpoints">File Upload Endpoints</a></li>
     <li><a href="#cli-usage">CLI Usage</a></li>
-    <li><a href="#file-management">File Management</a></li>
+    {{#if apiKeysEnabled}}
+    <li><a href="#authentication">Authentication & API Keys</a></li>
     <li><a href="#url-shortener">URL Shortener</a></li>
     <li><a href="#url-management">URL Management</a></li>
+    {{/if}}
     <li><a href="#limits-retention">Limits & Retention</a></li>
-    <li><a href="#getting-an-api-key">Getting an API Key</a></li>
-    <li><a href="#api-key-features">API Key Features</a></li>
     <li><a href="#support">Support</a></li>
 </ul>
 
@@ -78,7 +79,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <div class="labeled-code-block">
             <span class="command-label curl-label">CURL</span>
             <div class="code-block">
-                <code>curl -F "file=@path/to/file.txt" {{baseUrl}}</code>
+                <code>curl -F "file=@path/to/file.txt" {{baseUrl}}/p</code>
                 <button class="action-btn" data-clipboard><span>Copy</span></button>
             </div>
         </div>
@@ -97,7 +98,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <div class="labeled-code-block">
             <span class="command-label curl-label">CURL</span>
             <div class="code-block">
-                <code>curl -F "file=@path/to/file.txt" "{{baseUrl}}?private=true&expires=24h"</code>
+                <code>curl -F "file=@path/to/file.txt" "{{baseUrl}}/p?private=true&expires=24h"</code>
                 <button class="action-btn" data-clipboard><span>Copy</span></button>
             </div>
         </div>
@@ -116,7 +117,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <div class="labeled-code-block">
             <span class="command-label curl-label">CURL</span>
             <div class="code-block">
-                <code>echo "Hello, World!" | curl --data-binary @- {{baseUrl}}</code>
+                <code>echo "Hello, World!" | curl --data-binary @- {{baseUrl}}/p</code>
                 <button class="action-btn" data-clipboard><span>Copy</span></button>
             </div>
         </div>
@@ -136,7 +137,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <div class="labeled-code-block">
             <span class="command-label curl-label">CURL</span>
             <div class="code-block">
-                <code>curl -X POST -d "url=https://example.com" {{baseUrl}}/api/urls</code>
+                <code>curl -X POST -d "url=https://example.com" {{baseUrl}}/u</code>
                 <button class="action-btn" data-clipboard><span>Copy</span></button>
             </div>
         </div>
@@ -218,6 +219,65 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     </div>
 </section>
 
+{{#if apiKeysEnabled}}
+<section id="authentication">
+    <h2>Authentication & API Keys</h2>
+    
+    <p>Most endpoints require an API key for authentication. To get started, request an API key:</p>
+
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <pre><code>curl -X POST \
+    -H "Content-Type: application/json" \
+    -d '{
+        "name": "Your Name",
+        "email": "your@email.com"
+    }' \
+    {{baseUrl}}/keys/request</code></pre>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+
+    <p>Once you have your API key, you can use it in one of two ways:</p>
+
+    <h3>1. Authorization Header (Recommended)</h3>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>curl -H "Authorization: Bearer YOUR_API_KEY" {{baseUrl}}/u/list</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+
+    <h3>2. Query Parameter</h3>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>curl "{{baseUrl}}/u/list?api_key=YOUR_API_KEY"</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+
+    <h3>API Key Features</h3>
+    <ul>
+        <li>Increased file retention times</li>
+        <li>Access to URL shortening</li>
+        <li>Higher rate limits</li>
+        <li>File management capabilities</li>
+    </ul>
+
+    <h3>Verifying an API Key</h3>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>curl -H "Authorization: Bearer YOUR_API_KEY" {{baseUrl}}/keys/verify</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+</section>
+{{/if}}
+
 <section id="file-upload-endpoints">
     <h2>File Upload Endpoints</h2>
 
@@ -225,8 +285,8 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>POST {{baseUrl}}</code>
-            <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
+            <code>curl -X POST -F "file=@path/to/file.txt" {{baseUrl}}/p</code>
+            <button class="action-btn" data-clipboard data-content="curl -X POST -F \"file=@path/to/file.txt\" {{baseUrl}}/p"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -271,8 +331,8 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>POST {{baseUrl}}</code>
-            <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
+            <code>curl -X POST --data-binary @path/to/file.txt {{baseUrl}}/p</code>
+            <button class="action-btn" data-clipboard data-content="curl -X POST --data-binary @path/to/file.txt {{baseUrl}}/p"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -310,8 +370,11 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>POST {{baseUrl}}</code>
-            <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}"><span>Copy</span></button>
+            <code>curl -X POST \
+    -H "Content-Type: application/json" \
+    -d '{"content":"Hello World"}' \
+    {{baseUrl}}/p</code>
+            <button class="action-btn" data-clipboard data-content="curl -X POST -H \"Content-Type: application/json\" -d '{\"content\":\"Hello World\"}' {{baseUrl}}/p"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -364,8 +427,8 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <div class="labeled-code-block">
                 <span class="command-label curl-label">CURL</span>
                 <div class="code-block">
-                    <code>GET {{baseUrl}}/:id</code>
-                    <button class="action-btn" data-content="GET {{baseUrl}}/:id"><span>Copy</span></button>
+                    <code>curl -X GET {{baseUrl}}/p/:id</code>
+                    <button class="action-btn" data-content="curl -X GET {{baseUrl}}/p/:id"><span>Copy</span></button>
                 </div>
             </div>
             <dl>
@@ -378,8 +441,8 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <div class="labeled-code-block">
                 <span class="command-label curl-label">CURL</span>
                 <div class="code-block">
-                    <code>GET {{baseUrl}}/raw/:id[.:ext]</code>
-                    <button class="action-btn" data-content="GET {{baseUrl}}/raw/:id"><span>Copy</span></button>
+                    <code>curl -X GET {{baseUrl}}/p/:id/raw[.:ext]</code>
+                    <button class="action-btn" data-content="curl -X GET {{baseUrl}}/p/:id/raw"><span>Copy</span></button>
                 </div>
             </div>
             <dl>
@@ -392,8 +455,8 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <div class="labeled-code-block">
                 <span class="command-label curl-label">CURL</span>
                 <div class="code-block">
-                    <code>GET {{baseUrl}}/download/:id[.:ext]</code>
-                    <button class="action-btn" data-content="GET {{baseUrl}}/download/:id"><span>Copy</span></button>
+                    <code>curl -X GET {{baseUrl}}/p/:id/download[.:ext]</code>
+                    <button class="action-btn" data-content="curl -X GET {{baseUrl}}/p/:id/download"><span>Copy</span></button>
                 </div>
             </div>
             <dl>
@@ -406,8 +469,8 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <div class="labeled-code-block">
                 <span class="command-label curl-label">CURL</span>
                 <div class="code-block">
-                    <code>DELETE {{baseUrl}}/delete/:id/:key</code>
-                    <button class="action-btn" data-content="DELETE {{baseUrl}}/delete/:id/:key"><span>Copy</span></button>
+                    <code>curl -X DELETE {{baseUrl}}/p/:id/:key</code>
+                    <button class="action-btn" data-content="curl -X DELETE {{baseUrl}}/p/:id/:key"><span>Copy</span></button>
                 </div>
             </div>
             <dl>
@@ -426,98 +489,34 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     </ul>
 </section>
 
+{{#if apiKeysEnabled}}
 <section id="url-shortener">
-    <h2>URL Shortener (Requires API Key)</h2>
+    <h2>URL Shortener</h2>
 
     <strong>1. Shorten URL</strong>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>POST {{baseUrl}}/url</code>
-            <button class="action-btn" data-clipboard data-content="POST {{baseUrl}}/url"><span>Copy</span></button>
-        </div>
-    </div>
-    <dl>
-        <dt>Content-Type:</dt>
-        <dd>application/json</dd>
-        <dt>Body:</dt>
-        <dd>
-            <div class="code-block json">
-                <pre><code>{
-    "url": "string",         // Required
-    "title": "string",       // Optional
-    "expires_in": "string"   // Optional
-}</code></pre>
-                <button class="action-btn" data-clipboard="#json-url-body"><span>Copy</span></button>
-            </div>
-        </dd>
-        <dt>Response:</dt>
-        <dd>
-            <div class="code-block json">
-                <pre><code>{
-    "success": true,
-    "data": {
-        "id": "abc123",
+            <code>curl -X POST \
+    -H "Authorization: Bearer YOUR_API_KEY" \
+    -H "Content-Type: application/json" \
+    -d '{
         "url": "https://example.com",
-        "title": "Example Site",
-        "created_at": "2024-03-20T15:30:00Z",
-        "expires_at": "2024-03-21T15:30:00Z",
-        "clicks": 0,
-        "last_click": null,
-        "short_url": "/abc123",
-        "delete_url": "/delete/abc123/deletekey123"
-    }
-}</code></pre>
-                <button class="action-btn" data-clipboard="#json-url-response"><span>Copy</span></button>
-            </div>
-        </dd>
-    </dl>
-</section>
-
-<section id="url-management">
-    <h2>URL Management (Requires API Key)</h2>
-
-    <strong>1. List URLs</strong>
-    <div class="labeled-code-block">
-        <span class="command-label curl-label">CURL</span>
-        <div class="code-block">
-            <code>GET {{baseUrl}}/urls</code>
-            <button class="action-btn" data-clipboard data-content="GET {{baseUrl}}/urls"><span>Copy</span></button>
+        "title": "Example Website",
+        "expires_in": "7d"
+    }' \
+    {{baseUrl}}/u</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
         </div>
     </div>
     <dl>
-        <dt>Query params:</dt>
+        <dt>Request Body:</dt>
         <dd>
             <ul>
-                <li>page: page number (default: 1)</li>
-                <li>limit: items per page (default: 20)</li>
-                <li>sort: sort order (default: "created_at desc")</li>
+                <li><code>url</code> (required): The URL to shorten</li>
+                <li><code>title</code> (optional): Custom title for the URL</li>
+                <li><code>expires_in</code> (optional): Duration string (e.g., "24h", "7d", "30d")</li>
             </ul>
-        </dd>
-        <dt>Response:</dt>
-        <dd>
-            <div class="code-block json">
-                <pre><code>{
-    "success": true,
-    "data": {
-        "items": [{
-            "id": "abc123",
-            "url": "https://example.com",
-            "title": "Example Site",
-            "created_at": "2024-03-20T15:30:00Z",
-            "expires_at": "2024-03-21T15:30:00Z",
-            "clicks": 5,
-            "last_click": "2024-03-20T16:45:00Z",
-            "short_url": "/abc123",
-            "delete_url": "/delete/abc123/deletekey123"
-        }],
-        "total": 1,
-        "page": 1,
-        "limit": 20
-    }
-}</code></pre>
-                <button class="action-btn" data-clipboard="#json-urls-list-response"><span>Copy</span></button>
-            </div>
         </dd>
     </dl>
 
@@ -525,28 +524,83 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>GET {{baseUrl}}/url/:id/stats</code>
-            <button class="action-btn" data-content="GET {{baseUrl}}/url/:id/stats"><span>Copy</span></button>
+            <code>curl -X GET \
+    -H "Authorization: Bearer YOUR_API_KEY" \
+    "{{baseUrl}}/u/:id/stats?start_date=2024-01-01&end_date=2024-12-31"</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
         </div>
     </div>
     <dl>
-        <dt>Response:</dt>
+        <dt>Query Parameters:</dt>
         <dd>
-            <div class="code-block json">
-                <pre><code>{
-    "success": true,
-    "data": {
-        "id": "abc123",
-        "url": "https://example.com",
-        "title": "Example Site",
-        "clicks": 5,
-        "created_at": "2024-03-20T15:30:00Z",
-        "last_click": "2024-03-20T16:45:00Z",
-        "expires_at": "2024-03-21T15:30:00Z"
-    }
-}</code></pre>
-                <button class="action-btn" data-clipboard="#json-url-stats-response"><span>Copy</span></button>
-            </div>
+            <ul>
+                <li><code>start_date</code> (optional): Start date for stats (YYYY-MM-DD)</li>
+                <li><code>end_date</code> (optional): End date for stats (YYYY-MM-DD)</li>
+            </ul>
+        </dd>
+    </dl>
+
+    <strong>3. List URLs</strong>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>curl -X GET \
+    -H "Authorization: Bearer YOUR_API_KEY" \
+    "{{baseUrl}}/u/list?page=1&limit=10"</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+    <dl>
+        <dt>Query Parameters:</dt>
+        <dd>
+            <ul>
+                <li><code>page</code> (optional): Page number (default: 1)</li>
+                <li><code>limit</code> (optional): Items per page (default: 10)</li>
+            </ul>
+        </dd>
+    </dl>
+</section>
+
+<section id="url-management">
+    <h2>URL Management</h2>
+
+    <strong>1. List URLs</strong>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>curl -X GET \
+    -H "Authorization: Bearer YOUR_API_KEY" \
+    "{{baseUrl}}/u/list?page=1&limit=10"</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+    <dl>
+        <dt>Query Parameters:</dt>
+        <dd>
+            <ul>
+                <li><code>page</code> (optional): Page number (default: 1)</li>
+                <li><code>limit</code> (optional): Items per page (default: 10)</li>
+            </ul>
+        </dd>
+    </dl>
+
+    <strong>2. URL Stats</strong>
+    <div class="labeled-code-block">
+        <span class="command-label curl-label">CURL</span>
+        <div class="code-block">
+            <code>curl -X GET \
+    -H "Authorization: Bearer YOUR_API_KEY" \
+    "{{baseUrl}}/u/:id/stats?start_date=2024-01-01&end_date=2024-12-31"</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
+        </div>
+    </div>
+    <dl>
+        <dt>Query Parameters:</dt>
+        <dd>
+            <ul>
+                <li><code>start_date</code> (optional): Start date for stats (YYYY-MM-DD)</li>
+                <li><code>end_date</code> (optional): End date for stats (YYYY-MM-DD)</li>
+            </ul>
         </dd>
     </dl>
 
@@ -554,8 +608,14 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>PUT {{baseUrl}}/url/:id/expire</code>
-            <button class="action-btn" data-clipboard data-content="PUT {{baseUrl}}/url/:id/expire"><span>Copy</span></button>
+            <code>curl -X PUT \
+    -H "Authorization: Bearer YOUR_API_KEY" \
+    -H "Content-Type: application/json" \
+    -d '{
+        "expires_at": "2024-12-31T23:59:59Z"
+    }' \
+    {{baseUrl}}/u/:id/expire</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -570,34 +630,16 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
                 <button class="action-btn" data-clipboard="#json-url-expire-body"><span>Copy</span></button>
             </div>
         </dd>
-        <dt>Response:</dt>
-        <dd>
-            <div class="code-block json">
-                <pre><code>{
-    "success": true,
-    "data": {
-        "id": "abc123",
-        "url": "https://example.com",
-        "title": "Example Site",
-        "created_at": "2024-03-20T15:30:00Z",
-        "expires_at": "2024-03-21T15:30:00Z",
-        "clicks": 5,
-        "last_click": "2024-03-20T16:45:00Z",
-        "short_url": "/abc123",
-        "delete_url": "/delete/abc123/deletekey123"
-    }
-}</code></pre>
-                <button class="action-btn" data-clipboard="#json-url-expire-response"><span>Copy</span></button>
-            </div>
-        </dd>
     </dl>
 
     <strong>4. Delete URL</strong>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>DELETE {{baseUrl}}/url/:id</code>
-            <button class="action-btn" data-clipboard data-content="DELETE {{baseUrl}}/url/:id"><span>Copy</span></button>
+            <code>curl -X DELETE \
+    -H "Authorization: Bearer YOUR_API_KEY" \
+    "{{baseUrl}}/u/:id"</code>
+            <button class="action-btn" data-clipboard><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -613,89 +655,37 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         </dd>
     </dl>
 </section>
+{{/if}}
 
 <section id="limits-retention">
     <h2>Limits & Retention</h2>
 
     <ul>
         <li>Maximum file size: <code>{{maxSize}}</code></li>
-        <li>Retention without API key: <code>{{retention.noKey}}</code></li>
-        <li>Retention with API key: <code>{{retention.withKey}}</code></li>
+        {{#if apiKeysEnabled}}
+        <li>Retention periods:
+            <ul>
+                <li>Without API key: <code>{{retention.noKey}}</code></li>
+                <li>With API key: <code>{{retention.withKey}}</code></li>
+            </ul>
+        </li>
+        {{else}}
+        <li>Retention period: <code>{{retention.noKey}}</code></li>
+        {{/if}}
+        <li>Rate limits:
+            <ul>
+                <li>Global: <code>{{rateLimits.global}}</code></li>
+                <li>Per IP: <code>{{rateLimits.perIP}}</code></li>
+            </ul>
+        </li>
     </ul>
-
-    {{#if apiKeyEnabled}}
-    <h2>Getting an API Key</h2>
-
-    <p>
-        API keys are required for URL shortening and extended features. To request an API key:
-    </p>
-
-    <div class="labeled-code-block">
-        <span class="command-label curl-label">CURL</span>
-        <div class="code-block">
-            <pre><code id="api-key-curl">curl -X POST {{baseUrl}}/api-key \
-    -H "Content-Type: application/json" \
-    -d '{
-    "email": "your@email.com",
-    "name": "Your Name"
-}'</code></pre>
-            <button class="action-btn" data-clipboard="#api-key-curl">
-                <span>Copy</span>
-            </button>
-        </div>
-    </div>
-
-    <p>Response:</p>
-    <div class="code-block json">
-        <pre><code>{
-    "success": true,
-    "message": "API key request submitted. Please check your email for verification.",
-    "data": {
-        "email": "your@email.com",
-        "verify_expires": "2024-03-20T16:30:00Z"
-    }
-}</code></pre>
-        <button class="action-btn" data-clipboard="#api-key-response">
-            <span>Copy</span>
-        </button>
-    </div>
-
-    <p>
-        You will receive a verification email with a link to activate your API key.
-        Once verified, your API key can be used by including it in the Authorization header:
-    </p>
-
-    <div class="labeled-code-block">
-        <span class="command-label curl-label">CURL</span>
-        <div class="code-block">
-            <pre><code>Authorization: Bearer your-api-key</code></pre>
-            <button class="action-btn" data-clipboard data-content="Authorization: Bearer your-api-key">
-                <span>Copy</span>
-            </button>
-        </div>
-    </div>
-</section>
-
-<section id="api-key-features">
-    <h2>API Key Features</h2>
-    <ul>
-        <li>Extended retention ({{retention.withKey}})</li>
-        <li>URL shortening capabilities</li>
-        <li>Private paste support</li>
-        <li>Higher rate limits</li>
-        <li>Paste management API</li>
-    </ul>
-    {{else}}
-    <h2>API Keys</h2>
-    <p class="notice">
-        API key requests are currently disabled. Please contact the administrator for access.
-    </p>
-    {{/if}}
 </section>
 
 <section id="support">
     <h2>Support</h2>
+
     <p>
-        For support or issues: <a href="https://github.com/watzon/0x45">https://github.com/watzon/0x45</a>
+        For support, bug reports, or feature requests, please visit our
+        <a href="https://github.com/watzon/0x45/issues">GitHub Issues</a> page.
     </p>
 </section>
