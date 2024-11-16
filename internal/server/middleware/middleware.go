@@ -69,7 +69,7 @@ func (m *Middleware) Recover() fiber.Handler {
 					zap.Any("error", r),
 					zap.String("stack", string(debug.Stack())),
 				)
-				c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				_ = c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 					"error": "Internal Server Error",
 				})
 			}

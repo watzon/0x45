@@ -481,7 +481,7 @@ func (s *PasteService) createPaste(content io.Reader, size int64, contentType st
 	paste.StoragePath = storagePath
 	if err := s.db.Save(paste).Error; err != nil {
 		// Try to cleanup the stored content
-		s.storage.Delete(storagePath)
+		_ = s.storage.Delete(storagePath)
 		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to update paste")
 	}
 

@@ -79,9 +79,9 @@ func New(db *database.Database, storageManager *storage.StorageManager, config *
 		}
 
 		// Set Redis client in rate limiter if using Redis
-		if config.Server.Prefork {
-			// TODO: Set Redis client in rate limiter
-		}
+		// if config.Server.Prefork {
+		// 	// TODO: Set Redis client in rate limiter
+		// }
 	}
 
 	return &Server{

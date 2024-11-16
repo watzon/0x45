@@ -2,7 +2,6 @@ package storage
 
 import (
 	"io"
-	"io/ioutil"
 
 	"github.com/watzon/0x45/internal/config"
 )
@@ -48,7 +47,7 @@ func (p *StoreProvider) Get(path string) ([]byte, error) {
 	}
 	defer reader.Close()
 
-	return ioutil.ReadAll(reader)
+	return io.ReadAll(reader)
 }
 
 func (p *StoreProvider) Delete(path string) error {
