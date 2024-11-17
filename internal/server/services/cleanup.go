@@ -9,22 +9,22 @@ import (
 )
 
 type CleanupService struct {
-	db      *gorm.DB
-	logger  *zap.Logger
-	config  *config.Config
-	paste   *PasteService
-	url     *URLService
-	apiKey  *APIKeyService
+	db     *gorm.DB
+	logger *zap.Logger
+	config *config.Config
+	paste  *PasteService
+	url    *URLService
+	apiKey *APIKeyService
 }
 
 func NewCleanupService(db *gorm.DB, logger *zap.Logger, config *config.Config, services *Services) *CleanupService {
 	return &CleanupService{
-		db:      db,
-		logger:  logger,
-		config:  config,
-		paste:   services.Paste,
-		url:     services.URL,
-		apiKey:  services.APIKey,
+		db:     db,
+		logger: logger,
+		config: config,
+		paste:  services.Paste,
+		url:    services.URL,
+		apiKey: services.APIKey,
 	}
 }
 

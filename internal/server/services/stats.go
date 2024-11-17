@@ -128,12 +128,12 @@ func (s *StatsService) GetSystemStats() (fiber.Map, error) {
 
 	return fiber.Map{
 		"current": fiber.Map{
-			"pastes":        totalPastes,
-			"urls":          totalUrls,
-			"storage":       totalStorage,
-			"storageByType": string(storageByTypeJSON),
-			"avgSize":       avgSize,
-			"activeApiKeys": activeApiKeys,
+			"pastes":         totalPastes,
+			"urls":           totalUrls,
+			"storage":        totalStorage,
+			"storageByType":  string(storageByTypeJSON),
+			"avgSize":        avgSize,
+			"activeApiKeys":  activeApiKeys,
 			"extensionStats": extensionStats,
 			"expiringPastes": expiringPastes,
 			"expiringUrls":   expiringUrls,

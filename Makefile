@@ -1,8 +1,11 @@
 vet:
 	go vet ./...
 
-lint: vet
+fmt:
+	go fmt ./...
+
+lint:
 	golangci-lint run
 
-test: lint vet
+test:
 	go test -race -cover -coverprofile=coverage.txt ./...
