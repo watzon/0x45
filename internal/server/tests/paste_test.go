@@ -333,3 +333,33 @@ func TestRawPasteUpload(t *testing.T) {
 		})
 	}
 }
+
+// func TestViewPaste(t *testing.T) {
+// 	env := testutils.SetupTestEnv(t)
+// 	defer env.CleanupFn()
+
+// 	// Create paste
+// 	body := `{"content": "test content", "filename": "test.txt", "extension": "txt", "private": false}`
+// 	req := httptest.NewRequest("POST", "/p/", strings.NewReader(body))
+// 	req.Header.Set("Content-Type", "application/json")
+
+// 	resp, err := env.App.Test(req)
+// 	require.NoError(t, err)
+
+// 	// Parse response
+// 	var paste services.NewPasteResponse
+// 	err = json.NewDecoder(resp.Body).Decode(&paste)
+// 	require.NoError(t, err)
+
+// 	fmt.Println(paste)
+
+// 	// View paste
+// 	req = httptest.NewRequest("GET", fmt.Sprintf("/p/%s.txt", paste.ID), nil)
+// 	resp, err = env.App.Test(req)
+// 	require.NoError(t, err)
+
+// 	bodytext, _ := io.ReadAll(resp.Body)
+// 	fmt.Println(string(bodytext))
+
+// 	assert.Equal(t, 200, resp.StatusCode)
+// }

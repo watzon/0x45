@@ -9,6 +9,7 @@ import (
 
 // NewPasteOptions contains configuration options for creating a new paste
 type NewPasteOptions struct {
+	Content   string         // Content to be pasted
 	Extension string         // File extension (optional)
 	ExpiresAt *time.Time     // Expiration time for the paste
 	Private   bool           // Whether the paste is private
