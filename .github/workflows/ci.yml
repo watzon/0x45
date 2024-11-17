@@ -27,4 +27,4 @@ jobs:
 
       # Try compile
       - name: Compile
-        run: go build -o /dev/null ./cmd/server
+        run: go build -o /dev/null .
