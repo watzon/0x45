@@ -6,7 +6,7 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "program": "${workspaceFolder}/cmd/server/main.go",
+            "program": "${workspaceFolder}",
             "cwd": "${workspaceFolder}",
             "args": []
         }

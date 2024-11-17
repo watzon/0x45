@@ -55,8 +55,8 @@ func (s *AnalyticsService) GetResourceStats(resourceType string, resourceID stri
 
 	// Get views by day
 	type DailyViews struct {
-		Date  time.Time
-		Count int64
+		Date  time.Time `gorm:"column:date"`
+		Count int64     `gorm:"column:count"`
 	}
 	var dailyViews []DailyViews
 
@@ -104,14 +104,23 @@ func (s *AnalyticsService) GetResourceStats(resourceType string, resourceID stri
 		Scan(&stats.TopCountries)
 
 	// Get top browsers (parsed from user agent)
+	type BrowserCount struct {
+		Browser string `gorm:"column:browser"`
+		Count   int64  `gorm:"column:count"`
+	}
+	var browserCounts []BrowserCount
+
 	s.db.Model(&models.AnalyticsEvent{}).
-		Select("SUBSTRING_INDEX(user_agent, '/', 1) as browser, COUNT(*) as count").
+		Select("COALESCE(SUBSTRING_INDEX(user_agent, '/', 1), 'Unknown') as browser, COUNT(*) as count").
 		Where("resource_type = ? AND resource_id = ?", resourceType, resourceID).
 		Group("browser").
 		Order("count DESC").
 		Limit(10).
-		Find(&map[string]int64{}).
-		Scan(&stats.TopBrowsers)
+		Find(&browserCounts)
+
+	for _, bc := range browserCounts {
+		stats.TopBrowsers[bc.Browser] = bc.Count
+	}
 
 	return stats, nil
 }
@@ -163,47 +172,48 @@ func (s *AnalyticsService) GetStatsHistory(days int) (*StatsHistory, error) {
 
 	// Get paste counts by day
 	type DailyCount struct {
-		Date  string `gorm:"column:date"`
-		Count int64
+		DateStr string `gorm:"column:date"`
+		Count   int64  `gorm:"column:count"`
 	}
 
 	// Query paste counts
 	var pasteCounts []DailyCount
 	s.db.Model(&models.Paste{}).
-		Select("strftime('%Y-%m-%d', created_at) as date, COUNT(*) as count").
+		Select("DATE(created_at) as date, COUNT(*) as count").
 		Where("created_at BETWEEN ? AND ?", startDate, endDate).
-		Group("strftime('%Y-%m-%d', created_at)").
+		Group("DATE(created_at)").
 		Order("date ASC").
 		Find(&pasteCounts)
 
 	// Query URL counts
 	var urlCounts []DailyCount
 	s.db.Model(&models.Shortlink{}).
-		Select("strftime('%Y-%m-%d', created_at) as date, COUNT(*) as count").
+		Select("DATE(created_at) as date, COUNT(*) as count").
 		Where("created_at BETWEEN ? AND ?", startDate, endDate).
-		Group("strftime('%Y-%m-%d', created_at)").
+		Group("DATE(created_at)").
 		Order("date ASC").
 		Find(&urlCounts)
 
 	// Query storage usage
-	var storageCounts []struct {
-		Date  string `gorm:"column:date"`
-		Size  int64
-		Count int64
+	type StorageCount struct {
+		DateStr string `gorm:"column:date"`
+		Size    int64  `gorm:"column:size"`
+		Count   int64  `gorm:"column:count"`
 	}
+	var storageCounts []StorageCount
 	s.db.Model(&models.Paste{}).
-		Select("strftime('%Y-%m-%d', created_at) as date, SUM(size) as size, COUNT(*) as count").
+		Select("DATE(created_at) as date, SUM(size) as size, COUNT(*) as count").
 		Where("created_at BETWEEN ? AND ?", startDate, endDate).
-		Group("strftime('%Y-%m-%d', created_at)").
+		Group("DATE(created_at)").
 		Order("date ASC").
 		Find(&storageCounts)
 
 	// Query API key counts
 	var apiKeyCounts []DailyCount
 	s.db.Model(&models.APIKey{}).
-		Select("strftime('%Y-%m-%d', created_at) as date, COUNT(*) as count").
+		Select("DATE(created_at) as date, COUNT(*) as count").
 		Where("created_at BETWEEN ? AND ? AND verified = ?", startDate, endDate, true).
-		Group("strftime('%Y-%m-%d', created_at)").
+		Group("DATE(created_at)").
 		Order("date ASC").
 		Find(&apiKeyCounts)
 
@@ -222,21 +232,21 @@ func (s *AnalyticsService) GetStatsHistory(days int) (*StatsHistory, error) {
 
 		// Update with actual values if available
 		for _, pc := range pasteCounts {
-			if pc.Date == dateStr {
+			if pc.DateStr == dateStr {
 				history.Pastes[i].Value = pc.Count
 				break
 			}
 		}
 
 		for _, uc := range urlCounts {
-			if uc.Date == dateStr {
+			if uc.DateStr == dateStr {
 				history.URLs[i].Value = uc.Count
 				break
 			}
 		}
 
 		for _, sc := range storageCounts {
-			if sc.Date == dateStr {
+			if sc.DateStr == dateStr {
 				history.Storage[i].Value = sc.Size
 				if sc.Count > 0 {
 					history.AvgSize[i].Value = float64(sc.Size) / float64(sc.Count)
@@ -246,7 +256,7 @@ func (s *AnalyticsService) GetStatsHistory(days int) (*StatsHistory, error) {
 		}
 
 		for _, ac := range apiKeyCounts {
-			if ac.Date == dateStr {
+			if ac.DateStr == dateStr {
 				history.APIKeys[i].Value = ac.Count
 				break
 			}
