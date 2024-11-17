@@ -94,4 +94,5 @@ require (
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.8.0 // indirect
 	modernc.org/sqlite v1.33.1 // indirect
+	moul.io/zapgorm2 v1.3.0
 )

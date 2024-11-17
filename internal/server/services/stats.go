@@ -58,7 +58,7 @@ func (s *StatsService) GetSystemStats() (fiber.Map, error) {
 		storageByType = make(map[string]int64)
 	}
 
-	// Convert storageByType to JSON
+	// Convert to JSON
 	storageByTypeJSON, _ := json.Marshal(storageByType)
 
 	// Get average paste size
@@ -119,16 +119,6 @@ func (s *StatsService) GetSystemStats() (fiber.Map, error) {
 		privateRatio = float64(privatePastes) / float64(totalPastes) * 100
 	}
 
-	// Get average paste views
-	var avgViews float64
-	if err := s.db.Model(&models.Paste{}).
-		Select("COALESCE(AVG(NULLIF(views, 0)), 0)").
-		Row().
-		Scan(&avgViews); err != nil {
-		s.logger.Error("failed to get average views", zap.Error(err))
-		avgViews = 0
-	}
-
 	// Get total storage used
 	totalStorage, err := s.getStorageSize()
 	if err != nil {
@@ -141,7 +131,12 @@ func (s *StatsService) GetSystemStats() (fiber.Map, error) {
 			"pastes":        totalPastes,
 			"urls":          totalUrls,
 			"storage":       totalStorage,
+			"storageByType": string(storageByTypeJSON),
+			"avgSize":       avgSize,
 			"activeApiKeys": activeApiKeys,
+			"extensionStats": extensionStats,
+			"expiringPastes": expiringPastes,
+			"expiringUrls":   expiringUrls,
 		},
 		"history": fiber.Map{
 			"pastes":  string(pastesHistory),
@@ -162,9 +157,6 @@ func (s *StatsService) GetSystemStats() (fiber.Map, error) {
 			"public":       publicPastes,
 			"privateRatio": privateRatio,
 		},
-		"engagement": fiber.Map{
-			"avgViews": avgViews,
-		},
 	}, nil
 }
 
@@ -180,6 +172,7 @@ func (s *StatsService) getStorageByFileType() (map[string]int64, error) {
 		Rows()
 
 	if err != nil {
+		s.logger.Error("failed to query storage by file type", zap.Error(err))
 		return nil, err
 	}
 	defer rows.Close()
@@ -188,6 +181,7 @@ func (s *StatsService) getStorageByFileType() (map[string]int64, error) {
 		var mimeType string
 		var size int64
 		if err := rows.Scan(&mimeType, &size); err != nil {
+			s.logger.Error("failed to scan row", zap.Error(err))
 			continue
 		}
 		category := s.categorizeMimeType(mimeType)

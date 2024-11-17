@@ -13,7 +13,7 @@ type Database struct {
 	*gorm.DB
 }
 
-func New(config *config.Config) (*Database, error) {
+func New(config *config.Config, gormConfig *gorm.Config) (*Database, error) {
 	var dialector gorm.Dialector
 
 	switch config.Database.Driver {
@@ -34,12 +34,20 @@ func New(config *config.Config) (*Database, error) {
 		return nil, fmt.Errorf("unsupported database driver: %s", config.Database.Driver)
 	}
 
-	db, err := gorm.Open(dialector, &gorm.Config{})
+	db, err := gorm.Open(dialector, gormConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	return &Database{db}, nil
+}
+
+func (d *Database) Close() error {
+	db, err := d.DB.DB()
+	if err != nil {
+		return err
+	}
+	return db.Close()
 }
 
 func (d *Database) Migrate(config *config.Config) error {

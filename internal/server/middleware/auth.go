@@ -59,11 +59,6 @@ func (m *AuthMiddleware) Auth(required bool) fiber.Handler {
 			return c.Next()
 		}
 
-		// Check rate limit
-		if err := m.checkRateLimit(key); err != nil {
-			return fiber.NewError(fiber.StatusTooManyRequests, "Rate limit exceeded")
-		}
-
 		// Store API key in context
 		c.Locals("apiKey", key)
 		return c.Next()
@@ -93,26 +88,4 @@ func (m *AuthMiddleware) validateAPIKey(key string) (*models.APIKey, error) {
 	}
 
 	return &apiKey, nil
-}
-
-func (m *AuthMiddleware) checkRateLimit(key *models.APIKey) error {
-	// Get usage count in the last hour
-	var count int64
-	err := m.db.Model(&models.APIKey{}).
-		Where("key = ? AND last_used_at > ?", key.Key, time.Now().Add(-time.Hour)).
-		Count(&count).Error
-	if err != nil {
-		return err
-	}
-
-	if count >= int64(key.RateLimit) {
-		m.logger.Warn("rate limit exceeded",
-			zap.String("key", key.Key),
-			zap.Int("limit", key.RateLimit),
-			zap.Int64("count", count),
-		)
-		return fiber.NewError(fiber.StatusTooManyRequests, "Rate limit exceeded")
-	}
-
-	return nil
 }

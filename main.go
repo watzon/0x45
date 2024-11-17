@@ -7,9 +7,8 @@ import (
 	"os/signal"
 
 	"github.com/watzon/0x45/internal/config"
-	"github.com/watzon/0x45/internal/database"
 	"github.com/watzon/0x45/internal/server"
-	"github.com/watzon/0x45/internal/storage"
+	"go.uber.org/zap"
 )
 
 // @title 0x45 API
@@ -26,28 +25,18 @@ func main() {
 		log.Fatalf("Error loading config: %v", err)
 	}
 
-	// Initialize database
-	db, err := database.New(cfg)
-	if err != nil {
-		log.Fatalf("Error connecting to database: %v", err)
-	}
-
-	// Run migrations
-	if err := db.Migrate(cfg); err != nil {
-		log.Fatalf("Error running migrations: %v", err)
-	}
-
-	// Initialize storage manager
-	storageManager, err := storage.NewStorageManager(cfg)
-	if err != nil {
-		log.Fatalf("Failed to initialize storage: %v", err)
-	}
-
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
+	// Initialize logger
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("failed to initialize logger: %v", err)
+	}
+	defer func() { _ = logger.Sync() }()
+
 	// Initialize server with storage manager
-	srv := server.New(db, storageManager, cfg)
+	srv := server.New(cfg, logger)
 
 	// Create and setup server
 	srv.SetupRoutes()

@@ -1,5 +1,6 @@
 import Chart from './base.js';
 import Legend from './legend.js';
+import { DataNormalizer } from './normalize.js';
 
 class AsciiPieChart extends Chart {
     constructor(data, options = {}) {
@@ -8,7 +9,15 @@ class AsciiPieChart extends Chart {
             dotChar: '•',
             legendChar: '■',
             colors: ['pie1', 'pie2', 'pie3', 'pie4', 'pie5', 'pie6'],
-            legendPosition: options.legendPosition || 'right'
+            legendPosition: options.legendPosition || 'right',
+            // Data normalization options
+            normalizer: options.normalizer || {
+                inputUnit: options.inputUnit || 'raw',
+                outputUnit: options.outputUnit || 'raw',
+                unitType: options.unitType || 'raw',
+                precision: options.precision,
+                format: options.format || 'full'
+            }
         };
 
         // Transform object data into array format if needed
@@ -18,6 +27,7 @@ class AsciiPieChart extends Chart {
 
         super(processedData, mergedOptions);
         
+        this.normalizer = new DataNormalizer(mergedOptions.normalizer);
         this.total = this.values.reduce((sum, val) => sum + val, 0);
         
         // Handle empty or zero-sum data
@@ -71,6 +81,25 @@ class AsciiPieChart extends Chart {
         });
     }
 
+    generateLegend() {
+        if (this.total === 0) {
+            return this.legend.render([{
+                color: this.options.colors[0],
+                text: 'No data available'
+            }]);
+        }
+
+        const legendItems = this.segments.map(segment => {
+            const formattedValue = this.normalizer.normalize(segment.value);
+            return {
+                color: segment.color,
+                text: `${segment.percentage.toFixed(1).padStart(5)}% [${formattedValue}] ${segment.label}`
+            };
+        });
+
+        return this.legend.render(legendItems);
+    }
+
     render() {
         const pieRows = this.generatePieAscii();
         const legendRows = this.generateLegend();
@@ -120,33 +149,9 @@ ${legendRows.join('\n')}
         return rows;
     }
 
-    generateLegend() {
-        if (this.total === 0) {
-            return this.legend.render([{
-                color: this.options.colors[0],
-                text: 'No data available'
-            }]);
-        }
-
-        const legendItems = this.segments.map(segment => ({
-            color: segment.color,
-            text: `${segment.percentage.toFixed(1).padStart(5)}% [${this.formatBytes(segment.value)}] ${segment.label}`
-        }));
-
-        return this.legend.render(legendItems);
-    }
-
-    // Helper function to format bytes into human-readable format
-    formatBytes(bytes) {
-        if (bytes === 0) return '0 B';
-        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(1024));
-        return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
-    }
-
     wrapOutput(content) {
         return `<pre class="chart">${content}</pre>`;
     }
 }
 
-export default AsciiPieChart; 
+export default AsciiPieChart;

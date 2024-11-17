@@ -65,6 +65,12 @@ type PasteService struct {
 	analytics *AnalyticsService
 }
 
+// contextKey is a custom type for context keys to avoid collisions
+type contextKey string
+
+// Define context keys
+const configKey contextKey = "config"
+
 func NewPasteService(db *gorm.DB, logger *zap.Logger, config *config.Config) *PasteService {
 	return &PasteService{
 		db:        db,
@@ -82,6 +88,12 @@ func (s *PasteService) ProcessUpload(c *fiber.Ctx, req *UploadRequest) (*models.
 		apiKey = key.(*models.APIKey)
 	}
 
+	// Check if the user is attempting to do something they're not allowed to do
+	if req.Private && apiKey == nil {
+		return nil, fiber.NewError(fiber.StatusUnauthorized, "Private pastes can only be created with an API key")
+	}
+
+	// Calculate expiry
 	expiryTime, err := s.calculateExpiry(ExpiryOptions{
 		Size:            int64(len(req.Content)),
 		HasAPIKey:       apiKey != nil,
@@ -93,7 +105,7 @@ func (s *PasteService) ProcessUpload(c *fiber.Ctx, req *UploadRequest) (*models.
 
 	var paste *models.Paste
 	if req.URL != "" {
-		paste, err = s.createPasteFromURL(c, req.URL, &PasteOptions{
+		paste, err = s.createPasteFromURL(c, req.URL, &NewPasteOptions{
 			Extension: req.Extension,
 			ExpiresAt: expiryTime,
 			Private:   req.Private,
@@ -101,7 +113,7 @@ func (s *PasteService) ProcessUpload(c *fiber.Ctx, req *UploadRequest) (*models.
 			APIKey:    apiKey,
 		})
 	} else {
-		paste, err = s.createPasteFromRaw(c, req.Content, &PasteOptions{
+		paste, err = s.createPasteFromRaw(c, req.Content, &NewPasteOptions{
 			Extension: req.Extension,
 			ExpiresAt: expiryTime,
 			Private:   req.Private,
@@ -238,17 +250,8 @@ func (s *PasteService) ListPastes(c *fiber.Ctx) error {
 	}
 
 	// Convert pastes to response format
-	pasteResponses := make([]fiber.Map, len(pastes))
-	for i, paste := range pastes {
-		pasteResponses[i] = paste.ToResponse(s.config.Server.BaseURL)
-	}
-
-	return c.JSON(fiber.Map{
-		"pastes": pasteResponses,
-		"total":  total,
-		"page":   page,
-		"limit":  limit,
-	})
+	respose := NewListPastesResponse(pastes, s.config.Server.BaseURL)
+	return c.JSON(respose)
 }
 
 // UpdateExpiration updates a paste's expiration time
@@ -285,7 +288,9 @@ func (s *PasteService) UpdateExpiration(c *fiber.Ctx, id string) error {
 		return err
 	}
 
-	return c.JSON(paste.ToResponse(s.config.Server.BaseURL))
+	// Build response
+	response := NewNewPasteResponse(paste, s.config.Server.BaseURL)
+	return c.JSON(response)
 }
 
 // CleanupExpired removes expired pastes and their associated files
@@ -318,7 +323,7 @@ func (s *PasteService) CleanupExpired() (int64, error) {
 
 // Helper functions
 
-func (s *PasteService) createPasteFromRaw(c *fiber.Ctx, content []byte, opts *PasteOptions) (*models.Paste, error) {
+func (s *PasteService) createPasteFromRaw(c *fiber.Ctx, content []byte, opts *NewPasteOptions) (*models.Paste, error) {
 	// Add API key from context if available
 	if apiKey, ok := c.Locals("apiKey").(*models.APIKey); ok {
 		opts.APIKey = apiKey
@@ -345,7 +350,7 @@ func (s *PasteService) createPasteFromRaw(c *fiber.Ctx, content []byte, opts *Pa
 	return s.createPaste(bytes.NewReader(content), int64(len(content)), mimeType, opts)
 }
 
-func (s *PasteService) createPasteFromURL(c *fiber.Ctx, url string, opts *PasteOptions) (*models.Paste, error) {
+func (s *PasteService) createPasteFromURL(c *fiber.Ctx, url string, opts *NewPasteOptions) (*models.Paste, error) {
 	// Add API key from context if available
 	if apiKey, ok := c.Locals("apiKey").(*models.APIKey); ok {
 		opts.APIKey = apiKey
@@ -383,7 +388,7 @@ func (s *PasteService) createPasteFromURL(c *fiber.Ctx, url string, opts *PasteO
 	return s.createPaste(bytes.NewReader(content), int64(len(content)), mimeType, opts)
 }
 
-func (s *PasteService) createPaste(content io.Reader, size int64, contentType string, opts *PasteOptions) (*models.Paste, error) {
+func (s *PasteService) createPaste(content io.Reader, size int64, contentType string, opts *NewPasteOptions) (*models.Paste, error) {
 	// Read content for MIME type detection
 	contentBytes, err := io.ReadAll(content)
 	if err != nil {
@@ -444,7 +449,7 @@ func (s *PasteService) createPaste(content io.Reader, size int64, contentType st
 	}
 
 	// Add config to context for storage configuration
-	ctx := context.WithValue(context.Background(), "config", s.config)
+	ctx := context.WithValue(context.Background(), configKey, s.config)
 
 	// Set the default storage configuration
 	for _, storage := range s.config.Storage {

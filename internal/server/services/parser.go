@@ -21,7 +21,7 @@ func NewRequestParser(c *fiber.Ctx) *RequestParser {
 // ParseUploadRequest parses various types of upload requests into a unified format
 func (p *RequestParser) ParseUploadRequest() (*UploadRequest, error) {
 	contentType := p.ctx.Get("Content-Type")
-	
+
 	// Handle multipart form uploads
 	if form, err := p.ctx.MultipartForm(); err == nil {
 		return p.parseMultipartUpload(form)
@@ -65,6 +65,11 @@ func (p *RequestParser) parseMultipartUpload(form *multipart.Form) (*UploadReque
 	content, err := io.ReadAll(f)
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to read file content")
+	}
+
+	// Check for empty content
+	if len(content) == 0 {
+		return nil, fiber.NewError(fiber.StatusBadRequest, "Empty file")
 	}
 
 	// Get other form values

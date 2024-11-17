@@ -9,6 +9,11 @@
     animation: fadeIn 0.3s ease-out;
 }
 
+[data-chart].inline {
+    display: inline-block;
+    margin: 0 0.5em;
+}
+
 /* Container adjustments */
 li [data-chart] {
     margin-top: 0.5em;

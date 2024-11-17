@@ -2,41 +2,89 @@
     <a href="{{baseUrl}}" class="nav-link">cd ..</a>
 </div>
 
-<h1>Paste69 Statistics</h1>
+<h1>0x45 Statistics</h1>
+
+<p>
+    This page shows some basic statistics about this 0x45 instance. These statistics are calculated on server and are not sent anywhere else.
+</p>
 
 <h2>Overview</h2>
-<h3>Total Pastes:</h3>
+<h3>Total Pastes: {{stats.current.pastes}}</h3>
 <div class="chart">
-    <span data-chart data-chart-type="bar" data-chart-history='{{stats.pastesHistory}}'
-        data-chart-options='{"color": "blue", "height": 5, "barWidth": 12}'>{{stats.pastes}}</span>
+    <span data-chart data-chart-type="bar" data-chart-history='{{stats.history.pastes}}'
+        data-chart-options='{
+            "color": "blue",
+            "height": 5,
+            "barWidth": 12,
+            "scalePosition": "right",
+            "normalizer": {
+                "inputUnit": "",
+                "outputUnit": "",
+                "precision": 0,
+                "format": "value"
+            }
+        }'></span>
 </div>
 
-<h3>Total URLs:</h3>
+<h3>Total URLs: {{stats.current.urls}}</h3>
 <div class="chart">
-    <span data-chart data-chart-type="bar" data-chart-history='{{stats.urlsHistory}}'
-        data-chart-options='{"color": "green", "height": 5, "barWidth": 12}'>{{stats.urls}}</span>
+    <span data-chart data-chart-type="bar" data-chart-history='{{stats.history.urls}}'
+        data-chart-options='{
+            "color": "green",
+            "height": 5,
+            "barWidth": 12,
+            "scalePosition": "right",
+            "normalizer": {
+                "inputUnit": "",
+                "outputUnit": "",
+                "precision": 0,
+                "format": "value"
+            }
+        }'></span>
 </div>
 
 <h3>Storage Used:</h3>
 <div class="chart">
-    <span data-chart data-chart-type="bar" data-chart-history='{{stats.storageHistory}}'
-        data-chart-options='{"color": "yellow", "height": 5, "barWidth": 12}'>{{stats.storage}}</span>
+    <span data-chart data-chart-type="bar" data-chart-history='{{stats.history.storage}}'
+        data-chart-options='{
+            "color": "yellow",
+            "height": 5,
+            "barWidth": 12,
+            "scalePosition": "right",
+            "normalizer": {
+                "inputUnit": "B",
+                "outputUnit": "auto",
+                "precision": 2,
+                "format": "full",
+                "threshold": 1024
+            }
+        }'></span>
 </div>
 
 <h2>Content Analysis</h2>
 <h3>Storage by File Type:</h3>
 <div class="chart">
-    <span data-chart data-chart-type="pie" data-chart-data='{{stats.storageByType}}'
-        data-chart-options='{"color": "blue", "width": 45}'>
+    <span data-chart data-chart-type="pie" data-chart-data='{{stats.current.storageByType}}'
+        data-chart-options='{
+            "color": "blue",
+            "width": 45,
+            "normalizer": {
+                "inputUnit": "B",
+                "outputUnit": "auto",
+                "precision": 2,
+                "format": "full",
+                "threshold": 1024
+            }
+        }'>
     </span>
 </div>
 
 <div class="stats-grid">
     <div class="stat-box">
         <h3>Popular Extensions:</h3>
-        {{#if stats.extensionStats.length}}
+        {{#if stats.current.extensionStats}}
             <ul class="extension-list">
-                {{#each stats.extensionStats}}
+                {{#each stats.current.extensionStats}}
                 <li><code>{{@key}}</code>: {{this}} files</li>
                 {{/each}}
             </ul>
@@ -47,7 +95,17 @@
 
     <div class="stat-box">
         <h3>Average Size:</h3>
-        <p>{{stats.avgSize}} per paste</p>
+        <span data-chart class="inline" data-chart-type="value" data-chart-data='{{stats.current.avgSize}}'
+            data-chart-options='{
+                "normalizer": {
+                    "inputUnit": "B",
+                    "outputUnit": "auto",
+                    "precision": 2,
+                    "format": "full",
+                    "threshold": 1024
+                }
+            }'>
+        </span> per paste
     </div>
 </div>
 
@@ -56,25 +114,24 @@
     <div class="stat-box">
         <h3>Privacy Stats:</h3>
         <ul>
-            <li>Public Pastes: {{stats.publicPastes}}</li>
-            <li>Private Pastes: {{stats.privatePastes}}</li>
-            <li>Private Ratio: {{stats.privateRatio}}%</li>
+            <li>Public Pastes: {{stats.privacy.public}}</li>
+            <li>Private Pastes: {{stats.privacy.private}}</li>
+            <li>Private Ratio: {{stats.privacy.privateRatio}}%</li>
         </ul>
     </div>
 
     <div class="stat-box">
         <h3>API Usage:</h3>
         <ul>
-            <li>Active API Keys: {{stats.activeApiKeys}}</li>
-            <li>Average Views: {{stats.avgViews}}</li>
+            <li>Active API Keys: {{stats.current.activeApiKeys}}</li>
         </ul>
     </div>
 
     <div class="stat-box">
         <h3>Expiring Soon:</h3>
         <ul>
-            <li>Pastes (24h): {{stats.expiringPastes24h}}</li>
-            <li>URLs (24h): {{stats.expiringUrls24h}}</li>
+            <li>Pastes (24h): {{stats.current.expiringPastes}}</li>
+            <li>URLs (24h): {{stats.current.expiringUrls}}</li>
         </ul>
     </div>
 </div>

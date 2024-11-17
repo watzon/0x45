@@ -163,47 +163,47 @@ func (s *AnalyticsService) GetStatsHistory(days int) (*StatsHistory, error) {
 
 	// Get paste counts by day
 	type DailyCount struct {
-		Date  time.Time
+		Date  string `gorm:"column:date"`
 		Count int64
 	}
 
 	// Query paste counts
 	var pasteCounts []DailyCount
 	s.db.Model(&models.Paste{}).
-		Select("DATE(created_at) as date, COUNT(*) as count").
+		Select("strftime('%Y-%m-%d', created_at) as date, COUNT(*) as count").
 		Where("created_at BETWEEN ? AND ?", startDate, endDate).
-		Group("DATE(created_at)").
+		Group("strftime('%Y-%m-%d', created_at)").
 		Order("date ASC").
 		Find(&pasteCounts)
 
 	// Query URL counts
 	var urlCounts []DailyCount
 	s.db.Model(&models.Shortlink{}).
-		Select("DATE(created_at) as date, COUNT(*) as count").
+		Select("strftime('%Y-%m-%d', created_at) as date, COUNT(*) as count").
 		Where("created_at BETWEEN ? AND ?", startDate, endDate).
-		Group("DATE(created_at)").
+		Group("strftime('%Y-%m-%d', created_at)").
 		Order("date ASC").
 		Find(&urlCounts)
 
 	// Query storage usage
 	var storageCounts []struct {
-		Date  time.Time
+		Date  string `gorm:"column:date"`
 		Size  int64
 		Count int64
 	}
 	s.db.Model(&models.Paste{}).
-		Select("DATE(created_at) as date, SUM(size) as size, COUNT(*) as count").
+		Select("strftime('%Y-%m-%d', created_at) as date, SUM(size) as size, COUNT(*) as count").
 		Where("created_at BETWEEN ? AND ?", startDate, endDate).
-		Group("DATE(created_at)").
+		Group("strftime('%Y-%m-%d', created_at)").
 		Order("date ASC").
 		Find(&storageCounts)
 
 	// Query API key counts
 	var apiKeyCounts []DailyCount
 	s.db.Model(&models.APIKey{}).
-		Select("DATE(created_at) as date, COUNT(*) as count").
+		Select("strftime('%Y-%m-%d', created_at) as date, COUNT(*) as count").
 		Where("created_at BETWEEN ? AND ? AND verified = ?", startDate, endDate, true).
-		Group("DATE(created_at)").
+		Group("strftime('%Y-%m-%d', created_at)").
 		Order("date ASC").
 		Find(&apiKeyCounts)
 
@@ -211,6 +211,7 @@ func (s *AnalyticsService) GetStatsHistory(days int) (*StatsHistory, error) {
 	for i := 0; i < days; i++ {
 		date := endDate.AddDate(0, 0, -i)
 		dateOnly := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
+		dateStr := dateOnly.Format("2006-01-02")
 
 		// Initialize with zero values
 		history.Pastes[i] = ChartDataPoint{Date: dateOnly, Value: int64(0)}
@@ -221,21 +222,21 @@ func (s *AnalyticsService) GetStatsHistory(days int) (*StatsHistory, error) {
 
 		// Update with actual values if available
 		for _, pc := range pasteCounts {
-			if pc.Date.Equal(dateOnly) {
+			if pc.Date == dateStr {
 				history.Pastes[i].Value = pc.Count
 				break
 			}
 		}
 
 		for _, uc := range urlCounts {
-			if uc.Date.Equal(dateOnly) {
+			if uc.Date == dateStr {
 				history.URLs[i].Value = uc.Count
 				break
 			}
 		}
 
 		for _, sc := range storageCounts {
-			if sc.Date.Equal(dateOnly) {
+			if sc.Date == dateStr {
 				history.Storage[i].Value = sc.Size
 				if sc.Count > 0 {
 					history.AvgSize[i].Value = float64(sc.Size) / float64(sc.Count)
@@ -245,7 +246,7 @@ func (s *AnalyticsService) GetStatsHistory(days int) (*StatsHistory, error) {
 		}
 
 		for _, ac := range apiKeyCounts {
-			if ac.Date.Equal(dateOnly) {
+			if ac.Date == dateStr {
 				history.APIKeys[i].Value = ac.Count
 				break
 			}

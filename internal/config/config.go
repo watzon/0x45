@@ -55,15 +55,17 @@ type RateLimitConfig struct {
 }
 
 type ServerConfig struct {
-	Address       string          `mapstructure:"address"`
-	BaseURL       string          `mapstructure:"base_url"`
-	MaxUploadSize int             `mapstructure:"max_upload_size"`
-	Prefork       bool            `mapstructure:"prefork"`
-	ServerHeader  string          `mapstructure:"server_header"`
-	AppName       string          `mapstructure:"app_name"`
-	Cleanup       CleanupConfig   `mapstructure:"cleanup"`
-	RateLimit     RateLimitConfig `mapstructure:"rate_limit"`
-	CORSOrigins   []string        `mapstructure:"cors_origins"`
+	Address         string          `mapstructure:"address"`
+	BaseURL         string          `mapstructure:"base_url"`
+	MaxUploadSize   int             `mapstructure:"max_upload_size"`
+	Prefork         bool            `mapstructure:"prefork"`
+	ServerHeader    string          `mapstructure:"server_header"`
+	AppName         string          `mapstructure:"app_name"`
+	Cleanup         CleanupConfig   `mapstructure:"cleanup"`
+	RateLimit       RateLimitConfig `mapstructure:"rate_limit"`
+	CORSOrigins     []string        `mapstructure:"cors_origins"`
+	ViewsDirectory  string          `mapstructure:"views_directory"`
+	PublicDirectory string          `mapstructure:"public_directory"`
 }
 
 type SMTPConfig struct {
@@ -127,6 +129,8 @@ func Load() (*Config, error) {
 	_ = viper.BindEnv("server.server_header", "0X_SERVER_SERVER_HEADER")
 	_ = viper.BindEnv("server.app_name", "0X_SERVER_APP_NAME")
 	_ = viper.BindEnv("server.cors_origins", "0X_SERVER_CORS_ORIGINS")
+	_ = viper.BindEnv("server.views_directory", "0X_SERVER_VIEWS_DIRECTORY")
+	_ = viper.BindEnv("server.public_directory", "0X_SERVER_PUBLIC_DIRECTORY")
 
 	// Server cleanup bindings
 	_ = viper.BindEnv("server.cleanup.enabled", "0X_SERVER_CLEANUP_ENABLED")
@@ -199,6 +203,8 @@ func Load() (*Config, error) {
 	viper.SetDefault("server.cleanup.interval", 3600)
 	viper.SetDefault("server.cleanup.max_age", "168h")
 	viper.SetDefault("server.cors_origins", []string{"*"})
+	viper.SetDefault("server.views_directory", "./views")
+	viper.SetDefault("server.public_directory", "./public")
 
 	viper.SetDefault("server.rate_limit.global.enabled", true) // Enable global rate limiting by default
 	viper.SetDefault("server.rate_limit.global.rate", 6969.0)  // 6969 requests per second globally
@@ -270,9 +276,6 @@ func Load() (*Config, error) {
 	if len(storageConfigs) > 0 {
 		config.Storage = storageConfigs
 	}
-
-	baseURL := config.Server.BaseURL
-	fmt.Println("baseURL", baseURL)
 
 	return &config, nil
 }

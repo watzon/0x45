@@ -48,7 +48,7 @@ func (m *Middleware) Logger() fiber.Handler {
 		duration := time.Since(start)
 
 		status := c.Response().StatusCode()
-		m.logger.Info("request completed",
+		m.logger.Debug("request completed",
 			zap.String("method", c.Method()),
 			zap.String("path", c.Path()),
 			zap.Int("status", status),

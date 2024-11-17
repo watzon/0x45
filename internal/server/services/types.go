@@ -1,18 +1,76 @@
 package services
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/watzon/0x45/internal/models"
 )
 
-// PasteOptions contains configuration options for creating a new paste
-type PasteOptions struct {
+// NewPasteOptions contains configuration options for creating a new paste
+type NewPasteOptions struct {
 	Extension string         // File extension (optional)
 	ExpiresAt *time.Time     // Expiration time for the paste
 	Private   bool           // Whether the paste is private
 	Filename  string         // Original filename
 	APIKey    *models.APIKey // Associated API key for authentication
+}
+
+// NewPasteResponse represents the response structure for creating a new paste
+type NewPasteResponse struct {
+	ID          string     `json:"id"`
+	Filename    string     `json:"filename"`
+	URL         string     `json:"url"`
+	RawURL      string     `json:"raw_url"`
+	DownloadURL string     `json:"download_url"`
+	DeleteURL   string     `json:"delete_url"`
+	MimeType    string     `json:"mime_type"`
+	Size        int64      `json:"size"`
+	ExpiresAt   *time.Time `json:"expires_at"`
+	Private     bool       `json:"private"`
+}
+
+// NewNewPasteResponse creates a new NewPasteResponse from a paste
+func NewNewPasteResponse(paste *models.Paste, baseURL string) NewPasteResponse {
+	urlSuffix := paste.ID
+	if paste.Extension != "" {
+		urlSuffix = urlSuffix + "." + paste.Extension
+	}
+
+	return NewPasteResponse{
+		ID:          paste.ID,
+		Filename:    paste.Filename,
+		URL:         fmt.Sprintf("%s/p/%s", baseURL, urlSuffix),
+		RawURL:      fmt.Sprintf("%s/p/%s/raw", baseURL, urlSuffix),
+		DownloadURL: fmt.Sprintf("%s/p/%s/download", baseURL, urlSuffix),
+		DeleteURL:   fmt.Sprintf("%s/p/%s/%s", baseURL, paste.ID, paste.DeleteKey),
+		Private:     paste.Private,
+		MimeType:    paste.MimeType,
+		Size:        paste.Size,
+		ExpiresAt:   paste.ExpiresAt,
+	}
+}
+
+// ListPastesResponse represents the response structure for listing pastes
+type ListPastesResponse struct {
+	Pastes []NewPasteResponse `json:"pastes"`
+	Total  int64              `json:"total"`
+	Page   int                `json:"page"`
+	Limit  int                `json:"limit"`
+}
+
+// NewListPastesResponse creates a new ListPastesResponse from a list of pastes
+func NewListPastesResponse(pastes []models.Paste, baseURL string) ListPastesResponse {
+	respose := ListPastesResponse{
+		Pastes: make([]NewPasteResponse, len(pastes)),
+		Total:  int64(len(pastes)),
+	}
+
+	for i, paste := range pastes {
+		respose.Pastes[i] = NewNewPasteResponse(&paste, baseURL)
+	}
+
+	return respose
 }
 
 // ShortlinkOptions contains configuration options for creating a new shortlink

@@ -1,4 +1,5 @@
 import Chart from './base.js';
+import { DataNormalizer } from './normalize.js';
 
 class AsciiBarChart extends Chart {
     constructor(data, options = {}) {
@@ -13,24 +14,56 @@ class AsciiBarChart extends Chart {
             showLabels: options.showLabels !== undefined ? options.showLabels : true,
             showDates: options.showDates !== undefined ? options.showDates : true,
             showScale: options.showScale !== undefined ? options.showScale : true,
+            scalePosition: options.scalePosition || 'left', // 'left' or 'right'
             color: options.color || 'blue',
-            valueFormat: options.valueFormat || (value => value.toString()),
             dateFormat: options.dateFormat || {
                 month: 'short',
                 day: 'numeric'
+            },
+            // Data normalization options
+            normalizer: options.normalizer || {
+                inputUnit: options.inputUnit || 'raw',
+                outputUnit: options.outputUnit || 'raw',
+                precision: options.precision,
+                format: 'value'  // Always use 'value' for chart, format in summary
             }
         };
 
         super(data, mergedOptions);
+        
+        // Create normalizer
+        this.normalizer = new DataNormalizer(mergedOptions.normalizer);
 
         // Process values with data sampling if needed
         this.processDataSampling();
 
-        this.formattedNumbers = this.data.map(d => {
-            if (typeof d.value === 'string' && d.value.includes('B')) {
-                return d.value.padStart(7);
-            }
-            return this.options.valueFormat(d.value).padStart(3);
+        // Store both raw and normalized values
+        this.rawValues = this.values;
+        this.normalizedValues = this.values.map(v => this.normalizer.normalize(v));
+
+        // Calculate ranges and round max to match scale
+        this.rawMin = Math.min(...this.rawValues);
+        this.rawMax = Math.max(...this.rawValues);
+
+        // First normalize the max value to get the proper unit scale
+        const normalizedMax = Number(this.normalizer.normalize(this.rawMax, 'value'));
+        
+        // For unitless values (like counts), round to nice number
+        if (!this.options.normalizer?.inputUnit) {
+            const magnitude = Math.pow(10, Math.floor(Math.log10(normalizedMax)));
+            this.scaledMax = Math.ceil(normalizedMax / magnitude) * magnitude;
+        } else {
+            // For values with units (like bytes), just round up
+            this.scaledMax = Math.ceil(normalizedMax);
+        }
+        
+        // Calculate unit based on max scale
+        this.scaledUnit = this.scaledMax / this.options.height;
+
+        // Format numbers for display
+        this.formattedNumbers = this.values.map(v => {
+            const normalizedValue = this.normalizer.normalize(v, 'full');
+            return normalizedValue.toString().padStart(3);
         });
         this.maxNumberWidth = Math.max(...this.formattedNumbers.map(n => n.length));
     }
@@ -39,7 +72,6 @@ class AsciiBarChart extends Chart {
         if (typeof window === 'undefined') return;
 
         // Calculate maximum bars that can fit on screen
-        // Account for scale (6 chars), spacing between bars (1 char), and some padding (40px)
         const scaleWidth = this.options.showScale ? 6 : 0;
         const maxBars = Math.floor((window.innerWidth - 40 - scaleWidth) / (this.options.barWidth + 1));
 
@@ -48,11 +80,6 @@ class AsciiBarChart extends Chart {
             const step = Math.ceil(this.values.length / maxBars);
             this.values = this.values.filter((_, i) => i % step === 0).slice(0, maxBars);
             this.data = this.data.filter((_, i) => i % step === 0).slice(0, maxBars);
-            
-            // Recalculate min/max after sampling
-            this.max = Math.max(...this.values);
-            this.min = Math.min(...this.values);
-            this.valueRange = this.max - this.min;
         }
     }
 
@@ -79,7 +106,7 @@ class AsciiBarChart extends Chart {
             // Calculate exact center position with a slight right offset
             const leftPad = Math.floor((barWidth - numWidth) / 2) + 1; 
             const rightPad = barWidth - numWidth - leftPad;
-            const intensity = this.getIntensity(this.values[i]);
+            const intensity = this.getIntensity(this.normalizedValues[i]);
             
             // Add left padding spaces
             for (let x = 0; x < leftPad; x++) {
@@ -102,18 +129,19 @@ class AsciiBarChart extends Chart {
             }
         }
         
-        const emptyLine = ' '.repeat(this.options.showScale ? 6 : 0) + 
-            ' '.repeat((this.formattedNumbers.length * this.options.barWidth) + (this.formattedNumbers.length - 1));
+        const scaleWidth = this.options.showScale ? this.getMaxScaleWidth() + 3 : 0; // +3 for " │ "
+        const scalePadding = ' '.repeat(scaleWidth);
         
         return [
-            ' '.repeat(this.options.showScale ? 6 : 0) + labels,
-            emptyLine
+            (this.options.scalePosition === 'left' ? scalePadding : '') + labels + (this.options.scalePosition === 'right' ? scalePadding : ''),
+            (this.options.scalePosition === 'left' ? scalePadding : '') + ' '.repeat(labels.length) + (this.options.scalePosition === 'right' ? scalePadding : '')
         ];
     }
 
     renderBars() {
         const rows = [];
-        for (let row = this.options.height - 1; row >= 0; row--) {
+        // Render rows from top to bottom
+        for (let row = 0; row < this.options.height; row++) {
             rows.push(this.renderBarRow(row));
         }
         return rows;
@@ -122,10 +150,12 @@ class AsciiBarChart extends Chart {
     renderBarRow(row) {
         let rowContent = '';
         for (let i = 0; i < this.values.length; i++) {
-            const value = this.values[i];
-            const filled = Math.round((value / this.max) * this.options.height);
-            const char = row < filled ? this.options.barChar : this.options.emptyChar;
-            const intensity = this.getIntensity(value);
+            const rawValue = this.rawValues[i];
+            const normalizedValue = Number(this.normalizer.normalize(rawValue, 'value'));
+            const filled = Math.round((normalizedValue / this.scaledMax) * this.options.height);
+            // Check against inverted row to fill from bottom up
+            const char = filled > (this.options.height - row - 1) ? this.options.barChar : this.options.emptyChar;
+            const intensity = normalizedValue / this.scaledMax;
             
             // Render each character individually
             for (let x = 0; x < this.options.barWidth; x++) {
@@ -139,11 +169,58 @@ class AsciiBarChart extends Chart {
         }
 
         if (this.options.showScale) {
-            const scaleValue = this.max > 0 ? Math.round((this.max / this.options.height) * (this.options.height - row)) : 0;
-            const scaleStr = (row === this.options.height - 1 ? 0 : scaleValue).toString().padStart(4);
-            return `${scaleStr} │ ${rowContent}`;
+            // Calculate scale value for current row (from bottom to top)
+            // Invert row to make scale go from max at top to 0 at bottom
+            const scaleValue = (this.options.height - row - 1) * this.scaledUnit;
+            
+            let valueToFormat;
+            if (this.options.normalizer?.inputUnit) {
+                // For values with units (like bytes), convert back
+                const scaleBytes = Math.round(scaleValue * 1024 * 1024);
+                valueToFormat = row === 0 ? this.rawMax : scaleBytes;
+            } else {
+                // For unitless values, use scale value directly
+                valueToFormat = row === 0 ? this.rawMax : scaleValue;
+            }
+            
+            const formattedScale = this.normalizer.normalize(valueToFormat, 'full');
+            
+            // Calculate padding based on the longest scale value
+            const maxScaleWidth = this.getMaxScaleWidth();
+            const paddedScale = formattedScale.padStart(maxScaleWidth);
+
+            // Return row with scale on the specified side
+            return this.options.scalePosition === 'left'
+                ? `${paddedScale} │ ${rowContent}`
+                : `${rowContent} │ ${paddedScale}`;
         }
         return rowContent;
+    }
+
+    getMaxScaleWidth() {
+        const scaleValues = [];
+        // Include the actual max value for proper width calculation
+        scaleValues.push(this.normalizer.normalize(this.rawMax, 'full').length);
+        
+        for (let i = 0; i < this.options.height; i++) {
+            const value = i * this.scaledUnit;
+            let valueToFormat;
+            if (this.options.normalizer?.inputUnit) {
+                const scaleBytes = Math.round(value * 1024 * 1024);
+                valueToFormat = scaleBytes;
+            } else {
+                valueToFormat = value;
+            }
+            const formatted = this.normalizer.normalize(valueToFormat, 'full');
+            scaleValues.push(formatted.length);
+        }
+        return Math.max(...scaleValues);
+    }
+
+    getIntensity(value) {
+        if (this.rawMax === 0) return value > 0 ? 1 : 0;
+        const normalizedValue = Number(this.normalizer.normalize(value, 'value'));
+        return normalizedValue / this.scaledMax;
     }
 
     renderDates() {
@@ -170,14 +247,25 @@ class AsciiBarChart extends Chart {
                 dates += ' ';
             }
         }
-        return [' '.repeat(this.options.showScale ? 6 : 0) + dates];
+
+        const scaleWidth = this.options.showScale ? this.getMaxScaleWidth() + 3 : 0;
+        return [(this.options.scalePosition === 'left' ? ' '.repeat(scaleWidth) : '') + dates + (this.options.scalePosition === 'right' ? ' '.repeat(scaleWidth) : '')];
     }
 
     renderSummary() {
-        const avg = Math.round(this.values.reduce((a, b) => a + b, 0) / this.values.length);
+        const min = this.normalizer.normalize(this.rawMin, 'full');
+        const max = this.normalizer.normalize(this.rawMax, 'full');
+        const avg = this.normalizer.normalize(
+            Math.round(this.rawValues.reduce((a, b) => a + b, 0) / this.rawValues.length),
+            'full'
+        );
+
+        const scaleWidth = this.options.showScale ? this.getMaxScaleWidth() + 3 : 0;
         return [
             '',
-            ' '.repeat(this.options.showScale ? 6 : 0) + `min: ${this.min} | avg: ${avg} | max: ${this.max}`
+            (this.options.scalePosition === 'left' ? ' '.repeat(scaleWidth) : '') + 
+            `min: ${min} | avg: ${avg} | max: ${max}` +
+            (this.options.scalePosition === 'right' ? ' '.repeat(scaleWidth) : '')
         ];
     }
 
@@ -186,4 +274,4 @@ class AsciiBarChart extends Chart {
     }
 }
 
-export default AsciiBarChart; 
+export default AsciiBarChart;

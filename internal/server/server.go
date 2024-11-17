@@ -13,6 +13,8 @@ import (
 	"github.com/watzon/0x45/internal/server/services"
 	"github.com/watzon/0x45/internal/storage"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
+	"moul.io/zapgorm2"
 )
 
 type Server struct {
@@ -26,15 +28,31 @@ type Server struct {
 	middleware *middleware.Middleware
 }
 
-func New(db *database.Database, storageManager *storage.StorageManager, config *config.Config) *Server {
-	// Initialize logger
-	logger, err := zap.NewProduction()
+func New(config *config.Config, logger *zap.Logger) *Server {
+	gormLogger := zapgorm2.New(logger)
+	gormLogger.SetAsDefault()
+
+	// Initialize database
+	db, err := database.New(config, &gorm.Config{
+		Logger: gormLogger,
+	})
 	if err != nil {
-		return nil
+		logger.Fatal("Error connecting to database", zap.Error(err))
+	}
+
+	// Run migrations
+	if err := db.Migrate(config); err != nil {
+		logger.Fatal("Error running migrations", zap.Error(err))
+	}
+
+	// Initialize storage manager
+	storageManager, err := storage.NewStorageManager(config)
+	if err != nil {
+		logger.Fatal("Failed to initialize storage", zap.Error(err))
 	}
 
 	// Initialize template engine
-	engine := handlebars.New("./views", ".hbs")
+	engine := handlebars.New(config.Server.ViewsDirectory, ".hbs")
 
 	// Initialize services
 	svc := services.NewServices(db.DB, logger, config)
@@ -61,7 +79,7 @@ func New(db *database.Database, storageManager *storage.StorageManager, config *
 	}
 
 	// Serve static files
-	app.Static("/public", "./public")
+	app.Static("/public", config.Server.PublicDirectory)
 
 	return &Server{
 		app:        app,
@@ -158,13 +176,47 @@ func (s *Server) Start(addr string) error {
 	return s.app.Listen(addr)
 }
 
+func (s *Server) GetApp() *fiber.App {
+	return s.app
+}
+
+func (s *Server) GetDB() *database.Database {
+	return s.db
+}
+
+func (s *Server) GetStorage() *storage.StorageManager {
+	return s.storage
+}
+
+func (s *Server) GetConfig() *config.Config {
+	return s.config
+}
+
+func (s *Server) GetLogger() *zap.Logger {
+	return s.logger
+}
+
+func (s *Server) GetServices() *services.Services {
+	return s.services
+}
+
+func (s *Server) GetHandlers() *handlers.Handlers {
+	return s.handlers
+}
+
+func (s *Server) GetMiddleware() *middleware.Middleware {
+	return s.middleware
+}
+
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.app.ShutdownWithContext(ctx)
 }
 
 func (s *Server) Cleanup() error {
 	if s.db != nil && s.db.DB != nil {
-		return s.db.DB.Error
+		if err := s.db.Close(); err != nil {
+			s.logger.Error("failed to close database", zap.Error(err))
+		}
 	}
 	return nil
 }

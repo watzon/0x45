@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/utils"
 	"gorm.io/gorm"
@@ -45,6 +44,7 @@ func (p *Paste) BeforeCreate(tx *gorm.DB) error {
 	if p.ID == "" {
 		p.ID = utils.MustGenerateID(8)
 	}
+
 	if p.DeleteKey == "" {
 		p.DeleteKey = utils.MustGenerateID(32)
 	}
@@ -86,36 +86,4 @@ func (p *Paste) BeforeCreate(tx *gorm.DB) error {
 	}
 
 	return nil
-}
-
-// ToResponse returns a map of the paste data for API responses
-func (p *Paste) ToResponse(baseURL string) fiber.Map {
-	response := fiber.Map{
-		"id":         p.ID,
-		"filename":   p.Filename,
-		"size":       p.Size,
-		"mime_type":  p.MimeType,
-		"created_at": p.CreatedAt,
-		"expires_at": p.ExpiresAt,
-		"private":    p.Private,
-	}
-
-	// Add URL paths with extension if available
-	urlSuffix := p.ID
-	if p.Extension != "" {
-		urlSuffix = p.ID + "." + p.Extension
-	}
-
-	// Ensure baseURL doesn't end with a slash
-	baseURL = strings.TrimSuffix(baseURL, "/")
-
-	response["url"] = fmt.Sprintf("%s/p/%s", baseURL, urlSuffix)
-	response["raw_url"] = fmt.Sprintf("%s/p/%s/raw", baseURL, urlSuffix)
-	response["download_url"] = fmt.Sprintf("%s/p/%s/download", baseURL, urlSuffix)
-
-	if p.DeleteKey != "" {
-		response["delete_url"] = fmt.Sprintf("%s/p/%s/%s", baseURL, p.ID, p.DeleteKey)
-	}
-
-	return response
 }

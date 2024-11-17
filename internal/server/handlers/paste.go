@@ -21,7 +21,14 @@ func NewPasteHandlers(services *services.Services, logger *zap.Logger, config *c
 	}
 }
 
-// HandleUpload is a unified entry point for all upload types
+// @id HandleUpload
+// @Summary Upload a new paste
+// @Tags Paste
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "File to upload"
+// @Success 200 {object} services.PasteResponse
+// @Failure 400 {object} fiber.Error
 func (h *PasteHandlers) HandleUpload(c *fiber.Ctx) error {
 	parser := services.NewRequestParser(c)
 	req, err := parser.ParseUploadRequest()
@@ -29,12 +36,15 @@ func (h *PasteHandlers) HandleUpload(c *fiber.Ctx) error {
 		return err
 	}
 
+	// Process upload
 	paste, err := h.services.Paste.ProcessUpload(c, req)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(paste.ToResponse(h.config.Server.BaseURL))
+	// Build response
+	response := services.NewNewPasteResponse(paste, h.config.Server.BaseURL)
+	return c.JSON(response)
 }
 
 // HandleView serves the content with syntax highlighting if applicable

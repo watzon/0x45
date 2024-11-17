@@ -1,20 +1,23 @@
-import AsciiBarChart from './bar.js';
-import AsciiDotChart from './dot.js';
-import AsciiPieChart from './pie.js';
+import BarChart from './bar.js';
+import PieChart from './pie.js';
+import DotChart from './dot.js';
+import ValueChart from './value.js';
 
 class ChartFactory {
     static create(type, data, options) {
-        switch (type.toLowerCase()) {
+        switch (type) {
             case 'bar':
-                return new AsciiBarChart(data, options);
-            case 'dot':
-                return new AsciiDotChart(data, options);
+                return new BarChart(data, options);
             case 'pie':
-                return new AsciiPieChart(data, options);
+                return new PieChart(data, options);
+            case 'dot':
+                return new DotChart(data, options);
+            case 'value':
+                return new ValueChart(data, options);
             default:
                 throw new Error(`Unknown chart type: ${type}`);
         }
     }
 }
 
-export default ChartFactory; 
+export default ChartFactory;
