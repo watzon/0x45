@@ -167,7 +167,7 @@ func (s *AnalyticsService) GetStatsHistory(days int) (*StatsHistory, error) {
 	}
 
 	// Calculate date range
-	endDate := time.Now().AddDate(0, 0, 1)
+	endDate := time.Now()
 	startDate := endDate.AddDate(0, 0, -days)
 
 	// Get paste counts by day

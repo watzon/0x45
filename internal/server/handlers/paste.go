@@ -30,21 +30,7 @@ func NewPasteHandlers(services *services.Services, logger *zap.Logger, config *c
 // @Success 200 {object} services.PasteResponse
 // @Failure 400 {object} fiber.Error
 func (h *PasteHandlers) HandleUpload(c *fiber.Ctx) error {
-	parser := services.NewRequestParser(c)
-	req, err := parser.ParseUploadRequest()
-	if err != nil {
-		return err
-	}
-
-	// Process upload
-	paste, err := h.services.Paste.ProcessUpload(c, req)
-	if err != nil {
-		return err
-	}
-
-	// Build response
-	response := services.NewNewPasteResponse(paste, h.config.Server.BaseURL)
-	return c.JSON(response)
+	return h.services.Paste.UploadPaste(c)
 }
 
 // HandleView serves the content with syntax highlighting if applicable

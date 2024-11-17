@@ -20,20 +20,6 @@ type APIKeyService struct {
 	mailer *mailer.Mailer
 }
 
-type APIKeyRequest struct {
-	Email string `json:"email"`
-	Name  string `json:"name"`
-}
-
-type APIKeyResponse struct {
-	Message string `json:"message"`
-	Key     string `json:"key"`
-}
-
-type VerifyAPIKeyRequest struct {
-	Token string `json:"token"`
-}
-
 func NewAPIKeyService(db *gorm.DB, logger *zap.Logger, config *config.Config) *APIKeyService {
 	m, err := mailer.New(config)
 	if err != nil {
@@ -95,12 +81,11 @@ func (s *APIKeyService) RequestKey(c *fiber.Ctx) error {
 			zap.String("email", req.Email),
 			zap.Error(err),
 		)
-		// Continue despite email error
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to send verification email. Please contact the administrator.")
 	}
 
 	return c.JSON(fiber.Map{
 		"message": "API key created. Please check your email for verification.",
-		"key":     apiKey.Key,
 	})
 }
 

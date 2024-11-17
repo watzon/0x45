@@ -75,8 +75,8 @@
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
             <pre><code># Requires an API key
-curl -d '{"url":"https://example.com"}' {{baseUrl}}/u</code></pre>
-            <button class="action-btn" data-clipboard data-content="curl -d '{\"url\":\"https://example.com\"}' {{baseUrl}}/u">
+curl -F "url=https://example.com" {{baseUrl}}/u</code></pre>
+            <button class="action-btn" data-clipboard data-content='curl -F "url=https://example.com" {{baseUrl}}/u'>
                 <span>Copy</span>
             </button>
         </div>

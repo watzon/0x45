@@ -146,7 +146,7 @@ func TestMultipartPasteUpload(t *testing.T) {
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
 			if tt.expectedStatus == 200 {
-				var paste services.NewPasteResponse
+				var paste services.PasteResponse
 				err = json.NewDecoder(resp.Body).Decode(&paste)
 				require.NoError(t, err)
 				assert.NotEmpty(t, paste.ID)
@@ -251,12 +251,12 @@ func TestJSONPasteUpload(t *testing.T) {
 
 			if tt.expectedStatus == 200 {
 				// Parse body
-				var body services.NewPasteOptions
+				var body services.PasteOptions
 				err = json.Unmarshal([]byte(tt.body), &body)
 				require.NoError(t, err)
 
 				// Parse response
-				var paste services.NewPasteResponse
+				var paste services.PasteResponse
 				err = json.NewDecoder(resp.Body).Decode(&paste)
 				require.NoError(t, err)
 
@@ -270,96 +270,3 @@ func TestJSONPasteUpload(t *testing.T) {
 		})
 	}
 }
-
-func TestRawPasteUpload(t *testing.T) {
-	env := testutils.SetupTestEnv(t)
-	defer env.CleanupFn()
-
-	uploadTestData := []struct {
-		name           string
-		content        string
-		expectedStatus int
-	}{
-		{
-			name:           "Valid text upload",
-			content:        "test content",
-			expectedStatus: 200,
-		},
-		{
-			name:           "Empty content",
-			content:        "",
-			expectedStatus: 400,
-		},
-		{
-			name:           "Large content",
-			content:        strings.Repeat("a", 1024*1024*9), // 9MB
-			expectedStatus: 200,
-		},
-		{
-			name:           "Binary content",
-			content:        string([]byte{0x00, 0x01, 0x02, 0x03}),
-			expectedStatus: 200,
-		},
-		{
-			name:           "Image content",
-			content:        string([]byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}), // PNG header
-			expectedStatus: 200,
-		},
-	}
-
-	for _, tt := range uploadTestData {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create request
-			req := httptest.NewRequest("POST", "/p/", strings.NewReader(tt.content))
-			req.Header.Set("Content-Type", "text/plain")
-
-			// Perform request
-			resp, err := env.App.Test(req)
-			require.NoError(t, err)
-			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
-
-			if tt.expectedStatus == 200 {
-				// Parse response
-				var paste services.NewPasteResponse
-				err = json.NewDecoder(resp.Body).Decode(&paste)
-				require.NoError(t, err)
-
-				assert.NotEmpty(t, paste.ID)
-				assert.NotEmpty(t, paste.URL)
-				assert.NotEmpty(t, paste.RawURL)
-				assert.NotEmpty(t, paste.DownloadURL)
-				assert.NotEmpty(t, paste.DeleteURL)
-			}
-		})
-	}
-}
-
-// func TestViewPaste(t *testing.T) {
-// 	env := testutils.SetupTestEnv(t)
-// 	defer env.CleanupFn()
-
-// 	// Create paste
-// 	body := `{"content": "test content", "filename": "test.txt", "extension": "txt", "private": false}`
-// 	req := httptest.NewRequest("POST", "/p/", strings.NewReader(body))
-// 	req.Header.Set("Content-Type", "application/json")
-
-// 	resp, err := env.App.Test(req)
-// 	require.NoError(t, err)
-
-// 	// Parse response
-// 	var paste services.NewPasteResponse
-// 	err = json.NewDecoder(resp.Body).Decode(&paste)
-// 	require.NoError(t, err)
-
-// 	fmt.Println(paste)
-
-// 	// View paste
-// 	req = httptest.NewRequest("GET", fmt.Sprintf("/p/%s.txt", paste.ID), nil)
-// 	resp, err = env.App.Test(req)
-// 	require.NoError(t, err)
-
-// 	bodytext, _ := io.ReadAll(resp.Body)
-// 	fmt.Println(string(bodytext))
-
-// 	assert.Equal(t, 200, resp.StatusCode)
-// }

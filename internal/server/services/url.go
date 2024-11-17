@@ -33,22 +33,17 @@ func NewURLService(db *gorm.DB, logger *zap.Logger, config *config.Config) *URLS
 
 // CreateShortlink creates a new URL shortlink
 func (s *URLService) CreateShortlink(c *fiber.Ctx) error {
-	var req struct {
-		URL       string `json:"url"`
-		Title     string `json:"title"`
-		ExpiresIn string `json:"expires_in"`
-	}
-
-	if err := c.BodyParser(&req); err != nil {
+	u := new(ShortlinkOptions)
+	if err := c.BodyParser(u); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
 	}
 
 	apiKey := c.Locals("apiKey").(*models.APIKey)
 
-	shortlink, err := s.createShortlink(req.URL, &ShortlinkOptions{
-		Title:     req.Title,
-		ExpiresIn: req.ExpiresIn,
-		APIKey:    apiKey,
+	shortlink, err := s.createShortlink(apiKey, &ShortlinkOptions{
+		URL:       u.URL,
+		Title:     u.Title,
+		ExpiresIn: u.ExpiresIn,
 	})
 	if err != nil {
 		return err
@@ -193,20 +188,20 @@ func (s *URLService) CleanupExpired() (int64, error) {
 
 // Helper functions
 
-func (s *URLService) createShortlink(_url string, opts *ShortlinkOptions) (*models.Shortlink, error) {
+func (s *URLService) createShortlink(apiKey *models.APIKey, opts *ShortlinkOptions) (*models.Shortlink, error) {
 	// Check if the URL is empty
-	if _url == "" {
+	if opts.URL == "" {
 		return nil, fiber.NewError(fiber.StatusBadRequest, "URL cannot be empty")
 	}
 
 	// Validate URL
-	parsedURL, err := url.Parse(_url)
+	parsedURL, err := url.Parse(opts.URL)
 	if err != nil || !parsedURL.IsAbs() || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
 		return nil, fiber.NewError(fiber.StatusBadRequest, "Invalid URL. Must be a valid absolute HTTP(S) URL")
 	}
 
 	if opts.Title == "" {
-		title, err := s.fetchURLTitle(_url)
+		title, err := s.fetchURLTitle(opts.URL)
 		if err == nil {
 			opts.Title = title
 		}
@@ -219,17 +214,14 @@ func (s *URLService) createShortlink(_url string, opts *ShortlinkOptions) (*mode
 	}
 
 	shortlink := &models.Shortlink{
-		TargetURL: _url,
+		TargetURL: opts.URL,
 		Title:     opts.Title,
-		APIKey:    opts.APIKey.Key,
+		APIKey:    apiKey.Key,
 	}
 
-	if opts.ExpiresIn != "" {
-		expiry, err := time.ParseDuration(opts.ExpiresIn)
-		if err == nil {
-			expiryTime := time.Now().Add(expiry)
-			shortlink.ExpiresAt = &expiryTime
-		}
+	if opts.ExpiresIn != nil {
+		expiryTime := time.Now().Add(*opts.ExpiresIn)
+		shortlink.ExpiresAt = &expiryTime
 	}
 
 	if err := s.db.Create(shortlink).Error; err != nil {

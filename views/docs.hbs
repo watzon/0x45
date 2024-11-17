@@ -19,6 +19,18 @@
     <li><a href="#support">Support</a></li>
 </ul>
 
+<section id="getting-started">
+    <h2>Getting Started</h2>
+    
+    <p>All API endpoints accept requests with any of the following content types:</p>
+    <ul>
+        <li><code>application/x-www-form-urlencoded</code> or <code>multipart/form-data</code> (recommended for simplicity)</li>
+        <li><code>application/json</code></li>
+        <li><code>application/xml</code> or <code>text/xml</code></li>
+    </ul>
+    <p>The parameter names remain the same regardless of the content type used. The examples in this documentation use form data for simplicity, as it doesn't require explicitly setting content type headers.</p>
+</section>
+
 <section id="cli-usage">
     <h2>CLI Usage</h2>
     
@@ -228,13 +240,10 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <pre><code>curl -X POST \
-    -H "Content-Type: application/json" \
-    -d '{
-        "name": "Your Name",
-        "email": "your@email.com"
-    }' \
-    {{baseUrl}}/keys/request</code></pre>
+            <code>curl -X POST \
+    -d "name=Your Name" \
+    -d "email=your@email.com" \
+    {{baseUrl}}/keys/request</code>
             <button class="action-btn" data-clipboard><span>Copy</span></button>
         </div>
     </div>
@@ -499,12 +508,9 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <div class="code-block">
             <code>curl -X POST \
     -H "Authorization: Bearer YOUR_API_KEY" \
-    -H "Content-Type: application/json" \
-    -d '{
-        "url": "https://example.com",
-        "title": "Example Website",
-        "expires_in": "7d"
-    }' \
+    -d "url=https://example.com" \
+    -d "title=Example Website" \
+    -d "expires_in=7d" \
     {{baseUrl}}/u</code>
             <button class="action-btn" data-clipboard><span>Copy</span></button>
         </div>

@@ -23,6 +23,7 @@ func NewURLHandlers(services *services.Services, logger *zap.Logger, config *con
 
 // HandleURLShorten creates a new shortened URL
 func (h *URLHandlers) HandleURLShorten(c *fiber.Ctx) error {
+	// debug the incoming json body
 	return h.services.URL.CreateShortlink(c)
 }
 

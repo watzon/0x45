@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -81,52 +80,83 @@ func NewPasteService(db *gorm.DB, logger *zap.Logger, config *config.Config) *Pa
 	}
 }
 
-// ProcessUpload handles the common upload logic for all upload types
-func (s *PasteService) ProcessUpload(c *fiber.Ctx, req *UploadRequest) (*models.Paste, error) {
+// CreatePaste handles the creation of a new paste
+func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
+	p := new(PasteOptions)
+	if err := c.BodyParser(p); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
+	}
+
+	// Get file content
+	var content []byte
+	if file, err := c.FormFile("file"); err == nil {
+		// Read file content
+		f, err := file.Open()
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Failed to open uploaded file")
+		}
+		defer f.Close()
+
+		content, err = io.ReadAll(f)
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Failed to read file content")
+		}
+	} else if p.URL != "" {
+		// Read content from the given URL
+		content, err = utils.GetContentFromURL(p.URL)
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "Failed to fetch URL")
+		}
+	} else if p.Content != "" {
+		// Use content from the request body
+		content = []byte(p.Content)
+	} else {
+		return fiber.NewError(fiber.StatusBadRequest, "No file provided")
+	}
+
+	// Check for empty content
+	if len(content) == 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "Empty file")
+	}
+
 	var apiKey *models.APIKey
 	if key := c.Locals("apiKey"); key != nil {
 		apiKey = key.(*models.APIKey)
 	}
 
 	// Check if the user is attempting to do something they're not allowed to do
-	if req.Private && apiKey == nil {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, "Private pastes can only be created with an API key")
+	if p.Private && apiKey == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Private pastes can only be created with an API key")
 	}
 
 	// Calculate expiry
 	expiryTime, err := s.calculateExpiry(ExpiryOptions{
-		Size:            int64(len(req.Content)),
-		HasAPIKey:       apiKey != nil,
-		RequestedExpiry: req.ExpiresIn,
+		Size:      int64(len(p.Content)),
+		HasAPIKey: apiKey != nil,
+		ExpiresAt: p.ExpiresAt,
+		ExpiresIn: p.ExpiresIn,
 	})
 	if err != nil {
-		return nil, err
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to calculate expiry")
 	}
 
-	var paste *models.Paste
-	if req.URL != "" {
-		paste, err = s.createPasteFromURL(c, req.URL, &NewPasteOptions{
-			Extension: req.Extension,
-			ExpiresAt: expiryTime,
-			Private:   req.Private,
-			Filename:  req.Filename,
-			APIKey:    apiKey,
-		})
-	} else {
-		paste, err = s.createPasteFromRaw(c, req.Content, &NewPasteOptions{
-			Extension: req.Extension,
-			ExpiresAt: expiryTime,
-			Private:   req.Private,
-			Filename:  req.Filename,
-			APIKey:    apiKey,
-		})
-	}
+	// Create the paste
+	paste, err := s.createPaste(bytes.NewReader(content), int64(len(content)), p)
 
-	if err != nil {
-		return nil, err
-	}
+	baseURL := s.config.Server.BaseURL
 
-	return paste, nil
+	return c.JSON(&PasteResponse{
+		ID:          paste.ID,
+		Filename:    paste.Filename,
+		URL:         fmt.Sprintf("%s/p/%s", baseURL, paste.ID),
+		RawURL:      fmt.Sprintf("%s/p/%s/raw", baseURL, paste.ID),
+		DownloadURL: fmt.Sprintf("%s/p/%s/download", baseURL, paste.ID),
+		DeleteURL:   fmt.Sprintf("%s/p/%s/%s", baseURL, paste.ID, paste.DeleteKey),
+		Private:     paste.Private,
+		MimeType:    paste.MimeType,
+		Size:        paste.Size,
+		ExpiresAt:   expiryTime,
+	})
 }
 
 // GetPaste retrieves a paste by ID with expiry checking
@@ -266,18 +296,16 @@ func (s *PasteService) UpdateExpiration(c *fiber.Ctx, id string) error {
 		return err
 	}
 
-	var req struct {
-		ExpiresIn string `json:"expires_in"`
-	}
-
+	req := new(UpdatePasteExpirationRequest)
 	if err := c.BodyParser(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
 	}
 
 	expiryTime, err := s.calculateExpiry(ExpiryOptions{
-		Size:            paste.Size,
-		HasAPIKey:       paste.APIKey != "",
-		RequestedExpiry: req.ExpiresIn,
+		Size:      paste.Size,
+		HasAPIKey: paste.APIKey != "",
+		ExpiresAt: req.ExpiresAt,
+		ExpiresIn: req.ExpiresIn,
 	})
 	if err != nil {
 		return err
@@ -289,7 +317,7 @@ func (s *PasteService) UpdateExpiration(c *fiber.Ctx, id string) error {
 	}
 
 	// Build response
-	response := NewNewPasteResponse(paste, s.config.Server.BaseURL)
+	response := NewPasteResponse(paste, s.config.Server.BaseURL)
 	return c.JSON(response)
 }
 
@@ -323,72 +351,7 @@ func (s *PasteService) CleanupExpired() (int64, error) {
 
 // Helper functions
 
-func (s *PasteService) createPasteFromRaw(c *fiber.Ctx, content []byte, opts *NewPasteOptions) (*models.Paste, error) {
-	// Add API key from context if available
-	if apiKey, ok := c.Locals("apiKey").(*models.APIKey); ok {
-		opts.APIKey = apiKey
-	}
-
-	s.logger.Debug("received raw content",
-		zap.Int("content_length", len(content)),
-	)
-
-	// Detect mime type
-	mime := mimetype.Detect(content)
-	mimeType := mime.String()
-
-	// If mime detection failed, fallback to Content-Type header
-	if mimeType == "" {
-		mimeType = c.Get("Content-Type")
-	}
-
-	s.logger.Debug("creating paste",
-		zap.String("mime_type", mimeType),
-		zap.Int("content_size", len(content)),
-	)
-
-	return s.createPaste(bytes.NewReader(content), int64(len(content)), mimeType, opts)
-}
-
-func (s *PasteService) createPasteFromURL(c *fiber.Ctx, url string, opts *NewPasteOptions) (*models.Paste, error) {
-	// Add API key from context if available
-	if apiKey, ok := c.Locals("apiKey").(*models.APIKey); ok {
-		opts.APIKey = apiKey
-	}
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "Failed to fetch URL")
-	}
-	defer resp.Body.Close()
-
-	// Read all content first to determine size and mime type
-	content, err := io.ReadAll(resp.Body)
-	if err != nil {
-		s.logger.Error("failed to read URL content",
-			zap.String("url", url),
-			zap.Error(err),
-		)
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to read URL content")
-	}
-
-	// Detect mime type
-	mime := mimetype.Detect(content)
-	mimeType := mime.String()
-	if mimeType == "" {
-		mimeType = resp.Header.Get("Content-Type")
-	}
-
-	s.logger.Debug("processing URL upload",
-		zap.String("url", url),
-		zap.Int("content_size", len(content)),
-		zap.String("mime_type", mimeType),
-	)
-
-	return s.createPaste(bytes.NewReader(content), int64(len(content)), mimeType, opts)
-}
-
-func (s *PasteService) createPaste(content io.Reader, size int64, contentType string, opts *NewPasteOptions) (*models.Paste, error) {
+func (s *PasteService) createPaste(content io.Reader, size int64, opts *PasteOptions) (*models.Paste, error) {
 	// Read content for MIME type detection
 	contentBytes, err := io.ReadAll(content)
 	if err != nil {
@@ -396,10 +359,8 @@ func (s *PasteService) createPaste(content io.Reader, size int64, contentType st
 	}
 
 	// Detect MIME type if not provided
-	if contentType == "" {
-		mime := mimetype.Detect(contentBytes)
-		contentType = mime.String()
-	}
+	mime := mimetype.Detect(contentBytes)
+	contentType := mime.String()
 
 	// Create paste record
 	paste := &models.Paste{
@@ -603,41 +564,31 @@ func formatSize(size int64) string {
 }
 
 func (s *PasteService) calculateExpiry(opts ExpiryOptions) (*time.Time, error) {
-	// If explicit expiry is requested, validate it
-	if opts.RequestedExpiry != "" {
-		if opts.RequestedExpiry == "never" {
-			// Only API keys can set permanent pastes
-			if !opts.HasAPIKey {
-				return nil, fiber.NewError(fiber.StatusBadRequest, "Permanent pastes require an API key")
-			}
-			return nil, nil
-		}
+	// Calculate maximum allowed retention based on file size
+	maxRetention := s.calculateMaxRetention(opts.Size, opts.HasAPIKey)
+	maxDuration := time.Duration(maxRetention*24) * time.Hour
 
-		// Parse and validate the requested duration
-		duration, err := time.ParseDuration(opts.RequestedExpiry)
-		if err != nil {
-			return nil, fiber.NewError(fiber.StatusBadRequest, "Invalid expiration format")
-		}
-
-		// Calculate maximum allowed retention based on file size
-		maxRetention := s.calculateMaxRetention(opts.Size, opts.HasAPIKey)
-
-		// Convert maxRetention (days) to duration
-		maxDuration := time.Duration(int(maxRetention) * 24 * int(time.Hour))
-
-		// Ensure requested duration doesn't exceed maximum
+	// Handle explicit expiry requests
+	if opts.ExpiresAt != nil {
+		duration := time.Until(*opts.ExpiresAt)
 		if duration > maxDuration {
 			return nil, fiber.NewError(fiber.StatusBadRequest,
 				fmt.Sprintf("Maximum allowed expiry for this file size is %.1f days", maxRetention))
 		}
+		return opts.ExpiresAt, nil
+	}
 
-		expiryTime := time.Now().Add(duration)
+	if opts.ExpiresIn != nil {
+		if *opts.ExpiresIn > maxDuration {
+			return nil, fiber.NewError(fiber.StatusBadRequest,
+				fmt.Sprintf("Maximum allowed expiry for this file size is %.1f days", maxRetention))
+		}
+		expiryTime := time.Now().Add(*opts.ExpiresIn)
 		return &expiryTime, nil
 	}
 
-	// If no explicit expiry is set, calculate based on retention rules
-	maxRetention := s.calculateMaxRetention(opts.Size, opts.HasAPIKey)
-	expiryTime := time.Now().Add(time.Duration(maxRetention*24) * time.Hour)
+	// If no explicit expiry is set, use maximum retention
+	expiryTime := time.Now().Add(maxDuration)
 	return &expiryTime, nil
 }
 
