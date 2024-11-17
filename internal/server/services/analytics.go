@@ -167,7 +167,7 @@ func (s *AnalyticsService) GetStatsHistory(days int) (*StatsHistory, error) {
 	}
 
 	// Calculate date range
-	endDate := time.Now()
+	endDate := time.Now().AddDate(0, 0, 1)
 	startDate := endDate.AddDate(0, 0, -days)
 
 	// Get paste counts by day
@@ -232,21 +232,24 @@ func (s *AnalyticsService) GetStatsHistory(days int) (*StatsHistory, error) {
 
 		// Update with actual values if available
 		for _, pc := range pasteCounts {
-			if pc.DateStr == dateStr {
+			pcTime, err := time.Parse(time.RFC3339, pc.DateStr)
+			if err == nil && pcTime.Format("2006-01-02") == dateStr {
 				history.Pastes[i].Value = pc.Count
 				break
 			}
 		}
 
 		for _, uc := range urlCounts {
-			if uc.DateStr == dateStr {
+			ucTime, err := time.Parse(time.RFC3339, uc.DateStr)
+			if err == nil && ucTime.Format("2006-01-02") == dateStr {
 				history.URLs[i].Value = uc.Count
 				break
 			}
 		}
 
 		for _, sc := range storageCounts {
-			if sc.DateStr == dateStr {
+			scTime, err := time.Parse(time.RFC3339, sc.DateStr)
+			if err == nil && scTime.Format("2006-01-02") == dateStr {
 				history.Storage[i].Value = sc.Size
 				if sc.Count > 0 {
 					history.AvgSize[i].Value = float64(sc.Size) / float64(sc.Count)
@@ -256,7 +259,8 @@ func (s *AnalyticsService) GetStatsHistory(days int) (*StatsHistory, error) {
 		}
 
 		for _, ac := range apiKeyCounts {
-			if ac.DateStr == dateStr {
+			acTime, err := time.Parse(time.RFC3339, ac.DateStr)
+			if err == nil && acTime.Format("2006-01-02") == dateStr {
 				history.APIKeys[i].Value = ac.Count
 				break
 			}

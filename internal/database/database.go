@@ -19,11 +19,11 @@ func New(config *config.Config, gormConfig *gorm.Config) (*Database, error) {
 	switch config.Database.Driver {
 	case "postgres":
 		dsn := fmt.Sprintf(
-			"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+			"host=%s user=%s password=%s port=%d dbname=%s sslmode=%s",
 			config.Database.Host,
-			config.Database.Port,
 			config.Database.User,
 			config.Database.Password,
+			config.Database.Port,
 			config.Database.Name,
 			config.Database.SSLMode,
 		)

@@ -1,17 +1,12 @@
 # Database configuration
 database:
   # Database driver: "sqlite" or "postgres"
-  driver: sqlite
-  
-  # SQLite configuration
-  name: paste69.db  # Database file path for SQLite
-  
-  # # PostgreSQL configuration (ignored for SQLite)
-  # host: localhost
-  # port: 5432
-  # user: paste69
-  # password: paste69
-  # sslmode: disable  # Options: disable, require, verify-ca, verify-full
+  driver: postgres
+  host: localhost
+  port: 5432
+  user: postgres
+  name: paste69
+  sslmode: disable  # Options: disable, require, verify-ca, verify-full
 
 # Storage configuration
 storage:
