@@ -14,6 +14,9 @@ WORKDIR /usr/app
 
 COPY --from=build /build/src/app /usr/app
 
+# Copy ca-certificates for TLS (specifically STARTTLS for SMTP)
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
 COPY ./views /usr/app/views
 
 COPY ./public /usr/app/public
