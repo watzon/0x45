@@ -92,29 +92,6 @@ func DefaultImageConfig() ImageConfig {
 	}
 }
 
-// wordWrap wraps text at the specified width
-func wordWrap(text string, dc *gg.Context, maxWidth float64) []string {
-	var lines []string
-	words := strings.Fields(text)
-	if len(words) == 0 {
-		return []string{text}
-	}
-
-	currentLine := words[0]
-
-	for _, word := range words[1:] {
-		width, _ := dc.MeasureString(currentLine + " " + word)
-		if width <= maxWidth {
-			currentLine += " " + word
-		} else {
-			lines = append(lines, currentLine)
-			currentLine = word
-		}
-	}
-	lines = append(lines, currentLine)
-	return lines
-}
-
 type codeImageContext struct {
 	dc           *gg.Context
 	style        *chroma.Style

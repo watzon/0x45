@@ -1,10 +1,11 @@
 package services
 
 import (
+	"time"
+
 	"github.com/watzon/0x45/internal/config"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"time"
 )
 
 // Services holds all service instances

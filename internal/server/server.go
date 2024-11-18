@@ -118,14 +118,10 @@ func (s *Server) SetupRoutes() {
 	keys.Post("/request", s.handlers.APIKey.HandleRequestAPIKey)
 	keys.Get("/verify", s.handlers.APIKey.HandleVerifyAPIKey)
 
-	// Paste routes
-	pastes := s.app.Group("/p")
-	pastes.Post("/", s.middleware.Auth.Auth(false), s.handlers.Paste.HandleUpload)
-	pastes.Get("/list", s.middleware.Auth.Auth(true), s.handlers.Paste.HandleListPastes)
-	pastes.Delete("/:id", s.middleware.Auth.Auth(false), s.handlers.Paste.HandleDeletePaste)
-	pastes.Put("/:id/expiry", s.middleware.Auth.Auth(true), s.handlers.Paste.HandleUpdateExpiration)
+	// URL redirect route - must be before the group to avoid auth middleware
+	s.app.Get("/u/:id", s.handlers.URL.HandleRedirect)
 
-	// URL routes
+	// URL management routes
 	urls := s.app.Group("/u")
 	urls.Use(s.middleware.Auth.Auth(true))
 	urls.Post("/", s.handlers.URL.HandleURLShorten)
@@ -134,8 +130,14 @@ func (s *Server) SetupRoutes() {
 	urls.Delete("/:id", s.handlers.URL.HandleDeleteURL)
 	urls.Put("/:id/expiry", s.handlers.URL.HandleUpdateURLExpiration)
 
-	// Public paste routes
-	// Handle paste routes with extensions
+	// Paste routes - authenticated routes first
+	pastes := s.app.Group("/p")
+	pastes.Post("/", s.middleware.Auth.Auth(false), s.handlers.Paste.HandleUpload)
+	pastes.Get("/list", s.middleware.Auth.Auth(true), s.handlers.Paste.HandleListPastes)
+	pastes.Delete("/:id", s.middleware.Auth.Auth(false), s.handlers.Paste.HandleDeletePaste)
+	pastes.Put("/:id/expiry", s.middleware.Auth.Auth(true), s.handlers.Paste.HandleUpdateExpiration)
+
+	// Public paste routes - extension routes first (more specific)
 	s.app.Get("/p/:id.:ext", func(c *fiber.Ctx) error {
 		c.Locals("extension", c.Params("ext"))
 		return s.handlers.Paste.HandleView(c)
@@ -153,14 +155,11 @@ func (s *Server) SetupRoutes() {
 		return s.handlers.Paste.HandleGetPasteImage(c)
 	})
 
-	// Handle paste routes without extensions
+	// Non-extension paste routes last (more general)
 	s.app.Get("/p/:id/raw", s.handlers.Paste.HandleRawView)
 	s.app.Get("/p/:id/download", s.handlers.Paste.HandleDownload)
-	s.app.Delete("/p/:id/:key", s.handlers.Paste.HandleDeleteWithKey)
 	s.app.Get("/p/:id/image", s.handlers.Paste.HandleGetPasteImage)
-
-	// Handle URL redirects
-	s.app.Get("/u/:id", s.handlers.URL.HandleRedirect)
+	s.app.Delete("/p/:id/:key", s.handlers.Paste.HandleDeleteWithKey)
 }
 
 // Error handler

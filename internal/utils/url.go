@@ -29,7 +29,7 @@ func GetFilenameFromURL(urlStr string) string {
 	if err != nil {
 		return ""
 	}
-	
+
 	// Get the last segment of the path
 	segments := strings.Split(u.Path, "/")
 	for i := len(segments) - 1; i >= 0; i-- {
@@ -37,6 +37,6 @@ func GetFilenameFromURL(urlStr string) string {
 			return segments[i]
 		}
 	}
-	
+
 	return ""
 }

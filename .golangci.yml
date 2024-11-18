@@ -1,0 +1,38 @@
+linters:
+  enable:
+    - gofmt
+    - govet
+    - gosimple
+    - staticcheck
+    - unused
+    - misspell
+    - ineffassign
+    - goimports
+
+run:
+  # Timeout for analysis
+  timeout: 5m
+
+# Output configuration
+output:
+  # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate|junit-xml|github-actions
+  formats:
+    - format: colored-line-number
+  
+  # Print lines of code with issue
+  print-issued-lines: true
+
+  # Print linter name in the end of issue text
+  print-linter-name: true
+
+issues:
+  exclude-dirs:
+    - uploads
+    - tmp
+  exclude-files:
+    - ".*\\.pb\\.go$"
+
+# Linters settings
+linters-settings:
+  goimports:
+    local-prefixes: github.com/your-username/0x45
