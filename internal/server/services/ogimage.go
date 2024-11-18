@@ -199,12 +199,13 @@ func getTokenColor(token chroma.Token, style *chroma.Style) color.Color {
 
 	if !entry.IsZero() && entry.Colour != 0 {
 		hexColor := entry.Colour.String()
-		if strings.HasPrefix(hexColor, "#") {
-			hexColor = hexColor[1:]
-		}
+		hexColor = strings.TrimPrefix(hexColor, "#")
 		var r, g, b uint8
 		if len(hexColor) == 6 {
-			fmt.Sscanf(hexColor, "%02x%02x%02x", &r, &g, &b)
+			_, err := fmt.Sscanf(hexColor, "%02x%02x%02x", &r, &g, &b)
+			if err != nil {
+				return color.White
+			}
 			return color.RGBA{r, g, b, 255}
 		}
 	}

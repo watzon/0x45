@@ -18,6 +18,9 @@ A modern, Go-based pastebin service inspired by 0x0.st.
 - Simple and clean API
 - Docker support
 - Configurable through environment variables
+- Rate limiting
+- Analytics
+- OG image support for text pastes
 
 ## Installation
 
