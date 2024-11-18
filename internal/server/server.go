@@ -84,6 +84,7 @@ func New(config *config.Config, logger *zap.Logger) *Server {
 		Prefork:      config.Server.Prefork,
 		ServerHeader: config.Server.ServerHeader,
 		AppName:      config.Server.AppName,
+		ProxyHeader:  fiber.HeaderXForwardedFor,
 	})
 
 	// Add all middleware in the correct order
