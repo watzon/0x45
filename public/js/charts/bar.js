@@ -42,30 +42,37 @@ class AsciiBarChart extends Chart {
         this.normalizedValues = this.values.map(v => this.normalizer.normalize(v));
 
         // Calculate ranges and round max to match scale
-        this.rawMin = Math.min(...this.rawValues);
-        this.rawMax = Math.max(...this.rawValues);
+        this.rawMin = this.rawValues.length ? Math.min(...this.rawValues) : 0;
+        this.rawMax = this.rawValues.length ? Math.max(...this.rawValues) : 0;
 
         // First normalize the max value to get the proper unit scale
-        const normalizedMax = Number(this.normalizer.normalize(this.rawMax, 'value'));
+        const normalizedMax = Number(this.normalizer.normalize(this.rawMax, 'value')) || 0;
         
         // For unitless values (like counts), round to nice number
         if (!this.options.normalizer?.inputUnit) {
-            const magnitude = Math.pow(10, Math.floor(Math.log10(normalizedMax)));
-            this.scaledMax = Math.ceil(normalizedMax / magnitude) * magnitude;
+            if (normalizedMax === 0 || this.rawValues.every(v => v === 0)) {
+                this.scaledMax = 0; // All values are zero
+            } else {
+                const magnitude = Math.pow(10, Math.floor(Math.log10(normalizedMax)));
+                this.scaledMax = Math.ceil(normalizedMax / magnitude) * magnitude;
+            }
         } else {
             // For values with units (like bytes), just round up
-            this.scaledMax = Math.ceil(normalizedMax);
+            this.scaledMax = Math.ceil(normalizedMax) || 0; // Use 0 when all values are zero
         }
         
         // Calculate unit based on max scale
-        this.scaledUnit = this.scaledMax / this.options.height;
+        this.scaledUnit = this.scaledMax === 0 ? 0 : this.scaledMax / this.options.height;
 
         // Format numbers for display
         this.formattedNumbers = this.values.map(v => {
             const normalizedValue = this.normalizer.normalize(v, 'full');
             return normalizedValue.toString().padStart(3);
         });
-        this.maxNumberWidth = Math.max(...this.formattedNumbers.map(n => n.length));
+        this.maxNumberWidth = Math.max(...(this.formattedNumbers.map(n => n.length) || [3]));
+
+        // Render chart
+        this.render();
     }
 
     processDataSampling() {
@@ -152,10 +159,14 @@ class AsciiBarChart extends Chart {
         for (let i = 0; i < this.values.length; i++) {
             const rawValue = this.rawValues[i];
             const normalizedValue = Number(this.normalizer.normalize(rawValue, 'value'));
-            const filled = Math.round((normalizedValue / this.scaledMax) * this.options.height);
-            // Check against inverted row to fill from bottom up
-            const char = filled > (this.options.height - row - 1) ? this.options.barChar : this.options.emptyChar;
-            const intensity = normalizedValue / this.scaledMax;
+            const intensity = this.getIntensity(rawValue);
+            let char = this.options.emptyChar;
+            
+            if (this.scaledMax > 0) {
+                const filled = Math.round((normalizedValue / this.scaledMax) * this.options.height);
+                // Check against inverted row to fill from bottom up
+                char = filled > (this.options.height - row - 1) ? this.options.barChar : this.options.emptyChar;
+            }
             
             // Render each character individually
             for (let x = 0; x < this.options.barWidth; x++) {
@@ -171,23 +182,27 @@ class AsciiBarChart extends Chart {
         if (this.options.showScale) {
             // Calculate scale value for current row (from bottom to top)
             // Invert row to make scale go from max at top to 0 at bottom
-            const scaleValue = (this.options.height - row - 1) * this.scaledUnit;
+            let valueToFormat = 0;
             
-            let valueToFormat;
-            if (this.options.normalizer?.inputUnit) {
-                // For values with units (like bytes), convert back
-                const scaleBytes = Math.round(scaleValue * 1024 * 1024);
-                valueToFormat = row === 0 ? this.rawMax : scaleBytes;
-            } else {
-                // For unitless values, use scale value directly
-                valueToFormat = row === 0 ? this.rawMax : scaleValue;
+            if (this.scaledMax > 0) {
+                const scaleValue = (this.options.height - row - 1) * this.scaledUnit;
+                if (this.options.normalizer?.inputUnit) {
+                    // For values with units (like bytes), convert back
+                    const scaleBytes = Math.round(scaleValue * 1024 * 1024);
+                    valueToFormat = row === 0 ? this.rawMax : scaleBytes;
+                } else {
+                    // For unitless values, use scale value directly
+                    valueToFormat = row === 0 ? this.rawMax : scaleValue;
+                }
             }
             
             const formattedScale = this.normalizer.normalize(valueToFormat, 'full');
             
             // Calculate padding based on the longest scale value
             const maxScaleWidth = this.getMaxScaleWidth();
-            const paddedScale = formattedScale.padStart(maxScaleWidth);
+            const paddedScale = this.options.scalePosition === 'left' 
+                ? formattedScale.padStart(maxScaleWidth)
+                : formattedScale;
 
             // Return row with scale on the specified side
             return this.options.scalePosition === 'left'
@@ -198,6 +213,10 @@ class AsciiBarChart extends Chart {
     }
 
     getMaxScaleWidth() {
+        if (this.rawValues.length === 0) {
+            return 1; // Width of "0"
+        }
+
         const scaleValues = [];
         // Include the actual max value for proper width calculation
         scaleValues.push(this.normalizer.normalize(this.rawMax, 'full').length);
@@ -218,9 +237,30 @@ class AsciiBarChart extends Chart {
     }
 
     getIntensity(value) {
-        if (this.rawMax === 0) return value > 0 ? 1 : 0;
+        if (this.rawMax === 0) return 0;
+        if (this.scaledMax === 0) return 0;
         const normalizedValue = Number(this.normalizer.normalize(value, 'value'));
         return normalizedValue / this.scaledMax;
+    }
+
+    renderScale() {
+        const rows = [];
+        const scaleValues = Array.from({ length: this.options.height + 1 }, (_, i) => {
+            const value = this.scaledMax - (i * this.scaledUnit);
+            return this.normalizer.normalize(value, 'full');
+        });
+        
+        const maxScaleWidth = Math.max(...scaleValues.map(v => v.toString().length));
+        
+        for (let i = 0; i < this.options.height; i++) {
+            const value = scaleValues[i];
+            const padding = this.options.scalePosition === 'left' 
+                ? value.toString().padStart(maxScaleWidth) 
+                : value.toString().padEnd(maxScaleWidth);
+            rows.push(`${padding} `);
+        }
+        
+        return rows;
     }
 
     renderDates() {
