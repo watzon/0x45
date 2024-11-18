@@ -28,10 +28,13 @@ require (
 	gorm.io/gorm v1.25.12
 )
 
-require github.com/watzon/hdur v1.0.0
+require (
+	github.com/fogleman/gg v1.3.0
+	github.com/mileusna/useragent v1.3.5
+	github.com/watzon/hdur v1.0.0
+)
 
 require (
-	github.com/fogleman/gg v1.3.0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	golang.org/x/image v0.22.0 // indirect
 )

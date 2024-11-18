@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	"github.com/mileusna/useragent"
+	"github.com/watzon/0x45/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -29,10 +31,18 @@ type AnalyticsEvent struct {
 	ResourceType string `gorm:"type:varchar(32);index;not null"` // "shortlink" or "paste"
 
 	// Request information
-	UserAgent   string `gorm:"type:text"`
-	IPAddress   string `gorm:"type:varchar(45)"` // IPv6 addresses can be up to 45 chars
-	RefererURL  string `gorm:"type:text"`
-	CountryCode string `gorm:"type:varchar(2)"`
+	UserAgent  string `gorm:"type:text"`
+	IPAddress  string `gorm:"type:varchar(45)"` // IPv6 addresses can be up to 45 chars
+	RefererURL string `gorm:"type:text"`
+	Browser    string `gorm:"type:varchar(32)"`
+	OS         string `gorm:"type:varchar(32)"`
+	Device     string `gorm:"type:varchar(32)"`
+
+	// Location information
+	City    string `gorm:"type:varchar(255)"`
+	Region  string `gorm:"type:varchar(255)"`
+	ZipCode string `gorm:"type:varchar(10)"`
+	Country string `gorm:"type:varchar(2)"`
 
 	// Additional data
 	Metadata JSON `gorm:"type:jsonb"`
@@ -40,6 +50,9 @@ type AnalyticsEvent struct {
 
 // CreateEvent is a helper function to create a new analytics event
 func CreateEvent(db *gorm.DB, eventType EventType, resourceType string, resourceID string, userAgent string, ipAddress string, refererURL string) error {
+	ua := useragent.Parse(userAgent)
+	locationInfo := utils.GetLocationInfo(ipAddress)
+
 	event := &AnalyticsEvent{
 		EventType:    eventType,
 		ResourceType: resourceType,
@@ -47,6 +60,13 @@ func CreateEvent(db *gorm.DB, eventType EventType, resourceType string, resource
 		UserAgent:    userAgent,
 		IPAddress:    ipAddress,
 		RefererURL:   refererURL,
+		Browser:      ua.Name,
+		OS:           ua.OS,
+		Device:       ua.Device,
+		City:         locationInfo.City,
+		Region:       locationInfo.Region,
+		ZipCode:      locationInfo.ZipCode,
+		Country:      locationInfo.Country,
 	}
 
 	return db.Create(event).Error
