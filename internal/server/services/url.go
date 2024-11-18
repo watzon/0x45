@@ -220,7 +220,7 @@ func (s *URLService) createShortlink(apiKey *models.APIKey, opts *ShortlinkOptio
 	}
 
 	if opts.ExpiresIn != nil {
-		expiryTime := time.Now().Add(*opts.ExpiresIn)
+		expiryTime := opts.ExpiresIn.Add(time.Now())
 		shortlink.ExpiresAt = &expiryTime
 	}
 

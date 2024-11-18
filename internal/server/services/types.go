@@ -2,9 +2,11 @@ package services
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/watzon/0x45/internal/models"
+	"github.com/watzon/hdur"
 )
 
 // APIKeyRequest represents the request structure for creating an API key
@@ -26,7 +28,7 @@ type PasteOptions struct {
 	Filename  string         `json:"filename" xml:"filename" form:"filename"`       // Original filename
 	APIKey    *models.APIKey `json:"api_key" xml:"api_key" form:"api_key"`          // Associated API key for authentication
 	URL       string         `json:"url" xml:"url" form:"url"`                      // URL to be pasted
-	ExpiresIn *time.Duration `json:"expires_in" xml:"expires_in" form:"expires_in"` // Duration string for paste expiry (e.g. "24h")
+	ExpiresIn *hdur.Duration `json:"expires_in" xml:"expires_in" form:"expires_in"` // Duration string for paste expiry (e.g. "24h")
 	ExpiresAt *time.Time     `json:"expires_at" xml:"expires_at" form:"expires_at"` // Expiration time for the paste
 }
 
@@ -46,7 +48,7 @@ type PasteResponse struct {
 
 // UpdatePasteExpirationRequest represents the request structure for updating a paste's expiration time
 type UpdatePasteExpirationRequest struct {
-	ExpiresIn *time.Duration `json:"expires_in" xml:"expires_in" form:"expires_in"` // Duration string for paste expiry (e.g. "24h")
+	ExpiresIn *hdur.Duration `json:"expires_in" xml:"expires_in" form:"expires_in"` // Duration string for paste expiry (e.g. "24h")
 	ExpiresAt *time.Time     `json:"expires_at" xml:"expires_at" form:"expires_at"` // Expiration time for the paste
 }
 
@@ -97,7 +99,7 @@ func NewListPastesResponse(pastes []models.Paste, baseURL string) ListPastesResp
 type ShortlinkOptions struct {
 	URL       string         `json:"url" xml:"url" form:"url"`                      // URL to be shortened
 	Title     string         `json:"title" xml:"title" form:"title"`                // Display title for the shortlink
-	ExpiresIn *time.Duration `json:"expires_in" xml:"expires_in" form:"expires_in"` // Duration string for shortlink expiry (e.g. "24h")
+	ExpiresIn *hdur.Duration `json:"expires_in" xml:"expires_in" form:"expires_in"` // Duration string for shortlink expiry (e.g. "24h")
 }
 
 // ShortlinkResponse represents the response structure for creating a new shortlink
@@ -159,5 +161,13 @@ type ExpiryOptions struct {
 	Size      int64
 	HasAPIKey bool
 	ExpiresAt *time.Time
-	ExpiresIn *time.Duration
+	ExpiresIn *hdur.Duration
+}
+
+func HdurDurationConverter(value string) reflect.Value {
+	fmt.Println(value)
+	if v, err := hdur.ParseDuration(value); err == nil {
+		return reflect.ValueOf(v)
+	}
+	return reflect.Value{}
 }

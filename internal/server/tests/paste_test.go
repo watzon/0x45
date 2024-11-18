@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -121,10 +122,7 @@ func TestMultipartPasteUpload(t *testing.T) {
 			err := writer.WriteField("private", strconv.FormatBool(tt.private))
 			require.NoError(t, err)
 
-			part, err := writer.CreateFormFile("file", "test.txt")
-			require.NoError(t, err)
-
-			_, err = io.Copy(part, strings.NewReader(tt.content))
+			err = writer.WriteField("content", tt.content)
 			require.NoError(t, err)
 			writer.Close()
 
@@ -143,6 +141,14 @@ func TestMultipartPasteUpload(t *testing.T) {
 			// Perform request
 			resp, err := env.App.Test(req)
 			require.NoError(t, err)
+
+			// If we got an unexpected status code, let's log the response body
+			if resp.StatusCode != tt.expectedStatus {
+				body, _ := io.ReadAll(resp.Body)
+				t.Logf("Response body: %s", string(body))
+				resp.Body = io.NopCloser(bytes.NewBuffer(body)) // Reset the body for later use
+			}
+
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
 			if tt.expectedStatus == 200 {
@@ -247,6 +253,14 @@ func TestJSONPasteUpload(t *testing.T) {
 			// Perform request
 			resp, err := env.App.Test(req)
 			require.NoError(t, err)
+
+			// If we got an unexpected status code, let's log the response body
+			if resp.StatusCode != tt.expectedStatus {
+				body, _ := io.ReadAll(resp.Body)
+				t.Logf("Response body: %s", string(body))
+				resp.Body = io.NopCloser(bytes.NewBuffer(body)) // Reset the body for later use
+			}
+
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
 			if tt.expectedStatus == 200 {
@@ -266,6 +280,96 @@ func TestJSONPasteUpload(t *testing.T) {
 				assert.NotEmpty(t, paste.DownloadURL)
 				assert.NotEmpty(t, paste.DeleteURL)
 				assert.Equal(t, body.Private, paste.Private)
+			}
+		})
+	}
+}
+
+func TestPasteWithExpiresIn(t *testing.T) {
+	env := testutils.SetupTestEnv(t)
+	defer env.CleanupFn()
+
+	uploadTestData := []struct {
+		name           string
+		content        string
+		expiresIn      string
+		expectedDelta  time.Duration
+		private        bool
+		expectedStatus int
+	}{
+		{
+			name:           "with valid expires in",
+			content:        "test content",
+			expiresIn:      "1h",
+			expectedDelta:  time.Hour,
+			private:        false,
+			expectedStatus: 200,
+		},
+		{
+			name:           "with valid expires in (3 days)",
+			content:        "test content",
+			expiresIn:      "72h",
+			expectedDelta:  72 * time.Hour,
+			private:        false,
+			expectedStatus: 200,
+		},
+		{
+			name:           "with invalid expires in",
+			content:        "test content",
+			expiresIn:      "invalid",
+			private:        false,
+			expectedStatus: 400,
+		},
+	}
+
+	for _, tt := range uploadTestData {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create multipart form
+			body := &bytes.Buffer{}
+			writer := multipart.NewWriter(body)
+
+			err := writer.WriteField("private", strconv.FormatBool(tt.private))
+			require.NoError(t, err)
+
+			err = writer.WriteField("expires_in", tt.expiresIn)
+			require.NoError(t, err)
+
+			err = writer.WriteField("content", tt.content)
+			require.NoError(t, err)
+			writer.Close()
+
+			// Create request
+			req := httptest.NewRequest("POST", "/p/", body)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+
+			// Record the time before making the request
+			beforeRequest := time.Now()
+
+			// Perform request
+			resp, err := env.App.Test(req)
+			require.NoError(t, err)
+
+			// If we got an unexpected status code, let's log the response body
+			if resp.StatusCode != tt.expectedStatus {
+				body, _ := io.ReadAll(resp.Body)
+				t.Logf("Response body: %s", string(body))
+				resp.Body = io.NopCloser(bytes.NewBuffer(body)) // Reset the body for later use
+			}
+
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+
+			if tt.expectedStatus == 200 {
+				var paste services.PasteResponse
+				err = json.NewDecoder(resp.Body).Decode(&paste)
+				require.NoError(t, err)
+
+				require.NotNil(t, paste.ExpiresAt, "ExpiresAt should not be nil")
+
+				// Check that the expiry time is within 1 second of what we expect
+				expectedTime := beforeRequest.Add(tt.expectedDelta)
+				actualTime := *paste.ExpiresAt // Dereference the pointer for comparison
+				timeDiff := actualTime.Sub(expectedTime)
+				assert.Less(t, timeDiff.Abs(), time.Second, "Expiry time should be within 1 second of expected time")
 			}
 		})
 	}

@@ -39,7 +39,7 @@ export function initializeClipboard() {
     
     clipboardElements.forEach(element => {
         element.addEventListener('click', (e) => {
-            const selector = element.getAttribute('data-clipboard');
+            const selector = element.getAttribute('data-clipboard-selector');
             let textToCopy;
             
             if (selector) {
@@ -48,7 +48,7 @@ export function initializeClipboard() {
                 textToCopy = target ? target.textContent : '';
             } else {
                 // If no selector, use the data-content attribute or element's text
-                textToCopy = element.getAttribute('data-content') || element.textContent;
+                textToCopy = element.getAttribute('data-clipboard-content') || element.textContent;
             }
             
             copyToClipboard(textToCopy.trim(), element);

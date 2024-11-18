@@ -41,7 +41,7 @@
         <span class="command-label cli-label">0X45 CLI</span>
         <div class="code-block">
             <code>go install github.com/watzon/0x45-cli/cmd/0x45@latest</code>
-            <button class="action-btn" data-clipboard data-content="go install github.com/watzon/0x45-cli/cmd/0x45@latest"><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="go install github.com/watzon/0x45-cli/cmd/0x45@latest"><span>Copy</span></button>
         </div>
     </div>
 
@@ -52,7 +52,7 @@
             <pre><code>git clone https://github.com/watzon/0x45-cli.git
 cd 0x45-cli
 go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="git clone https://github.com/watzon/0x45-cli.git\ncd 0x45-cli\ngo build -o $GOPATH/bin/0x45 ./cmd/0x45"><span>Copy</span></button>
         </div>
     </div>
 
@@ -63,7 +63,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <span class="command-label cli-label">0X45 CLI</span>
             <div class="code-block">
                 <code>0x45 config set api_key YOUR_API_KEY</code>
-                <button class="action-btn" data-clipboard><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-content="0x45 config set api_key YOUR_API_KEY"><span>Copy</span></button>
             </div>
         </div>
 
@@ -71,7 +71,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <span class="command-label cli-label">0X45 CLI</span>
             <div class="code-block">
                 <code>0x45 config set api_url https://your-instance.com</code>
-                <button class="action-btn" data-clipboard><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-content="0x45 config set api_url https://your-instance.com"><span>Copy</span></button>
             </div>
         </div>
     </div>
@@ -81,7 +81,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <span class="command-label cli-label">0X45 CLI</span>
         <div class="code-block">
             <code>0x45 key request --name "Your Name" --email "your@email.com"</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="0x45 key request --name \"Your Name\" --email \"your@email.com\""><span>Copy</span></button>
         </div>
     </div>
 
@@ -92,7 +92,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <span class="command-label curl-label">CURL</span>
             <div class="code-block">
                 <code>curl -F "file=@path/to/file.txt" {{baseUrl}}/p</code>
-                <button class="action-btn" data-clipboard><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-content="curl -F &quot;file=@path/to/file.txt&quot; {{baseUrl}}/p"><span>Copy</span></button>
             </div>
         </div>
 
@@ -100,7 +100,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <span class="command-label cli-label">0X45 CLI</span>
             <div class="code-block">
                 <code>0x45 upload path/to/file.txt</code>
-                <button class="action-btn" data-clipboard><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-content="0x45 upload path/to/file.txt"><span>Copy</span></button>
             </div>
         </div>
     </div>
@@ -110,8 +110,8 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <div class="labeled-code-block">
             <span class="command-label curl-label">CURL</span>
             <div class="code-block">
-                <code>curl -F "file=@path/to/file.txt" "{{baseUrl}}/p?private=true&expires=24h"</code>
-                <button class="action-btn" data-clipboard><span>Copy</span></button>
+                <code>curl -F "file=@path/to/file.txt" -F "private=true" -F "expires_in=24h" "{{baseUrl}}/p"</code>
+                <button class="action-btn" data-clipboard data-clipboard-content="curl -F &quot;file=@path/to/file.txt&quot; -F &quot;private=true&quot; -F &quot;expires_in=24h&quot; &quot;{{baseUrl}}/p&quot;"><span>Copy</span></button>
             </div>
         </div>
 
@@ -119,7 +119,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <span class="command-label cli-label">0X45 CLI</span>
             <div class="code-block">
                 <code>0x45 upload --private --expires 24h path/to/file.txt</code>
-                <button class="action-btn" data-clipboard><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-content="0x45 upload --private --expires 24h path/to/file.txt"><span>Copy</span></button>
             </div>
         </div>
     </div>
@@ -130,7 +130,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <span class="command-label curl-label">CURL</span>
             <div class="code-block">
                 <code>echo "Hello, World!" | curl --data-binary @- {{baseUrl}}/p</code>
-                <button class="action-btn" data-clipboard><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-content="echo &quot;Hello, World!&quot; | curl --data-binary @- {{baseUrl}}/p"><span>Copy</span></button>
             </div>
         </div>
 
@@ -138,7 +138,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <span class="command-label cli-label">0X45 CLI</span>
             <div class="code-block">
                 <code>echo "Hello, World!" | 0x45 upload -</code>
-                <button class="action-btn" data-clipboard><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-content="echo &quot;Hello, World!&quot; | 0x45 upload -"><span>Copy</span></button>
             </div>
         </div>
     </div>
@@ -150,7 +150,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <span class="command-label curl-label">CURL</span>
             <div class="code-block">
                 <code>curl -X POST -d "url=https://example.com" {{baseUrl}}/u</code>
-                <button class="action-btn" data-clipboard><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST -d &quot;url=https://example.com&quot; {{baseUrl}}/u"><span>Copy</span></button>
             </div>
         </div>
 
@@ -158,7 +158,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <span class="command-label cli-label">0X45 CLI</span>
             <div class="code-block">
                 <code>0x45 shorten https://example.com</code>
-                <button class="action-btn" data-clipboard><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-content="0x45 shorten https://example.com"><span>Copy</span></button>
             </div>
         </div>
     </div>
@@ -168,7 +168,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <span class="command-label cli-label">0X45 CLI</span>
         <div class="code-block">
             <code>0x45 shorten --private --expires 7d https://example.com</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="0x45 shorten --private --expires 7d https://example.com"><span>Copy</span></button>
         </div>
     </div>
 
@@ -179,7 +179,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
             <span class="command-label cli-label">0X45 CLI</span>
             <div class="code-block">
                 <code>0x45 list pastes</code>
-                <button class="action-btn" data-clipboard><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-content="0x45 list pastes"><span>Copy</span></button>
             </div>
         </div>
     </div>
@@ -189,7 +189,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <span class="command-label cli-label">0X45 CLI</span>
         <div class="code-block">
             <code>0x45 list urls</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="0x45 list urls"><span>Copy</span></button>
         </div>
     </div>
 
@@ -198,7 +198,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <span class="command-label cli-label">0X45 CLI</span>
         <div class="code-block">
             <code>0x45 list pastes --page 2 --limit 10</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="0x45 list pastes --page 2 --limit 10"><span>Copy</span></button>
         </div>
     </div>
 
@@ -207,7 +207,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <span class="command-label cli-label">0X45 CLI</span>
         <div class="code-block">
             <code>0x45 delete CONTENT_ID</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="0x45 delete CONTENT_ID"><span>Copy</span></button>
         </div>
     </div>
 
@@ -217,7 +217,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <span class="command-label cli-label">0X45 CLI</span>
         <div class="code-block">
             <code>0x45 config get KEY</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="0x45 config get KEY"><span>Copy</span></button>
         </div>
     </div>
 
@@ -226,7 +226,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <span class="command-label cli-label">0X45 CLI</span>
         <div class="code-block">
             <code>0x45 config set KEY VALUE</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="0x45 config set KEY VALUE"><span>Copy</span></button>
         </div>
     </div>
 </section>
@@ -244,7 +244,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     -d "name=Your Name" \
     -d "email=your@email.com" \
     {{baseUrl}}/keys/request</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST -d &quot;name=Your Name&quot; -d &quot;email=your@email.com&quot; {{baseUrl}}/keys/request"><span>Copy</span></button>
         </div>
     </div>
 
@@ -255,7 +255,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
             <code>curl -H "Authorization: Bearer YOUR_API_KEY" {{baseUrl}}/u/list</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl -H &quot;Authorization: Bearer YOUR_API_KEY&quot; {{baseUrl}}/u/list"><span>Copy</span></button>
         </div>
     </div>
 
@@ -264,7 +264,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
             <code>curl "{{baseUrl}}/u/list?api_key=YOUR_API_KEY"</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl {{baseUrl}}/u/list?api_key=YOUR_API_KEY"><span>Copy</span></button>
         </div>
     </div>
 
@@ -281,7 +281,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
             <code>curl -H "Authorization: Bearer YOUR_API_KEY" {{baseUrl}}/keys/verify</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl -H &quot;Authorization: Bearer YOUR_API_KEY&quot; {{baseUrl}}/keys/verify"><span>Copy</span></button>
         </div>
     </div>
 </section>
@@ -295,7 +295,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
             <code>curl -X POST -F "file=@path/to/file.txt" {{baseUrl}}/p</code>
-            <button class="action-btn" data-clipboard data-content="curl -X POST -F \"file=@path/to/file.txt\" {{baseUrl}}/p"><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST -F \'file=@path/to/file.txt\' {{baseUrl}}/p"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -305,7 +305,8 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <dd>
             <ul>
                 <li>ext: file extension</li>
-                <li>expires: expiration time (e.g. "24h")</li>
+                <li>expires_in: expiration time (e.g. "24h" or "7 days 2 hours and 45 minutes")</li>
+                <li>expires_at: expiration date (YYYY-MM-DD)</li>
                 <li>private: true/false (requires API key)</li>
                 <li>filename: custom filename</li>
             </ul>
@@ -313,7 +314,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <dt>Response:</dt>
         <dd>
             <div class="code-block json">
-                <pre><code>{
+                <pre><code id="multipart-upload-response">{
     "success": true,
     "data": {
         "id": "abc12345",
@@ -329,7 +330,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         "delete_url": "/delete/abc12345/deletekey123"
     }
 }</code></pre>
-                <button class="action-btn" data-clipboard="#multipart-upload-response"><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-selector="#multipart-upload-response"><span>Copy</span></button>
             </div>
         </dd>
     </dl>
@@ -341,7 +342,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
             <code>curl -X POST --data-binary @path/to/file.txt {{baseUrl}}/p</code>
-            <button class="action-btn" data-clipboard data-content="curl -X POST --data-binary @path/to/file.txt {{baseUrl}}/p"><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST --data-binary @path/to/file.txt {{baseUrl}}/p"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -352,7 +353,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <dt>Response:</dt>
         <dd>
             <div class="code-block json">
-                <pre><code>{
+                <pre><code id="raw-upload-response">{
     "success": true,
     "data": {
         "id": "abc12345",
@@ -368,7 +369,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         "delete_url": "/delete/abc12345/deletekey123"
     }
 }</code></pre>
-                <button class="action-btn" data-clipboard="#raw-upload-response"><span>Copy</span></button>
+                <button class="action-btn" data-clipboard= data-clipboard-selector="#raw-upload-response"><span>Copy</span></button>
             </div>
         </dd>
     </dl>
@@ -383,7 +384,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     -H "Content-Type: application/json" \
     -d '{"content":"Hello World"}' \
     {{baseUrl}}/p</code>
-            <button class="action-btn" data-clipboard data-content="curl -X POST -H \"Content-Type: application/json\" -d '{\"content\":\"Hello World\"}' {{baseUrl}}/p"><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST -H \"Content-Type: application/json\" -d '{\"content\":\"Hello World\"}' {{baseUrl}}/p"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -392,21 +393,22 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <dt>Body:</dt>
         <dd>
             <div class="code-block json">
-                <pre><code>{
+                <pre><code id="json-upload-body">{
     "content": "string",     // Required if no URL
     "url": "string",         // Required if no content
     "filename": "string",    // Optional
     "extension": "string",   // Optional
     "expires_in": "string",  // Optional (e.g. "24h")
+    "expires_at": "string",  // Optional (e.g. "2024-03-20")
     "private": boolean       // Optional
 }</code></pre>
-                <button class="action-btn" data-clipboard="#json-upload-body"><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-selector="#json-upload-body"><span>Copy</span></button>
             </div>
         </dd>
         <dt>Response:</dt>
         <dd>
             <div class="code-block json">
-                <pre><code>{
+                <pre><code id="json-upload-response">{
     "success": true,
     "data": {
         "id": "abc12345",
@@ -422,7 +424,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         "delete_url": "/delete/abc12345/deletekey123"
     }
 }</code></pre>
-                <button class="action-btn" data-clipboard="#json-upload-response"><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-selector="#json-upload-response"><span>Copy</span></button>
             </div>
         </dd>
     </dl>
@@ -437,7 +439,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
                 <span class="command-label curl-label">CURL</span>
                 <div class="code-block">
                     <code>curl -X GET {{baseUrl}}/p/:id</code>
-                    <button class="action-btn" data-content="curl -X GET {{baseUrl}}/p/:id"><span>Copy</span></button>
+                    <button class="action-btn" data-clipboard data-clipboard-content="curl -X GET {{baseUrl}}/p/:id"><span>Copy</span></button>
                 </div>
             </div>
             <dl>
@@ -451,7 +453,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
                 <span class="command-label curl-label">CURL</span>
                 <div class="code-block">
                     <code>curl -X GET {{baseUrl}}/p/:id/raw[.:ext]</code>
-                    <button class="action-btn" data-content="curl -X GET {{baseUrl}}/p/:id/raw"><span>Copy</span></button>
+                    <button class="action-btn" data-clipboard data-clipboard-content="curl -X GET {{baseUrl}}/p/:id/raw"><span>Copy</span></button>
                 </div>
             </div>
             <dl>
@@ -465,7 +467,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
                 <span class="command-label curl-label">CURL</span>
                 <div class="code-block">
                     <code>curl -X GET {{baseUrl}}/p/:id/download[.:ext]</code>
-                    <button class="action-btn" data-content="curl -X GET {{baseUrl}}/p/:id/download"><span>Copy</span></button>
+                    <button class="action-btn" data-clipboard data-clipboard-content="curl -X GET {{baseUrl}}/p/:id/download"><span>Copy</span></button>
                 </div>
             </div>
             <dl>
@@ -479,7 +481,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
                 <span class="command-label curl-label">CURL</span>
                 <div class="code-block">
                     <code>curl -X DELETE {{baseUrl}}/p/:id/:key</code>
-                    <button class="action-btn" data-content="curl -X DELETE {{baseUrl}}/p/:id/:key"><span>Copy</span></button>
+                    <button class="action-btn" data-clipboard data-clipboard-content="curl -X DELETE {{baseUrl}}/p/:id/:key"><span>Copy</span></button>
                 </div>
             </div>
             <dl>
@@ -490,7 +492,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     "success": true,
     "message": "Paste deleted successfully"
 }</code></pre>
-                        <button class="action-btn" data-clipboard="#delete-response"><span>Copy</span></button>
+                        <button class="action-btn" data-clipboard data-clipboard-content="#delete-response"><span>Copy</span></button>
                     </div>
                 </dd>
             </dl>
@@ -506,13 +508,13 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl -X POST \
+            <code id="json-url-expire-body">curl -X POST \
     -H "Authorization: Bearer YOUR_API_KEY" \
     -d "url=https://example.com" \
     -d "title=Example Website" \
     -d "expires_in=7d" \
     {{baseUrl}}/u</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="#json-url-expire-body"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -522,6 +524,7 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
                 <li><code>url</code> (required): The URL to shorten</li>
                 <li><code>title</code> (optional): Custom title for the URL</li>
                 <li><code>expires_in</code> (optional): Duration string (e.g., "24h", "7d", "30d")</li>
+                <li><code>expires_at</code> (optional): Date string (YYYY-MM-DD)</li>
             </ul>
         </dd>
     </dl>
@@ -530,10 +533,10 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl -X GET \
+            <code id="json-url-stats-body">curl -X GET \
     -H "Authorization: Bearer YOUR_API_KEY" \
     "{{baseUrl}}/u/:id/stats?start_date=2024-01-01&end_date=2024-12-31"</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="#json-url-stats-body"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -550,10 +553,10 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl -X GET \
+            <code id="json-url-list-body">curl -X GET \
     -H "Authorization: Bearer YOUR_API_KEY" \
     "{{baseUrl}}/u/list?page=1&limit=10"</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="#json-url-list-body"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -574,10 +577,10 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl -X GET \
+            <code id="json-url-list-body">curl -X GET \
     -H "Authorization: Bearer YOUR_API_KEY" \
     "{{baseUrl}}/u/list?page=1&limit=10"</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="#json-url-list-body"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -594,10 +597,10 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl -X GET \
+            <code id="json-url-stats-body">curl -X GET \
     -H "Authorization: Bearer YOUR_API_KEY" \
     "{{baseUrl}}/u/:id/stats?start_date=2024-01-01&end_date=2024-12-31"</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="#json-url-stats-body"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -614,14 +617,14 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl -X PUT \
+            <code id="json-url-expire-body">curl -X PUT \
     -H "Authorization: Bearer YOUR_API_KEY" \
     -H "Content-Type: application/json" \
     -d '{
         "expires_at": "2024-12-31T23:59:59Z"
     }' \
     {{baseUrl}}/u/:id/expire</code>
-            <button class="action-btn" data-clipboard><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="#json-url-expire-body"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -630,10 +633,12 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <dt>Body:</dt>
         <dd>
             <div class="code-block json">
-                <pre><code>{
-    "expires_in": "string"   // Required (e.g., "24h" or "never")
+                <pre><code id="json-url-expire-body">{
+    // One of the following is required:
+    "expires_in": "string",   // Optional (e.g., "24h" or "never")
+    "expires_at": "string",   // Optional (YYYY-MM-DD)
 }</code></pre>
-                <button class="action-btn" data-clipboard="#json-url-expire-body"><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-selector="#json-url-expire-body"><span>Copy</span></button>
             </div>
         </dd>
     </dl>
@@ -652,11 +657,11 @@ go build -o $GOPATH/bin/0x45 ./cmd/0x45</code></pre>
         <dt>Response:</dt>
         <dd>
             <div class="code-block json">
-                <pre><code>{
+                <pre><code id="json-url-delete-response">{
     "success": true,
     "message": "URL deleted successfully"
 }</code></pre>
-                <button class="action-btn" data-clipboard="#json-url-delete-response"><span>Copy</span></button>
+                <button class="action-btn" data-clipboard data-clipboard-selector="#json-url-delete-response"><span>Copy</span></button>
             </div>
         </dd>
     </dl>

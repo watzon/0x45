@@ -28,6 +28,8 @@ require (
 	gorm.io/gorm v1.25.12
 )
 
+require github.com/watzon/hdur v1.0.0
+
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.6 // indirect

@@ -12,6 +12,7 @@ import (
 	"github.com/watzon/0x45/internal/server/middleware"
 	"github.com/watzon/0x45/internal/server/services"
 	"github.com/watzon/0x45/internal/storage"
+	"github.com/watzon/hdur"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"moul.io/zapgorm2"
@@ -31,6 +32,18 @@ type Server struct {
 func New(config *config.Config, logger *zap.Logger) *Server {
 	gormLogger := zapgorm2.New(logger)
 	gormLogger.SetAsDefault()
+
+	// Custom parsers for fiber
+	fiber.SetParserDecoder(fiber.ParserConfig{
+		IgnoreUnknownKeys: true,
+		ZeroEmpty:         true,
+		ParserType: []fiber.ParserType{
+			{
+				Customtype: hdur.Duration{},
+				Converter:  services.HdurDurationConverter,
+			},
+		},
+	})
 
 	// Initialize database
 	db, err := database.New(config, &gorm.Config{

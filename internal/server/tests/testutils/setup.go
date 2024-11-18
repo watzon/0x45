@@ -68,6 +68,16 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 			ViewsDirectory:  viewsDir,
 			PublicDirectory: pubDir,
 		},
+		Retention: config.RetentionConfig{
+			NoKey: config.RetentionLimitConfig{
+				MinAge: 1,  // 1 day minimum
+				MaxAge: 30, // 30 days maximum
+			},
+			WithKey: config.RetentionLimitConfig{
+				MinAge: 1,   // 1 day minimum
+				MaxAge: 365, // 365 days maximum
+			},
+		},
 	}
 
 	// Initialize test logger

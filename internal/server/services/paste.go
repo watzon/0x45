@@ -19,6 +19,7 @@ import (
 	"github.com/watzon/0x45/internal/models"
 	"github.com/watzon/0x45/internal/storage"
 	"github.com/watzon/0x45/internal/utils"
+	"github.com/watzon/hdur"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -129,33 +130,25 @@ func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Private pastes can only be created with an API key")
 	}
 
-	// Calculate expiry
-	expiryTime, err := s.calculateExpiry(ExpiryOptions{
-		Size:      int64(len(p.Content)),
-		HasAPIKey: apiKey != nil,
-		ExpiresAt: p.ExpiresAt,
-		ExpiresIn: p.ExpiresIn,
-	})
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to calculate expiry")
-	}
-
 	// Create the paste
-	paste, err := s.createPaste(bytes.NewReader(content), int64(len(content)), p)
+	paste, err := s.createPaste(bytes.NewReader(content), apiKey, int64(len(content)), p)
+	if err != nil {
+		return err
+	}
 
 	baseURL := s.config.Server.BaseURL
 
 	return c.JSON(&PasteResponse{
 		ID:          paste.ID,
 		Filename:    paste.Filename,
-		URL:         fmt.Sprintf("%s/p/%s", baseURL, paste.ID),
-		RawURL:      fmt.Sprintf("%s/p/%s/raw", baseURL, paste.ID),
-		DownloadURL: fmt.Sprintf("%s/p/%s/download", baseURL, paste.ID),
-		DeleteURL:   fmt.Sprintf("%s/p/%s/%s", baseURL, paste.ID, paste.DeleteKey),
+		URL:         fmt.Sprintf("%s/p/%s.%s", baseURL, paste.ID, paste.Extension),
+		RawURL:      fmt.Sprintf("%s/p/%s.%s/raw", baseURL, paste.ID, paste.Extension),
+		DownloadURL: fmt.Sprintf("%s/p/%s.%s/download", baseURL, paste.ID, paste.Extension),
+		DeleteURL:   fmt.Sprintf("%s/p/%s.%s/%s", baseURL, paste.ID, paste.Extension, paste.DeleteKey),
 		Private:     paste.Private,
 		MimeType:    paste.MimeType,
 		Size:        paste.Size,
-		ExpiresAt:   expiryTime,
+		ExpiresAt:   paste.ExpiresAt,
 	})
 }
 
@@ -351,7 +344,7 @@ func (s *PasteService) CleanupExpired() (int64, error) {
 
 // Helper functions
 
-func (s *PasteService) createPaste(content io.Reader, size int64, opts *PasteOptions) (*models.Paste, error) {
+func (s *PasteService) createPaste(content io.Reader, apiKey *models.APIKey, size int64, opts *PasteOptions) (*models.Paste, error) {
 	// Read content for MIME type detection
 	contentBytes, err := io.ReadAll(content)
 	if err != nil {
@@ -405,9 +398,17 @@ func (s *PasteService) createPaste(content io.Reader, size int64, opts *PasteOpt
 		paste.APIKey = opts.APIKey.Key
 	}
 
-	if opts.ExpiresAt != nil {
-		paste.ExpiresAt = opts.ExpiresAt
+	expiresAt, err := s.calculateExpiry(ExpiryOptions{
+		Size:      int64(len(contentBytes)),
+		HasAPIKey: apiKey != nil,
+		ExpiresAt: opts.ExpiresAt,
+		ExpiresIn: opts.ExpiresIn,
+	})
+	if err != nil {
+		return nil, fiber.NewError(fiber.StatusBadRequest, "Failed to calculate expiry")
 	}
+
+	paste.ExpiresAt = expiresAt
 
 	// Add config to context for storage configuration
 	ctx := context.WithValue(context.Background(), configKey, s.config)
@@ -566,29 +567,33 @@ func formatSize(size int64) string {
 func (s *PasteService) calculateExpiry(opts ExpiryOptions) (*time.Time, error) {
 	// Calculate maximum allowed retention based on file size
 	maxRetention := s.calculateMaxRetention(opts.Size, opts.HasAPIKey)
-	maxDuration := time.Duration(maxRetention*24) * time.Hour
+	maxDuration := hdur.Hours(maxRetention * 24)
 
 	// Handle explicit expiry requests
 	if opts.ExpiresAt != nil {
-		duration := time.Until(*opts.ExpiresAt)
-		if duration > maxDuration {
+		now := time.Now()
+		if opts.ExpiresAt.Before(now) {
+			return nil, fiber.NewError(fiber.StatusBadRequest, "Expiration time must be in the future")
+		}
+		requestedDuration := hdur.Sub(*opts.ExpiresAt, now)
+		if requestedDuration.Days > maxDuration.Days {
 			return nil, fiber.NewError(fiber.StatusBadRequest,
-				fmt.Sprintf("Maximum allowed expiry for this file size is %.1f days", maxRetention))
+				fmt.Sprintf("Maximum allowed expiry for this file size is %.1f days", float64(maxDuration.Days)))
 		}
 		return opts.ExpiresAt, nil
 	}
 
 	if opts.ExpiresIn != nil {
-		if *opts.ExpiresIn > maxDuration {
+		if opts.ExpiresIn.Days > maxDuration.Days {
 			return nil, fiber.NewError(fiber.StatusBadRequest,
-				fmt.Sprintf("Maximum allowed expiry for this file size is %.1f days", maxRetention))
+				fmt.Sprintf("Maximum allowed expiry for this file size is %.1f days", float64(maxDuration.Days)))
 		}
-		expiryTime := time.Now().Add(*opts.ExpiresIn)
+		expiryTime := opts.ExpiresIn.Add(time.Now())
 		return &expiryTime, nil
 	}
 
 	// If no explicit expiry is set, use maximum retention
-	expiryTime := time.Now().Add(maxDuration)
+	expiryTime := maxDuration.Add(time.Now())
 	return &expiryTime, nil
 }
 
