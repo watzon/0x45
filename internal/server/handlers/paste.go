@@ -107,3 +107,20 @@ func (h *PasteHandlers) HandleDeletePaste(c *fiber.Ctx) error {
 func (h *PasteHandlers) HandleUpdateExpiration(c *fiber.Ctx) error {
 	return h.services.Paste.UpdateExpiration(c, getPasteID(c))
 }
+
+// HandleGetPasteImage returns an image of the paste suitable for Open Graph
+func (h *PasteHandlers) HandleGetPasteImage(c *fiber.Ctx) error {
+	id := getPasteID(c)
+
+	// Get extension from locals if available
+	if ext := c.Locals("extension"); ext != nil {
+		id = id + "." + ext.(string)
+	}
+
+	paste, err := h.services.Paste.GetPaste(id)
+	if err != nil {
+		return err
+	}
+
+	return h.services.Paste.GetPasteImage(c, paste)
+}

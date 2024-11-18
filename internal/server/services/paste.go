@@ -170,6 +170,40 @@ func (s *PasteService) GetPaste(id string) (*models.Paste, error) {
 	return &paste, nil
 }
 
+// GetPasteImage returns an image of the paste suitable for Open Graph
+func (s *PasteService) GetPasteImage(c *fiber.Ctx, paste *models.Paste) error {
+	// First check if the paste is even text, if not we won't generate an image
+	if !s.isTextContent(paste.MimeType) {
+		s.logger.Debug("Cannot generate image for non-text content",
+			zap.String("mime_type", paste.MimeType),
+			zap.String("id", paste.ID))
+		return fiber.NewError(fiber.StatusBadRequest, "Cannot generate image for non-text content")
+	}
+
+	// Get the content
+	content, err := s.storage.Get(paste.StoragePath)
+	if err != nil {
+		s.logger.Error("Failed to get paste content for image generation",
+			zap.Error(err),
+			zap.String("id", paste.ID),
+			zap.String("storage_path", paste.StoragePath))
+		return err
+	}
+
+	// Generate the image
+	image, err := GenerateCodeImage(string(content))
+	if err != nil {
+		s.logger.Error("Failed to generate paste image",
+			zap.Error(err),
+			zap.String("id", paste.ID))
+		return err
+	}
+
+	c.Set("Cache-Control", "max-age=31536000, immutable")
+	c.Set("Content-Type", "image/png")
+	return c.Send(image)
+}
+
 // RenderPaste renders the paste view for text content
 func (s *PasteService) RenderPaste(c *fiber.Ctx, paste *models.Paste) error {
 	if s.isTextContent(paste.MimeType) {
@@ -528,13 +562,15 @@ func (s *PasteService) renderPasteView(c *fiber.Ctx, paste *models.Paste) error 
 	}
 
 	return c.Render("paste", fiber.Map{
-		"id":       pasteID,
-		"filename": paste.Filename,
-		"created":  paste.CreatedAt.Format("2006-01-02 15:04:05"),
-		"expires":  formatExpiryTime(paste.ExpiresAt),
-		"language": lexer.Config().Name,
-		"content":  codeBuffer.String(),
-		"baseUrl":  s.config.Server.BaseURL,
+		"isPaste":   true,
+		"id":        pasteID,
+		"filename":  paste.Filename,
+		"extension": paste.Extension,
+		"created":   paste.CreatedAt.Format("2006-01-02 15:04:05"),
+		"expires":   formatExpiryTime(paste.ExpiresAt),
+		"language":  lexer.Config().Name,
+		"content":   codeBuffer.String(),
+		"baseUrl":   s.config.Server.BaseURL,
 		"metadata": fiber.Map{
 			"size":      formatSize(paste.Size),
 			"mimeType":  paste.MimeType,

@@ -148,11 +148,16 @@ func (s *Server) SetupRoutes() {
 		c.Locals("extension", c.Params("ext"))
 		return s.handlers.Paste.HandleDownload(c)
 	})
+	s.app.Get("/p/:id.:ext/image", func(c *fiber.Ctx) error {
+		c.Locals("extension", c.Params("ext"))
+		return s.handlers.Paste.HandleGetPasteImage(c)
+	})
 
 	// Handle paste routes without extensions
 	s.app.Get("/p/:id/raw", s.handlers.Paste.HandleRawView)
 	s.app.Get("/p/:id/download", s.handlers.Paste.HandleDownload)
 	s.app.Delete("/p/:id/:key", s.handlers.Paste.HandleDeleteWithKey)
+	s.app.Get("/p/:id/image", s.handlers.Paste.HandleGetPasteImage)
 
 	// Handle URL redirects
 	s.app.Get("/u/:id", s.handlers.URL.HandleRedirect)
