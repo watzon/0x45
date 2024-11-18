@@ -90,6 +90,7 @@ func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
 
 	// Get file content
 	var content []byte
+	var filename string
 	if file, err := c.FormFile("file"); err == nil {
 		// Read file content
 		f, err := file.Open()
@@ -102,11 +103,21 @@ func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Failed to read file content")
 		}
+
+		// Get filename from form field if available
+		if file.Filename != "" {
+			filename = file.Filename
+		}
 	} else if p.URL != "" {
 		// Read content from the given URL
 		content, err = utils.GetContentFromURL(p.URL)
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "Failed to fetch URL")
+		}
+
+		// Try to get filename from URL if not explicitly provided
+		if p.Filename == "" {
+			filename = utils.GetFilenameFromURL(p.URL)
 		}
 	} else if p.Content != "" {
 		// Use content from the request body
@@ -118,6 +129,11 @@ func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
 	// Check for empty content
 	if len(content) == 0 {
 		return fiber.NewError(fiber.StatusBadRequest, "Empty file")
+	}
+
+	// If we found a filename and none was provided in the request, use it
+	if filename != "" && p.Filename == "" {
+		p.Filename = filename
 	}
 
 	var apiKey *models.APIKey

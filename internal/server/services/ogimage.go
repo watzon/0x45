@@ -27,6 +27,7 @@ const (
 	padding      = 3.5
 	borderWidth  = 2.0
 	borderRadius = 15.0
+	tabWidth     = 4 // Number of spaces per tab
 
 	// Line number settings
 	lineNumPadding = 10.0
@@ -115,12 +116,100 @@ func wordWrap(text string, dc *gg.Context, maxWidth float64) []string {
 }
 
 type codeImageContext struct {
-	dc          *gg.Context
-	style       *chroma.Style
-	textStartX  float64
-	maxWidth    float64
-	lineHeight  float64
-	currentLine int
+	dc           *gg.Context
+	style        *chroma.Style
+	lineNumWidth float64
+	maxWidth     float64
+	lineHeight   float64
+	currentLine  int
+	spaceWidth   float64 // Width of a single space character
+}
+
+func setupContext(dc *gg.Context, style *chroma.Style, lineNumWidth, maxWidth, lineHeight float64) *codeImageContext {
+	// Measure space width for tab calculations
+	spaceWidth, _ := dc.MeasureString(" ")
+
+	return &codeImageContext{
+		dc:           dc,
+		style:        style,
+		lineNumWidth: lineNumWidth,
+		maxWidth:     maxWidth,
+		lineHeight:   lineHeight,
+		currentLine:  1,
+		spaceWidth:   spaceWidth,
+	}
+}
+
+// expandTabs replaces tabs with the appropriate number of spaces
+func (ctx *codeImageContext) expandTabs(text string, currentX float64) string {
+	var result strings.Builder
+	column := int(currentX / ctx.spaceWidth)
+
+	for _, r := range text {
+		if r == '\t' {
+			spaces := tabWidth - (column % tabWidth)
+			result.WriteString(strings.Repeat(" ", spaces))
+			column += spaces
+		} else {
+			result.WriteRune(r)
+			if r == '\n' {
+				column = 0
+			} else {
+				column++
+			}
+		}
+	}
+	return result.String()
+}
+
+func drawToken(ctx *codeImageContext, token chroma.Token, x *float64, y *float64) {
+	if token.Value == "" {
+		return
+	}
+
+	// Handle tabs and other special characters
+	expandedText := ctx.expandTabs(token.Value, *x)
+
+	// Set color for the token
+	ctx.dc.SetColor(getTokenColor(token, ctx.style))
+
+	// Split into lines and handle each separately
+	lines := strings.Split(expandedText, "\n")
+	for i, line := range lines {
+		if ctx.currentLine > maxLines {
+			break
+		}
+
+		// Handle line numbers for new lines
+		if i > 0 {
+			*x = padding + borderWidth + ctx.lineNumWidth + lineNumPadding
+			*y += ctx.lineHeight
+			ctx.currentLine++
+			drawLineNumbers(ctx, *y)
+		}
+
+		// Skip empty lines
+		if line == "" {
+			continue
+		}
+
+		// Check if we need to wrap
+		if *x > padding+borderWidth+ctx.lineNumWidth+lineNumPadding {
+			remainingWidth := float64(ogImageWidth) - *x - padding - borderWidth
+			width, _ := ctx.dc.MeasureString(line)
+			if width > remainingWidth {
+				*x = padding + borderWidth + ctx.lineNumWidth + lineNumPadding
+				*y += ctx.lineHeight
+				ctx.currentLine++
+				drawLineNumbers(ctx, *y)
+			}
+		}
+
+		// Draw the text
+		ctx.dc.DrawString(line, *x, *y)
+		width, _ := ctx.dc.MeasureString(line)
+		*x += width
+	}
 }
 
 // setupCanvas initializes the drawing context with background and border
@@ -183,7 +272,7 @@ func setupSyntaxHighlighting(code string) (chroma.Iterator, *chroma.Style, error
 func drawLineNumbers(ctx *codeImageContext, y float64) {
 	// Draw line number
 	ctx.dc.SetColor(color.RGBA{102, 102, 102, 255})
-	lineNumX := padding + borderWidth + lineNumWidth - 5
+	lineNumX := padding + borderWidth + ctx.lineNumWidth - 5
 	ctx.dc.DrawStringAnchored(fmt.Sprintf("%d", ctx.currentLine), lineNumX, y, 1.0, 0)
 }
 
@@ -210,32 +299,6 @@ func getTokenColor(token chroma.Token, style *chroma.Style) color.Color {
 		}
 	}
 	return color.White
-}
-
-// drawLineContent draws a single line of text with proper wrapping
-func drawLineContent(ctx *codeImageContext, line string, tokenColor color.Color, x *float64, y *float64) {
-	if *x == ctx.textStartX && len(line) > 0 {
-		wrappedLines := wordWrap(line, ctx.dc, ctx.maxWidth)
-		for j, wrappedLine := range wrappedLines {
-			if j > 0 {
-				*y += ctx.lineHeight
-				ctx.currentLine++
-				drawLineNumbers(ctx, *y)
-				ctx.dc.SetColor(tokenColor)
-			}
-			ctx.dc.DrawString(wrappedLine, *x, *y)
-			if j < len(wrappedLines)-1 {
-				*x = ctx.textStartX
-			} else {
-				width, _ := ctx.dc.MeasureString(wrappedLine)
-				*x += width
-			}
-		}
-	} else {
-		ctx.dc.DrawString(line, *x, *y)
-		width, _ := ctx.dc.MeasureString(line)
-		*x += width
-	}
 }
 
 func GenerateCodeImage(code string) ([]byte, error) {
@@ -277,14 +340,7 @@ func GenerateCodeImageWithConfig(code, language string, config ImageConfig) (ima
 	maxTextWidth := float64(config.Width) - textStartX - padding - borderWidth
 
 	// Create context
-	ctx := &codeImageContext{
-		dc:          dc,
-		style:       style,
-		textStartX:  textStartX,
-		maxWidth:    maxTextWidth,
-		lineHeight:  config.FontSize * lineSpacing,
-		currentLine: 1,
-	}
+	ctx := setupContext(dc, style, lineNumWidth, maxTextWidth, config.FontSize*lineSpacing)
 
 	// Draw separator line for line numbers
 	dc.SetColor(color.RGBA{60, 64, 72, 255})
@@ -301,44 +357,15 @@ func GenerateCodeImageWithConfig(code, language string, config ImageConfig) (ima
 	x := textStartX
 	y := padding + config.FontSize + borderWidth
 
+	// Draw initial line number
+	drawLineNumbers(ctx, y)
+
 	for _, token := range iterator.Tokens() {
 		if ctx.currentLine > config.MaxLines {
 			break
 		}
 
-		tokenColor := getTokenColor(token, style)
-		lines := strings.Split(token.Value, "\n")
-
-		for i, line := range lines {
-			if ctx.currentLine > config.MaxLines {
-				break
-			}
-
-			drawLineNumbers(ctx, y)
-
-			if i > 0 {
-				x = textStartX
-			}
-
-			if x > textStartX {
-				remainingWidth := float64(config.Width) - x - padding - borderWidth
-				width, _ := dc.MeasureString(line)
-				if width > remainingWidth {
-					x = textStartX
-					y += ctx.lineHeight
-					ctx.currentLine++
-				}
-			}
-
-			dc.SetColor(tokenColor)
-			drawLineContent(ctx, line, tokenColor, &x, &y)
-
-			if i < len(lines)-1 {
-				y += ctx.lineHeight
-				ctx.currentLine++
-				x = textStartX
-			}
-		}
+		drawToken(ctx, token, &x, &y)
 	}
 
 	if ctx.currentLine > config.MaxLines {
