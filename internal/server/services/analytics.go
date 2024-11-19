@@ -133,16 +133,7 @@ func (s *AnalyticsService) LogEvent(c *fiber.Ctx, eventType models.EventType, re
 	refererURL := c.Get("Referer")
 
 	// Create event with request context
-	event := &models.AnalyticsEvent{
-		EventType:    eventType,
-		ResourceType: resourceType,
-		ResourceID:   resourceID,
-		UserAgent:    userAgent,
-		IPAddress:    ipAddress,
-		RefererURL:   refererURL,
-	}
-
-	return s.db.Create(event).Error
+	return models.CreateEvent(s.db, eventType, resourceType, resourceID, userAgent, ipAddress, refererURL)
 }
 
 // LogPasteView creates an analytics event for paste views
