@@ -95,32 +95,23 @@ func (s *AnalyticsService) GetResourceStats(resourceType string, resourceID stri
 
 	// Get top countries
 	s.db.Model(&models.AnalyticsEvent{}).
-		Select("country_code, COUNT(*) as count").
-		Where("resource_type = ? AND resource_id = ? AND country_code != ''", resourceType, resourceID).
-		Group("country_code").
+		Select("country, COUNT(*) as count").
+		Where("resource_type = ? AND resource_id = ? AND country != ''", resourceType, resourceID).
+		Group("country").
 		Order("count DESC").
 		Limit(10).
 		Find(&map[string]int64{}).
 		Scan(&stats.TopCountries)
 
 	// Get top browsers (parsed from user agent)
-	type BrowserCount struct {
-		Browser string `gorm:"column:browser"`
-		Count   int64  `gorm:"column:count"`
-	}
-	var browserCounts []BrowserCount
-
 	s.db.Model(&models.AnalyticsEvent{}).
-		Select("COALESCE(SUBSTRING_INDEX(user_agent, '/', 1), 'Unknown') as browser, COUNT(*) as count").
-		Where("resource_type = ? AND resource_id = ?", resourceType, resourceID).
+		Select("browser, COUNT(*) as count").
+		Where("resource_type = ? AND resource_id = ? AND browser != ''", resourceType, resourceID).
 		Group("browser").
 		Order("count DESC").
 		Limit(10).
-		Find(&browserCounts)
-
-	for _, bc := range browserCounts {
-		stats.TopBrowsers[bc.Browser] = bc.Count
-	}
+		Find(&map[string]int64{}).
+		Scan(&stats.TopBrowsers)
 
 	return stats, nil
 }

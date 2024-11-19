@@ -69,17 +69,29 @@ func (s *URLService) GetStats(c *fiber.Ctx) error {
 	endDate := c.Query("end_date")
 
 	var timeframe AnalyticsTimeframe
+	// Default to 1 week range
+	end := time.Now()
+	start := end.AddDate(0, 0, -7)
+	timeframe.EndTime = &end
+	timeframe.StartTime = &start
+
+	// Parse start date if provided
 	if startDate != "" {
-		start, err := time.Parse("2006-01-02", startDate)
-		if err == nil {
-			timeframe.StartTime = &start
+		if parsedStart, err := time.Parse("2006-01-02", startDate); err == nil {
+			timeframe.StartTime = &parsedStart
 		}
 	}
+
+	// Parse end date if provided
 	if endDate != "" {
-		end, err := time.Parse("2006-01-02", endDate)
-		if err == nil {
-			timeframe.EndTime = &end
+		if parsedEnd, err := time.Parse("2006-01-02", endDate); err == nil {
+			timeframe.EndTime = &parsedEnd
 		}
+	}
+
+	// Ensure start is not after end
+	if timeframe.StartTime.After(*timeframe.EndTime) {
+		timeframe.StartTime = timeframe.EndTime
 	}
 
 	stats, err := s.analytics.GetResourceStats("shortlink", shortlink.ID, timeframe)
