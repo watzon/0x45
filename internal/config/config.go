@@ -199,7 +199,9 @@ func Load() (*Config, error) {
 	})
 
 	viper.SetDefault("server.address", ":3000")
-	viper.SetDefault("server.max_upload_size", "5MB") // 5MB default
+	viper.SetDefault("server.max_upload_size", 5242880)      // 5MB default
+	viper.SetDefault("server.default_upload_size", 10485760) // 10MB default
+	viper.SetDefault("server.api_upload_size", 52428800)     // 50MB default
 	viper.SetDefault("server.prefork", false)
 	viper.SetDefault("server.server_header", "Paste69")
 	viper.SetDefault("server.app_name", "Paste69")
