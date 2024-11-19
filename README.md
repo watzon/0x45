@@ -105,14 +105,19 @@ Configure one or more storage backends for file storage. Multiple backends can b
 ### Server Configuration
 Core server settings and behavior.
 
-| Environment Variable      | Description                  | Default |
-| ------------------------- | ---------------------------- | ------- |
-| 0X_SERVER_ADDRESS         | Server listen address        | :3000   |
-| 0X_SERVER_BASE_URL        | Base URL for the server      | ""      |
-| 0X_SERVER_MAX_UPLOAD_SIZE | Maximum upload size in bytes | 5242880 |
-| 0X_SERVER_PREFORK         | Enable prefork mode          | false   |
-| 0X_SERVER_SERVER_HEADER   | Server header value          | Paste69 |
-| 0X_SERVER_APP_NAME        | Application name             | Paste69 |
+| Environment Variable          | Description                  | Default  |
+| ----------------------------- | ---------------------------- | -------- |
+| 0X_SERVER_ADDRESS             | Server listen address        | :3000    |
+| 0X_SERVER_BASE_URL            | Base URL for the server      | ""       |
+| 0X_SERVER_MAX_UPLOAD_SIZE     | Maximum upload size in bytes | 5242880  |
+| 0X_SERVER_DEFAULT_UPLOAD_SIZE | Default upload size in bytes | 5242880  |
+| 0X_SERVER_API_UPLOAD_SIZE     | API upload size in bytes     | 5242880  |
+| 0X_SERVER_PREFORK             | Enable prefork mode          | false    |
+| 0X_SERVER_SERVER_HEADER       | Server header value          | Paste69  |
+| 0X_SERVER_APP_NAME            | Application name             | Paste69  |
+| 0X_SERVER_CORS_ORIGINS        | CORS allowed origins         | []       |
+| 0X_SERVER_VIEWS_DIRECTORY     | Directory for view templates | ./views  |
+| 0X_SERVER_PUBLIC_DIRECTORY    | Directory for public files   | ./public |
 
 ### Cleanup Configuration
 Settings for automatic content cleanup.
