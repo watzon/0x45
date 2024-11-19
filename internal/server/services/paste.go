@@ -5,8 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -238,6 +236,9 @@ func (s *PasteService) RenderRawContent(c *fiber.Ctx, paste *models.Paste) error
 		return err
 	}
 	c.Set("Content-Type", paste.MimeType)
+	// Add permanent cache headers since content is immutable
+	c.Set("Cache-Control", "public, max-age=31536000, immutable")
+	c.Set("ETag", paste.ID)
 	return c.Send(content)
 }
 
@@ -248,14 +249,12 @@ func (s *PasteService) RenderDownload(c *fiber.Ctx, paste *models.Paste) error {
 		return err
 	}
 
-	// Create a temporary file
-	tempFile := filepath.Join(os.TempDir(), paste.Filename)
-	if err := os.WriteFile(tempFile, content, 0644); err != nil {
-		return err
-	}
-	defer os.Remove(tempFile)
-
-	return c.Download(tempFile, paste.Filename)
+	c.Set("Content-Type", "application/octet-stream")
+	c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, paste.Filename))
+	// Add permanent cache headers since content is immutable
+	c.Set("Cache-Control", "public, max-age=31536000, immutable")
+	c.Set("ETag", paste.ID)
+	return c.Send(content)
 }
 
 // DeleteWithKey deletes a paste using its deletion key
