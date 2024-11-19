@@ -14,13 +14,13 @@ type APIKey struct {
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 
 	// Paste-related limits and permissions
-	MaxFileSize  int64 `gorm:"default:10485760"` // 10MB default
-	RateLimit    int   `gorm:"default:100"`      // Requests per hour
+	MaxFileSize  int64 // 10MB default
+	RateLimit    int   // Requests per hour
 	AllowPrivate bool  `gorm:"default:true"`
-	AllowUpdates bool  `gorm:"default:false"`
+	AllowUpdates bool  `gorm:"default:true"`
 
 	// URL shortening permissions
-	AllowShortlinks bool   `gorm:"default:false"`    // Whether this key can create shortlinks
+	AllowShortlinks bool   `gorm:"default:true"`     // Whether this key can create shortlinks
 	ShortlinkQuota  int    `gorm:"default:0"`        // 0 = unlimited
 	ShortlinkPrefix string `gorm:"type:varchar(16)"` // Optional custom prefix for shortened URLs
 
@@ -49,17 +49,6 @@ func GenerateAPIKey() string {
 func (k *APIKey) BeforeCreate(tx *gorm.DB) error {
 	if k.Key == "" {
 		k.Key = GenerateAPIKey()
-	}
-
-	// Set defaults if not specified
-	if k.MaxFileSize == 0 {
-		k.MaxFileSize = 10485760 // 10MB
-	}
-	if k.RateLimit == 0 {
-		k.RateLimit = 100
-	}
-	if !k.AllowPrivate && !k.AllowUpdates && !k.AllowShortlinks {
-		k.AllowPrivate = true // Default to allowing private pastes
 	}
 
 	return nil

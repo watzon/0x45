@@ -87,7 +87,7 @@ func TestMultipartPasteUpload(t *testing.T) {
 		},
 		{
 			name:           "Large content within API limit",
-			content:        strings.Repeat("a", 1024*1024*9), // 9MB
+			content:        strings.Repeat("a", 1024*1024*7), // 7MB
 			private:        false,
 			mimeType:       "text/plain; charset=utf-8",
 			expectedStatus: 200,
@@ -96,7 +96,7 @@ func TestMultipartPasteUpload(t *testing.T) {
 		},
 		{
 			name:           "Large content exceeding API limit",
-			content:        strings.Repeat("a", 1024*1024*11), // 11MB
+			content:        strings.Repeat("a", 1024*1024*9), // 9MB
 			private:        false,
 			mimeType:       "text/plain; charset=utf-8",
 			expectedStatus: 400,

@@ -69,6 +69,8 @@ func (s *APIKeyService) RequestKey(c *fiber.Ctx) error {
 	apiKey.Name = req.Name
 	apiKey.VerifyToken = token
 	apiKey.VerifyExpiry = time.Now().Add(24 * time.Hour)
+	apiKey.MaxFileSize = int64(s.config.Server.APIUploadSize)
+	apiKey.RateLimit = int(s.config.Server.RateLimit.Global.Rate)
 
 	if err := s.db.Create(apiKey).Error; err != nil {
 		s.logger.Error("failed to create API key", zap.Error(err))

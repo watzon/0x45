@@ -15,7 +15,6 @@ import (
 	"github.com/watzon/hdur"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"moul.io/zapgorm2"
 )
 
 type Server struct {
@@ -30,8 +29,8 @@ type Server struct {
 }
 
 func New(config *config.Config, logger *zap.Logger) *Server {
-	gormLogger := zapgorm2.New(logger)
-	gormLogger.SetAsDefault()
+	// gormLogger := zapgorm2.New(logger)
+	// gormLogger.SetAsDefault()
 
 	// Custom parsers for fiber
 	fiber.SetParserDecoder(fiber.ParserConfig{
@@ -47,7 +46,7 @@ func New(config *config.Config, logger *zap.Logger) *Server {
 
 	// Initialize database
 	db, err := database.New(config, &gorm.Config{
-		Logger: gormLogger,
+		// Logger: gormLogger,
 	})
 	if err != nil {
 		logger.Fatal("Error connecting to database", zap.Error(err))
@@ -79,7 +78,7 @@ func New(config *config.Config, logger *zap.Logger) *Server {
 	// Initialize Fiber app
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errorHandler,
-		BodyLimit:    int(config.Server.MaxUploadSize.Int64()),
+		BodyLimit:    int(config.Server.MaxUploadSize),
 		Views:        engine,
 		Prefork:      config.Server.Prefork,
 		ServerHeader: config.Server.ServerHeader,

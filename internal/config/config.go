@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-	"github.com/watzon/0x45/internal/utils/bytesize"
 )
 
 type StorageConfig struct {
@@ -56,19 +55,19 @@ type RateLimitConfig struct {
 }
 
 type ServerConfig struct {
-	Address           string            `mapstructure:"address"`
-	BaseURL           string            `mapstructure:"base_url"`
-	MaxUploadSize     bytesize.ByteSize `mapstructure:"max_upload_size"`
-	DefaultUploadSize bytesize.ByteSize `mapstructure:"default_upload_size"`
-	APIUploadSize     bytesize.ByteSize `mapstructure:"api_upload_size"`
-	Prefork           bool              `mapstructure:"prefork"`
-	ServerHeader      string            `mapstructure:"server_header"`
-	AppName           string            `mapstructure:"app_name"`
-	Cleanup           CleanupConfig     `mapstructure:"cleanup"`
-	RateLimit         RateLimitConfig   `mapstructure:"rate_limit"`
-	CORSOrigins       []string          `mapstructure:"cors_origins"`
-	ViewsDirectory    string            `mapstructure:"views_directory"`
-	PublicDirectory   string            `mapstructure:"public_directory"`
+	Address           string          `mapstructure:"address"`
+	BaseURL           string          `mapstructure:"base_url"`
+	MaxUploadSize     int             `mapstructure:"max_upload_size"`
+	DefaultUploadSize int             `mapstructure:"default_upload_size"`
+	APIUploadSize     int             `mapstructure:"api_upload_size"`
+	Prefork           bool            `mapstructure:"prefork"`
+	ServerHeader      string          `mapstructure:"server_header"`
+	AppName           string          `mapstructure:"app_name"`
+	Cleanup           CleanupConfig   `mapstructure:"cleanup"`
+	RateLimit         RateLimitConfig `mapstructure:"rate_limit"`
+	CORSOrigins       []string        `mapstructure:"cors_origins"`
+	ViewsDirectory    string          `mapstructure:"views_directory"`
+	PublicDirectory   string          `mapstructure:"public_directory"`
 }
 
 type SMTPConfig struct {
@@ -128,6 +127,8 @@ func Load() (*Config, error) {
 	_ = viper.BindEnv("server.address", "0X_SERVER_ADDRESS")
 	_ = viper.BindEnv("server.base_url", "0X_SERVER_BASE_URL")
 	_ = viper.BindEnv("server.max_upload_size", "0X_SERVER_MAX_UPLOAD_SIZE")
+	_ = viper.BindEnv("server.default_upload_size", "0X_SERVER_DEFAULT_UPLOAD_SIZE")
+	_ = viper.BindEnv("server.api_upload_size", "0X_SERVER_API_UPLOAD_SIZE")
 	_ = viper.BindEnv("server.prefork", "0X_SERVER_PREFORK")
 	_ = viper.BindEnv("server.server_header", "0X_SERVER_SERVER_HEADER")
 	_ = viper.BindEnv("server.app_name", "0X_SERVER_APP_NAME")

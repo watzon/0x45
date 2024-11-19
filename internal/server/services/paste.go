@@ -397,18 +397,18 @@ func (s *PasteService) CleanupExpired() (int64, error) {
 // validateFileSize checks if the file size is within the allowed limits
 func (s *PasteService) validateFileSize(size int64, apiKey *models.APIKey) error {
 	// First check against absolute maximum size for security
-	if size > s.config.Server.MaxUploadSize.Int64() {
-		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("File exceeds maximum allowed size of %s", s.config.Server.MaxUploadSize))
+	if size > int64(s.config.Server.MaxUploadSize) {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("File exceeds maximum allowed size of %d bytes", s.config.Server.MaxUploadSize))
 	}
 
 	// Then check against the appropriate tier limit
 	if apiKey != nil {
-		if size > s.config.Server.APIUploadSize.Int64() {
-			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("File exceeds API upload limit of %s", s.config.Server.APIUploadSize))
+		if size > int64(s.config.Server.APIUploadSize) {
+			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("File exceeds API upload limit of %d bytes", s.config.Server.APIUploadSize))
 		}
 	} else {
-		if size > s.config.Server.DefaultUploadSize.Int64() {
-			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("File exceeds default upload limit of %s", s.config.Server.DefaultUploadSize))
+		if size > int64(s.config.Server.DefaultUploadSize) {
+			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("File exceeds default upload limit of %d bytes", s.config.Server.DefaultUploadSize))
 		}
 	}
 

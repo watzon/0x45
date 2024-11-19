@@ -110,7 +110,7 @@ func (m *Middleware) ETag() fiber.Handler {
 func (m *Middleware) GetMiddleware() []fiber.Handler {
 	return []fiber.Handler{
 		m.RequestID(),
-		m.Logger(),
+		// m.Logger(),
 		m.Recover(),
 		m.CORS(),
 		m.Compression(),

@@ -31,11 +31,15 @@ server:
   # Public-facing URL (used for generating links)
   base_url: http://localhost:3000
   
-  # Maximum upload size in bytes (default: 5MB)
-  max_upload_size: 100MB
-  api_upload_size: 50MB
-  default_upload_size: 10MB
-
+  # Maximum upload size in bytes (hard server limit)
+  max_upload_size: 104857600 # 100 MB
+  
+  # Maximum upload size in bytes (normal users)
+  default_upload_size: 10485760 # 10 MB
+  
+  # Maximim upload size in bytes (users with API key)
+  api_upload_size: 52428800 # 50 MB
+  
   # Preforking
   prefork: false
   
