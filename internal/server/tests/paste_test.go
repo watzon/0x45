@@ -86,11 +86,38 @@ func TestMultipartPasteUpload(t *testing.T) {
 			invalidAuth:    true,
 		},
 		{
-			name:           "Large content",
+			name:           "Large content within API limit",
 			content:        strings.Repeat("a", 1024*1024*9), // 9MB
 			private:        false,
 			mimeType:       "text/plain; charset=utf-8",
 			expectedStatus: 200,
+			withAuth:       true,
+			invalidAuth:    false,
+		},
+		{
+			name:           "Large content exceeding API limit",
+			content:        strings.Repeat("a", 1024*1024*11), // 11MB
+			private:        false,
+			mimeType:       "text/plain; charset=utf-8",
+			expectedStatus: 400,
+			withAuth:       true,
+			invalidAuth:    false,
+		},
+		{
+			name:           "Content within default limit",
+			content:        strings.Repeat("a", 1024*1024*4), // 4MB
+			private:        false,
+			mimeType:       "text/plain; charset=utf-8",
+			expectedStatus: 200,
+			withAuth:       false,
+			invalidAuth:    false,
+		},
+		{
+			name:           "Content exceeding default limit",
+			content:        strings.Repeat("a", 1024*1024*6), // 6MB
+			private:        false,
+			mimeType:       "text/plain; charset=utf-8",
+			expectedStatus: 400,
 			withAuth:       false,
 			invalidAuth:    false,
 		},

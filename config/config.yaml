@@ -32,7 +32,9 @@ server:
   base_url: http://localhost:3000
   
   # Maximum upload size in bytes (default: 5MB)
-  max_upload_size: 5242880  # 5 * 1024 * 1024
+  max_upload_size: 100MB
+  api_upload_size: 50MB
+  default_upload_size: 10MB
 
   # Preforking
   prefork: false

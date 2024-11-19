@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"github.com/watzon/0x45/internal/utils/bytesize"
 )
 
 type StorageConfig struct {
@@ -55,17 +56,19 @@ type RateLimitConfig struct {
 }
 
 type ServerConfig struct {
-	Address         string          `mapstructure:"address"`
-	BaseURL         string          `mapstructure:"base_url"`
-	MaxUploadSize   int             `mapstructure:"max_upload_size"`
-	Prefork         bool            `mapstructure:"prefork"`
-	ServerHeader    string          `mapstructure:"server_header"`
-	AppName         string          `mapstructure:"app_name"`
-	Cleanup         CleanupConfig   `mapstructure:"cleanup"`
-	RateLimit       RateLimitConfig `mapstructure:"rate_limit"`
-	CORSOrigins     []string        `mapstructure:"cors_origins"`
-	ViewsDirectory  string          `mapstructure:"views_directory"`
-	PublicDirectory string          `mapstructure:"public_directory"`
+	Address           string            `mapstructure:"address"`
+	BaseURL           string            `mapstructure:"base_url"`
+	MaxUploadSize     bytesize.ByteSize `mapstructure:"max_upload_size"`
+	DefaultUploadSize bytesize.ByteSize `mapstructure:"default_upload_size"`
+	APIUploadSize     bytesize.ByteSize `mapstructure:"api_upload_size"`
+	Prefork           bool              `mapstructure:"prefork"`
+	ServerHeader      string            `mapstructure:"server_header"`
+	AppName           string            `mapstructure:"app_name"`
+	Cleanup           CleanupConfig     `mapstructure:"cleanup"`
+	RateLimit         RateLimitConfig   `mapstructure:"rate_limit"`
+	CORSOrigins       []string          `mapstructure:"cors_origins"`
+	ViewsDirectory    string            `mapstructure:"views_directory"`
+	PublicDirectory   string            `mapstructure:"public_directory"`
 }
 
 type SMTPConfig struct {
@@ -195,7 +198,7 @@ func Load() (*Config, error) {
 	})
 
 	viper.SetDefault("server.address", ":3000")
-	viper.SetDefault("server.max_upload_size", 5*1024*1024) // 5MB default
+	viper.SetDefault("server.max_upload_size", "5MB") // 5MB default
 	viper.SetDefault("server.prefork", false)
 	viper.SetDefault("server.server_header", "Paste69")
 	viper.SetDefault("server.app_name", "Paste69")

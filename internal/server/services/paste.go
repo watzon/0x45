@@ -394,11 +394,37 @@ func (s *PasteService) CleanupExpired() (int64, error) {
 
 // Helper functions
 
+// validateFileSize checks if the file size is within the allowed limits
+func (s *PasteService) validateFileSize(size int64, apiKey *models.APIKey) error {
+	// First check against absolute maximum size for security
+	if size > s.config.Server.MaxUploadSize.Int64() {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("File exceeds maximum allowed size of %s", s.config.Server.MaxUploadSize))
+	}
+
+	// Then check against the appropriate tier limit
+	if apiKey != nil {
+		if size > s.config.Server.APIUploadSize.Int64() {
+			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("File exceeds API upload limit of %s", s.config.Server.APIUploadSize))
+		}
+	} else {
+		if size > s.config.Server.DefaultUploadSize.Int64() {
+			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("File exceeds default upload limit of %s", s.config.Server.DefaultUploadSize))
+		}
+	}
+
+	return nil
+}
+
 func (s *PasteService) createPaste(content io.Reader, apiKey *models.APIKey, size int64, opts *PasteOptions) (*models.Paste, error) {
 	// Read content for MIME type detection
 	contentBytes, err := io.ReadAll(content)
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to read content")
+	}
+
+	// Check file size against limit either globally or per API key
+	if err := s.validateFileSize(size, apiKey); err != nil {
+		return nil, err
 	}
 
 	// Detect MIME type if not provided

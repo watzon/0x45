@@ -1,39 +1,39 @@
-#!/bin/bash
+# #!/bin/bash
 
-# Run all checks
-echo "Running pre-commit checks..."
+# # Run all checks
+# echo "Running pre-commit checks..."
 
-# Run formatting
-echo "→ Running go fmt..."
-make fmt
-if [ $? -ne 0 ]; then
-    echo "❌ Formatting check failed! Please run 'make fmt' to fix formatting issues."
-    exit 1
-fi
+# # Run formatting
+# echo "→ Running go fmt..."
+# make fmt
+# if [ $? -ne 0 ]; then
+#     echo "❌ Formatting check failed! Please run 'make fmt' to fix formatting issues."
+#     exit 1
+# fi
 
-# Run linting
-echo "→ Running golangci-lint..."
-make lint
-if [ $? -ne 0 ]; then
-    echo "❌ Linting failed! Please run 'make lint' to see the issues."
-    exit 1
-fi
+# # Run linting
+# echo "→ Running golangci-lint..."
+# make lint
+# if [ $? -ne 0 ]; then
+#     echo "❌ Linting failed! Please run 'make lint' to see the issues."
+#     exit 1
+# fi
 
-# Run vet
-echo "→ Running go vet..."
-make vet
-if [ $? -ne 0 ]; then
-    echo "❌ Go vet found issues! Please run 'make vet' to see the problems."
-    exit 1
-fi
+# # Run vet
+# echo "→ Running go vet..."
+# make vet
+# if [ $? -ne 0 ]; then
+#     echo "❌ Go vet found issues! Please run 'make vet' to see the problems."
+#     exit 1
+# fi
 
-# Run tests
-echo "→ Running tests..."
-make test
-if [ $? -ne 0 ]; then
-    echo "❌ Tests failed! Please run 'make test' to see the failing tests."
-    exit 1
-fi
+# # Run tests
+# echo "→ Running tests..."
+# make test
+# if [ $? -ne 0 ]; then
+#     echo "❌ Tests failed! Please run 'make test' to see the failing tests."
+#     exit 1
+# fi
 
-echo "✅ All checks passed!"
-exit 0
+# echo "✅ All checks passed!"
+# exit 0

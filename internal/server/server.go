@@ -79,7 +79,7 @@ func New(config *config.Config, logger *zap.Logger) *Server {
 	// Initialize Fiber app
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errorHandler,
-		BodyLimit:    config.Server.MaxUploadSize,
+		BodyLimit:    int(config.Server.MaxUploadSize.Int64()),
 		Views:        engine,
 		Prefork:      config.Server.Prefork,
 		ServerHeader: config.Server.ServerHeader,

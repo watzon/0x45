@@ -11,6 +11,7 @@ import (
 	"github.com/watzon/0x45/internal/models"
 	"github.com/watzon/0x45/internal/server"
 	"github.com/watzon/0x45/internal/storage"
+	"github.com/watzon/0x45/internal/utils/bytesize"
 	"go.uber.org/zap"
 )
 
@@ -62,11 +63,13 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 			},
 		},
 		Server: config.ServerConfig{
-			MaxUploadSize:   10 * 1024 * 1024, // 10MB
-			AppName:         "0x45-test",
-			ServerHeader:    "0x45-test",
-			ViewsDirectory:  viewsDir,
-			PublicDirectory: pubDir,
+			MaxUploadSize:     bytesize.ByteSize(10 * 1024 * 1024), // 10MB
+			DefaultUploadSize: bytesize.ByteSize(5 * 1024 * 1024),  // 5MB
+			APIUploadSize:     bytesize.ByteSize(10 * 1024 * 1024), // 10MB
+			AppName:           "0x45-test",
+			ServerHeader:      "0x45-test",
+			ViewsDirectory:    viewsDir,
+			PublicDirectory:   pubDir,
 		},
 		Retention: config.RetentionConfig{
 			NoKey: config.RetentionLimitConfig{
@@ -89,8 +92,8 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 	defer func() { _ = logger.Sync() }()
 
 	// Create server instance with modified config
-	origCfg := *cfg                             // Make a copy of the original config
-	cfg.Server.MaxUploadSize = 10 * 1024 * 1024 // 10MB
+	origCfg := *cfg                                                // Make a copy of the original config
+	cfg.Server.MaxUploadSize = bytesize.ByteSize(10 * 1024 * 1024) // 10MB
 	cfg.Server.AppName = "0x45-test"
 	cfg.Server.ServerHeader = "0x45-test"
 
