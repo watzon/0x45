@@ -226,7 +226,7 @@ func (s *PasteService) RenderPaste(c *fiber.Ctx, paste *models.Paste) error {
 	if s.isImageContent(paste.MimeType) {
 		return s.RenderRawContent(c, paste)
 	}
-	return c.Redirect("/download/" + paste.ID)
+	return c.Redirect("/p/" + paste.ID + "/download")
 }
 
 // RenderRawContent serves the raw content with proper content type
