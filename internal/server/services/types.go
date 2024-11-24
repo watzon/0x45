@@ -34,16 +34,14 @@ type PasteOptions struct {
 
 // PasteResponse represents the response structure for creating a new paste
 type PasteResponse struct {
-	ID          string     `json:"id" xml:"id" form:"id"`
-	Filename    string     `json:"filename" xml:"filename" form:"filename"`
-	URL         string     `json:"url" xml:"url" form:"url"`
-	RawURL      string     `json:"raw_url" xml:"raw_url" form:"raw_url"`
-	DownloadURL string     `json:"download_url" xml:"download_url" form:"download_url"`
-	DeleteURL   string     `json:"delete_url" xml:"delete_url" form:"delete_url"`
-	MimeType    string     `json:"mime_type" xml:"mime_type" form:"mime_type"`
-	Size        int64      `json:"size" xml:"size" form:"size"`
-	ExpiresAt   *time.Time `json:"expires_at" xml:"expires_at" form:"expires_at"`
-	Private     bool       `json:"private" xml:"private" form:"private"`
+	ID        string     `json:"id" xml:"id" form:"id"`
+	Filename  string     `json:"filename" xml:"filename" form:"filename"`
+	URL       string     `json:"url" xml:"url" form:"url"`
+	DeleteURL string     `json:"delete_url" xml:"delete_url" form:"delete_url"`
+	MimeType  string     `json:"mime_type" xml:"mime_type" form:"mime_type"`
+	Size      int64      `json:"size" xml:"size" form:"size"`
+	ExpiresAt *time.Time `json:"expires_at" xml:"expires_at" form:"expires_at"`
+	Private   bool       `json:"private" xml:"private" form:"private"`
 }
 
 // UpdatePasteExpirationRequest represents the request structure for updating a paste's expiration time
@@ -60,16 +58,14 @@ func NewPasteResponse(paste *models.Paste, baseURL string) PasteResponse {
 	}
 
 	return PasteResponse{
-		ID:          paste.ID,
-		Filename:    paste.Filename,
-		URL:         fmt.Sprintf("%s/p/%s", baseURL, urlSuffix),
-		RawURL:      fmt.Sprintf("%s/p/%s/raw", baseURL, urlSuffix),
-		DownloadURL: fmt.Sprintf("%s/p/%s/download", baseURL, urlSuffix),
-		DeleteURL:   fmt.Sprintf("%s/p/%s/%s", baseURL, paste.ID, paste.DeleteKey),
-		Private:     paste.Private,
-		MimeType:    paste.MimeType,
-		Size:        paste.Size,
-		ExpiresAt:   paste.ExpiresAt,
+		ID:        paste.ID,
+		Filename:  paste.Filename,
+		URL:       fmt.Sprintf("%s/p/%s", baseURL, urlSuffix),
+		DeleteURL: fmt.Sprintf("%s/p/%s/%s", baseURL, paste.ID, paste.DeleteKey),
+		Private:   paste.Private,
+		MimeType:  paste.MimeType,
+		Size:      paste.Size,
+		ExpiresAt: paste.ExpiresAt,
 	}
 }
 

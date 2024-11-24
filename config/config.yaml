@@ -4,8 +4,8 @@ database:
   driver: postgres
   host: localhost
   port: 5432
-  user: postgres
-  name: paste69
+  user: watzon
+  name: "0x45"
   sslmode: disable  # Options: disable, require, verify-ca, verify-full
 
 # Storage configuration

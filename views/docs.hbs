@@ -124,8 +124,6 @@
         "expires_at": "2024-03-21T15:30:00Z",
         "private": false,
         "url": "/abc12345.txt",
-        "raw_url": "/raw/abc12345.txt",
-        "download_url": "/download/abc12345.txt",
         "delete_url": "/delete/abc12345/deletekey123"
     }
 }</code></pre>
@@ -163,8 +161,6 @@
         "expires_at": "2024-03-21T15:30:00Z",
         "private": false,
         "url": "/abc12345.txt",
-        "raw_url": "/raw/abc12345.txt",
-        "download_url": "/download/abc12345.txt",
         "delete_url": "/delete/abc12345/deletekey123"
     }
 }</code></pre>
@@ -218,8 +214,6 @@
         "expires_at": "2024-03-21T15:30:00Z",
         "private": false,
         "url": "/abc12345.txt",
-        "raw_url": "/raw/abc12345.txt",
-        "download_url": "/download/abc12345.txt",
         "delete_url": "/delete/abc12345/deletekey123"
     }
 }</code></pre>
@@ -237,41 +231,48 @@
             <div class="labeled-code-block">
                 <span class="command-label curl-label">CURL</span>
                 <div class="code-block">
-                    <code>curl -X GET {{baseUrl}}/p/:id</code>
-                    <button class="action-btn" data-clipboard data-clipboard-content="curl -X GET {{baseUrl}}/p/:id"><span>Copy</span></button>
+                    <code>curl {{baseUrl}}/p/:id</code>
+                    <button class="action-btn" data-clipboard data-clipboard-content="curl {{baseUrl}}/p/:id"><span>Copy</span></button>
                 </div>
             </div>
             <dl>
                 <dt>Response:</dt>
-                <dd>HTML page with syntax-highlighted content (for text files) or appropriate viewer</dd>
-            </dl>
-        </li>
+                <dd>
+                    <h3>Content Negotiation</h3>
+                    <p>When viewing a paste, the response format is determined by the <code>Accept</code> header in your request. This allows you to retrieve the content in your preferred format:</p>
+                    <ul>
+                        <li><code>text/html</code>: Returns an HTML page with syntax highlighting (default for browsers)</li>
+                        <li><code>application/json</code> or <code>text/json</code>: Returns paste metadata and content in JSON format</li>
+                        <li><code>text/plain</code> or <code>*/*</code>: Returns the raw paste content</li>
+                    </ul>
 
-        <li><strong>Raw View</strong>
-            <div class="labeled-code-block">
-                <span class="command-label curl-label">CURL</span>
-                <div class="code-block">
-                    <code>curl -X GET {{baseUrl}}/p/:id/raw[.:ext]</code>
-                    <button class="action-btn" data-clipboard data-clipboard-content="curl -X GET {{baseUrl}}/p/:id/raw"><span>Copy</span></button>
-                </div>
-            </div>
-            <dl>
-                <dt>Response:</dt>
-                <dd>Raw file content with appropriate Content-Type header</dd>
-            </dl>
-        </li>
+                    <strong>Examples:</strong>
+                    <div class="labeled-code-block">
+                        <span class="command-label curl-label">View in Browser</span>
+                        <div class="code-block">
+                            <code>curl {{baseUrl}}/p/YOUR_PASTE_ID</code>
+                            <button class="action-btn" data-clipboard data-clipboard-content="curl {{baseUrl}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
+                        </div>
+                    </div>
 
-        <li><strong>Download</strong>
-            <div class="labeled-code-block">
-                <span class="command-label curl-label">CURL</span>
-                <div class="code-block">
-                    <code>curl -X GET {{baseUrl}}/p/:id/download[.:ext]</code>
-                    <button class="action-btn" data-clipboard data-clipboard-content="curl -X GET {{baseUrl}}/p/:id/download"><span>Copy</span></button>
-                </div>
-            </div>
-            <dl>
-                <dt>Response:</dt>
-                <dd>File download with Content-Disposition: attachment</dd>
+                    <div class="labeled-code-block">
+                        <span class="command-label curl-label">Get JSON Response</span>
+                        <div class="code-block">
+                            <code>curl -H "Accept: application/json" {{baseUrl}}/p/YOUR_PASTE_ID</code>
+                            <button class="action-btn" data-clipboard data-clipboard-content="curl -H &quot;Accept: application/json&quot; {{baseUrl}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
+                        </div>
+                    </div>
+
+                    <div class="labeled-code-block">
+                        <span class="command-label curl-label">Get Raw Content</span>
+                        <div class="code-block">
+                            <code>curl -H "Accept: text/plain" {{baseUrl}}/p/YOUR_PASTE_ID</code>
+                            <button class="action-btn" data-clipboard data-clipboard-content="curl -H &quot;Accept: text/plain&quot; {{baseUrl}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
+                        </div>
+                    </div>
+
+                    <p>The JSON response includes metadata about the paste along with its content (for text files) or download URL (for binary files). This is particularly useful for programmatic access to paste information.</p>
+                </dd>
             </dl>
         </li>
 

@@ -156,6 +156,7 @@ func (s *Server) SetupRoutes() {
 	})
 
 	// Non-extension paste routes last (more general)
+	s.app.Get("/p/:id", s.handlers.Paste.HandleView)
 	s.app.Get("/p/:id/raw", s.handlers.Paste.HandleRawView)
 	s.app.Get("/p/:id/download", s.handlers.Paste.HandleDownload)
 	s.app.Get("/p/:id/image", s.handlers.Paste.HandleGetPasteImage)

@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/server/services"
@@ -51,7 +53,27 @@ func (h *PasteHandlers) HandleView(c *fiber.Ctx) error {
 		h.logger.Error("failed to log paste view", zap.Error(err))
 	}
 
-	return h.services.Paste.RenderPaste(c, paste)
+	// Check accepts headers. CURL by default sends an accepts header of "*/*"
+	// whereas browsers typically send a more specific header, but always
+	// starting with "text/html". If the first part of the accepts
+	// header is "text/html", we return the HTML view
+	if strings.HasPrefix(c.Get("Accept"), "text/html") {
+		return h.services.Paste.RenderPaste(c, paste)
+	}
+
+	// If the accepts header contains "application/json" or "text/json", we'll return the paste as JSON
+	if strings.Contains(c.Get("Accept"), "application/json") || strings.Contains(c.Get("Accept"), "text/json") {
+		return h.services.Paste.RenderPasteJSON(c, paste)
+	}
+
+	// And finally, if the accepts header is "*/*" or contains "text/plain", we'll
+	// return the raw content
+	if c.Get("Accept") == "*/*" || strings.Contains(c.Get("Accept"), "text/plain") {
+		return h.services.Paste.RenderPasteRaw(c, paste)
+	}
+
+	// If none of the above conditions are met, we'll return 406 Not Acceptable
+	return fiber.NewError(fiber.StatusNotAcceptable, "Not Acceptable")
 }
 
 // HandleRawView serves the raw content of a paste
@@ -68,7 +90,7 @@ func (h *PasteHandlers) HandleRawView(c *fiber.Ctx) error {
 		return err
 	}
 
-	return h.services.Paste.RenderRawContent(c, paste)
+	return h.services.Paste.RenderPasteRaw(c, paste)
 }
 
 // HandleDownload serves the content as a downloadable file

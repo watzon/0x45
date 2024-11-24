@@ -153,16 +153,14 @@ func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
 	baseURL := s.config.Server.BaseURL
 
 	return c.JSON(&PasteResponse{
-		ID:          paste.ID,
-		Filename:    paste.Filename,
-		URL:         fmt.Sprintf("%s/p/%s.%s", baseURL, paste.ID, paste.Extension),
-		RawURL:      fmt.Sprintf("%s/p/%s.%s/raw", baseURL, paste.ID, paste.Extension),
-		DownloadURL: fmt.Sprintf("%s/p/%s.%s/download", baseURL, paste.ID, paste.Extension),
-		DeleteURL:   fmt.Sprintf("%s/p/%s.%s/%s", baseURL, paste.ID, paste.Extension, paste.DeleteKey),
-		Private:     paste.Private,
-		MimeType:    paste.MimeType,
-		Size:        paste.Size,
-		ExpiresAt:   paste.ExpiresAt,
+		ID:        paste.ID,
+		Filename:  paste.Filename,
+		URL:       fmt.Sprintf("%s/p/%s.%s", baseURL, paste.ID, paste.Extension),
+		DeleteURL: fmt.Sprintf("%s/p/%s.%s/%s", baseURL, paste.ID, paste.Extension, paste.DeleteKey),
+		Private:   paste.Private,
+		MimeType:  paste.MimeType,
+		Size:      paste.Size,
+		ExpiresAt: paste.ExpiresAt,
 	})
 }
 
@@ -224,13 +222,13 @@ func (s *PasteService) RenderPaste(c *fiber.Ctx, paste *models.Paste) error {
 		return s.renderPasteView(c, paste)
 	}
 	if s.isImageContent(paste.MimeType) {
-		return s.RenderRawContent(c, paste)
+		return s.RenderPasteRaw(c, paste)
 	}
 	return c.Redirect("/p/" + paste.ID + "/download")
 }
 
-// RenderRawContent serves the raw content with proper content type
-func (s *PasteService) RenderRawContent(c *fiber.Ctx, paste *models.Paste) error {
+// RenderPasteRaw serves the raw content with proper content type
+func (s *PasteService) RenderPasteRaw(c *fiber.Ctx, paste *models.Paste) error {
 	content, err := s.storage.Get(paste.StoragePath)
 	if err != nil {
 		return err
@@ -240,6 +238,33 @@ func (s *PasteService) RenderRawContent(c *fiber.Ctx, paste *models.Paste) error
 	c.Set("Cache-Control", "public, max-age=31536000, immutable")
 	c.Set("ETag", paste.ID)
 	return c.Send(content)
+}
+
+// RenderPasteJSON serves the paste as JSON. If the paste is text, the content will be included
+// in the response. Otherwise only the URL will be included for downloading purposes.
+func (s *PasteService) RenderPasteJSON(c *fiber.Ctx, paste *models.Paste) error {
+	pasteJson := struct {
+		ID       string `json:"id"`
+		Filename string `json:"filename"`
+		MimeType string `json:"mimeType"`
+		URL      string `json:"url"`
+		Content  string `json:"content"`
+	}{
+		ID:       paste.ID,
+		Filename: paste.Filename,
+		MimeType: paste.MimeType,
+		URL:      fmt.Sprintf("%s/p/%s.%s", s.config.Server.BaseURL, paste.ID, paste.Extension),
+	}
+
+	if s.isTextContent(paste.MimeType) {
+		content, err := s.storage.Get(paste.StoragePath)
+		if err != nil {
+			return err
+		}
+		pasteJson.Content = string(content)
+	}
+
+	return c.JSON(pasteJson)
 }
 
 // RenderDownload serves the content as a downloadable file

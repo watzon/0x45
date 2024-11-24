@@ -184,8 +184,6 @@ func TestMultipartPasteUpload(t *testing.T) {
 				require.NoError(t, err)
 				assert.NotEmpty(t, paste.ID)
 				assert.NotEmpty(t, paste.URL)
-				assert.NotEmpty(t, paste.RawURL)
-				assert.NotEmpty(t, paste.DownloadURL)
 				assert.NotEmpty(t, paste.DeleteURL)
 				assert.Equal(t, tt.private, paste.Private)
 				assert.Equal(t, tt.mimeType, paste.MimeType)
@@ -303,8 +301,6 @@ func TestJSONPasteUpload(t *testing.T) {
 
 				assert.NotEmpty(t, paste.ID)
 				assert.NotEmpty(t, paste.URL)
-				assert.NotEmpty(t, paste.RawURL)
-				assert.NotEmpty(t, paste.DownloadURL)
 				assert.NotEmpty(t, paste.DeleteURL)
 				assert.Equal(t, body.Private, paste.Private)
 			}
