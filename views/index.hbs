@@ -29,20 +29,8 @@
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <pre><code>curl -X POST --data-binary @file.txt {{baseUrl}}/p</code></pre>
-            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST --data-binary @file.txt {{baseUrl}}/p">
-                <span>Copy</span>
-            </button>
-        </div>
-    </div>
-</div>
-
-<div class="command-group">
-    <div class="labeled-code-block">
-        <span class="command-label curl-label">CURL</span>
-        <div class="code-block">
-            <pre><code>curl -H "Authorization: Bearer YOUR_API_KEY" -F "url=https://example.com" {{baseUrl}}/u</code></pre>
-            <button class="action-btn" data-clipboard data-clipboard-content='curl -H "Authorization: Bearer YOUR_API_KEY" -F "url=https://example.com" {{baseUrl}}/u'>
+            <pre><code>curl -F "url=https://example.com" {{baseUrl}}/u?api_key=YOUR_API_KEY</code></pre>
+            <button class="action-btn" data-clipboard data-clipboard-content='curl -F "url=https://example.com" {{baseUrl}}/u?api_key=YOUR_API_KEY'>
                 <span>Copy</span>
             </button>
         </div>
