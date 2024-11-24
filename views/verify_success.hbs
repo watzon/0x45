@@ -9,7 +9,7 @@
 
     <div class="code-block">
         <pre><code>{{apiKey}}</code></pre>
-        <button class="action-btn" data-clipboard data-content="{{apiKey}}">
+        <button class="action-btn" data-clipboard data-clipboard-content="{{apiKey}}">
             <span>Copy</span>
         </button>
     </div>
@@ -22,7 +22,7 @@
 
     <div class="code-block">
         <pre><code>Authorization: Bearer {{apiKey}}</code></pre>
-        <button class="action-btn" data-clipboard data-content="Authorization: Bearer {{apiKey}}">
+        <button class="action-btn" data-clipboard data-clipboard-content="Authorization: Bearer {{apiKey}}">
             <span>Copy</span>
         </button>
     </div>
@@ -33,10 +33,10 @@
 
     <p>Example request:</p>
     <div class="code-block">
-        <pre><code>curl -H "Authorization: Bearer {{apiKey}}" \
+        <pre><code id="example-request">curl -H "Authorization: Bearer {{apiKey}}" \
 -d '{"url":"https://example.com"}' \
 {{baseUrl}}/url</code></pre>
-        <button class="action-btn" data-clipboard>
+        <button class="action-btn" data-clipboard data-clipboard-selector="#example-request">
             <span>Copy</span>
         </button>
     </div>

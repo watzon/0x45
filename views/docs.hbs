@@ -94,46 +94,34 @@
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
             <code>curl -X POST -F "file=@path/to/file.txt" {{baseUrl}}/p</code>
-            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST -F \'file=@path/to/file.txt\' {{baseUrl}}/p"><span>Copy</span></button>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST -F 'file=@path/to/file.txt' {{baseUrl}}/p"><span>Copy</span></button>
         </div>
     </div>
     <dl>
-        <dt>Form field:</dt>
-        <dd>file</dd>
-        <dt>Optional query params:</dt>
+        <dt>Form fields:</dt>
         <dd>
             <ul>
-                <li>ext: file extension</li>
-                <li>expires_in: expiration time (e.g. "24h" or "7 days 2 hours and 45 minutes")</li>
-                <li>expires_at: expiration date (YYYY-MM-DD)</li>
-                <li>private: true/false (requires API key)</li>
-                <li>filename: custom filename</li>
+                <li><code>file</code> - The file to upload</li>
+                <li><code>private</code> - (optional) Set to "true" to make the paste private</li>
+                <li><code>expires_in</code> - (optional) Duration string for paste expiry (e.g. "24h", "7d")</li>
             </ul>
         </dd>
         <dt>Response:</dt>
         <dd>
-            <div class="code-block json">
-                <pre><code id="multipart-upload-response">{
-    "success": true,
-    "data": {
-        "id": "abc12345",
-        "filename": "example.txt",
-        "size": 1234,
-        "mime_type": "text/plain",
-        "created_at": "2024-03-20T15:30:00Z",
-        "expires_at": "2024-03-21T15:30:00Z",
-        "private": false,
-        "url": "/abc12345.txt",
-        "delete_url": "/delete/abc12345/deletekey123"
-    }
+            <pre><code id="multipart-upload-response">{
+    "id": "abc12345",
+    "filename": "example.txt",
+    "url": "/abc12345.txt",
+    "delete_url": "/delete/abc12345/deletekey123",
+    "mime_type": "text/plain",
+    "size": 1234,
+    "expires_at": "2024-03-21T15:30:00Z",
+    "private": false
 }</code></pre>
-                <button class="action-btn" data-clipboard data-clipboard-selector="#multipart-upload-response"><span>Copy</span></button>
-            </div>
+            <button class="action-btn" data-clipboard data-clipboard-selector="#multipart-upload-response"><span>Copy</span></button>
         </dd>
     </dl>
-</section>
 
-<section>
     <strong>2. Raw Upload</strong>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
@@ -143,161 +131,90 @@
         </div>
     </div>
     <dl>
-        <dt>Body:</dt>
-        <dd>raw file content</dd>
-        <dt>Query params:</dt>
-        <dd>Same query params as multipart</dd>
-        <dt>Response:</dt>
+        <dt>Query parameters:</dt>
         <dd>
-            <div class="code-block json">
-                <pre><code id="raw-upload-response">{
-    "success": true,
-    "data": {
-        "id": "abc12345",
-        "filename": "paste.txt",
-        "size": 1234,
-        "mime_type": "text/plain",
-        "created_at": "2024-03-20T15:30:00Z",
-        "expires_at": "2024-03-21T15:30:00Z",
-        "private": false,
-        "url": "/abc12345.txt",
-        "delete_url": "/delete/abc12345/deletekey123"
-    }
-}</code></pre>
-                <button class="action-btn" data-clipboard= data-clipboard-selector="#raw-upload-response"><span>Copy</span></button>
-            </div>
+            <ul>
+                <li><code>private</code> - (optional) Set to "true" to make the paste private</li>
+                <li><code>expires_in</code> - (optional) Duration string for paste expiry (e.g. "24h", "7d")</li>
+                <li><code>filename</code> - (optional) Custom filename for the paste</li>
+            </ul>
         </dd>
+        <dt>Response:</dt>
+        <dd>Same as multipart upload</dd>
     </dl>
-</section>
 
-<section>
     <strong>3. JSON Upload</strong>
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl -X POST \
-    -H "Content-Type: application/json" \
-    -d '{"content":"Hello World"}' \
-    {{baseUrl}}/p</code>
-            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST -H \"Content-Type: application/json\" -d '{\"content\":\"Hello World\"}' {{baseUrl}}/p"><span>Copy</span></button>
+            <code>curl -X POST -H "Content-Type: application/json" -d @- {{baseUrl}}/p << 'EOF'
+{
+    "content": "Hello, World!",
+    "filename": "hello.txt",
+    "private": false,
+    "expires_in": "24h"
+}
+EOF</code>
+            <button class="action-btn" data-clipboard data-clipboard-selector="#json-upload-body"><span>Copy</span></button>
         </div>
-    </div>
+    </dl>
+
+    <strong>4. Viewing and Managing Pastes</strong>
     <dl>
-        <dt>Content-Type:</dt>
-        <dd>application/json</dd>
-        <dt>Body:</dt>
+        <dt>Viewing Pastes:</dt>
         <dd>
-            <div class="code-block json">
-                <pre><code id="json-upload-body">{
-    "content": "string",     // Required if no URL
-    "url": "string",         // Required if no content
-    "filename": "string",    // Optional
-    "extension": "string",   // Optional
-    "expires_in": "string",  // Optional (e.g. "24h")
-    "expires_at": "string",  // Optional (e.g. "2024-03-20")
-    "private": boolean       // Optional
-}</code></pre>
-                <button class="action-btn" data-clipboard data-clipboard-selector="#json-upload-body"><span>Copy</span></button>
+            <h3>Content Negotiation</h3>
+            <p>When viewing a paste at <code>{{baseUrl}}/p/:id</code>, the response format is determined by the <code>Accept</code> header in your request:</p>
+            <ul>
+                <li><code>application/xhtml+xml</code>: Returns an HTML page with syntax highlighting (default for browsers)</li>
+                <li><code>application/vnd.0x45.paste+json</code>: Returns paste metadata as JSON (for API integrations)</li>
+                <li>No Accept header or <code>*/*</code>: Returns the raw content with its original mime type</li>
+            </ul>
+
+            <strong>Examples:</strong>
+            <div class="labeled-code-block">
+                <span class="command-label curl-label">View in Browser</span>
+                <div class="code-block">
+                    <code>curl {{baseUrl}}/p/YOUR_PASTE_ID</code>
+                    <button class="action-btn" data-clipboard data-clipboard-content="curl {{baseUrl}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
+                </div>
             </div>
+
+            <div class="labeled-code-block">
+                <span class="command-label curl-label">Get Paste Metadata (API)</span>
+                <div class="code-block">
+                    <code>curl -H "Accept: application/vnd.0x45.paste+json" {{baseUrl}}/p/YOUR_PASTE_ID</code>
+                    <button class="action-btn" data-clipboard data-clipboard-content="curl -H &quot;Accept: application/vnd.0x45.paste+json&quot; {{baseUrl}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
+                </div>
+            </div>
+
+            <div class="labeled-code-block">
+                <span class="command-label curl-label">Get Raw Content</span>
+                <div class="code-block">
+                    <code>curl {{baseUrl}}/p/YOUR_PASTE_ID</code>
+                    <button class="action-btn" data-clipboard data-clipboard-content="curl {{baseUrl}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
+                </div>
+            </div>
+
+            <p>When requesting raw content, the response will have the Content-Type header set to match the original file's mime type. For example, if you uploaded a JSON file, the raw content will be served with <code>Content-Type: application/json</code>.</p>
+
+            <p>If you specify an Accept header, the server will validate that it matches the paste's mime type. For example, if you request <code>Accept: image/png</code> but the paste is a text file, you'll receive a 406 Not Acceptable response. Use <code>Accept: */*</code> or omit the Accept header to accept any content type.</p>
+
+            <p>The JSON metadata response includes information about the paste such as ID, filename, URLs, and expiration time. This format is particularly useful for API integrations.</p>
         </dd>
-        <dt>Response:</dt>
+
+        <dt>Deleting Pastes:</dt>
         <dd>
-            <div class="code-block json">
-                <pre><code id="json-upload-response">{
-    "success": true,
-    "data": {
-        "id": "abc12345",
-        "filename": "example.txt",
-        "size": 1234,
-        "mime_type": "text/plain",
-        "created_at": "2024-03-20T15:30:00Z",
-        "expires_at": "2024-03-21T15:30:00Z",
-        "private": false,
-        "url": "/abc12345.txt",
-        "delete_url": "/delete/abc12345/deletekey123"
-    }
-}</code></pre>
-                <button class="action-btn" data-clipboard data-clipboard-selector="#json-upload-response"><span>Copy</span></button>
+            <div class="labeled-code-block">
+                <span class="command-label curl-label">CURL</span>
+                <div class="code-block">
+                    <code>curl -X DELETE {{baseUrl}}/p/:id/:delete_key</code>
+                    <button class="action-btn" data-clipboard data-clipboard-content="curl -X DELETE {{baseUrl}}/p/:id/:delete_key"><span>Copy</span></button>
+                </div>
             </div>
+            <p>The delete key is provided in the response when creating a paste.</p>
         </dd>
     </dl>
-</section>
-
-<section id="file-management">
-    <h2>File Management</h2>
-
-    <ul>
-        <li><strong>View File</strong>
-            <div class="labeled-code-block">
-                <span class="command-label curl-label">CURL</span>
-                <div class="code-block">
-                    <code>curl {{baseUrl}}/p/:id</code>
-                    <button class="action-btn" data-clipboard data-clipboard-content="curl {{baseUrl}}/p/:id"><span>Copy</span></button>
-                </div>
-            </div>
-            <dl>
-                <dt>Response:</dt>
-                <dd>
-                    <h3>Content Negotiation</h3>
-                    <p>When viewing a paste, the response format is determined by the <code>Accept</code> header in your request. This allows you to retrieve the content in your preferred format:</p>
-                    <ul>
-                        <li><code>text/html</code>: Returns an HTML page with syntax highlighting (default for browsers)</li>
-                        <li><code>application/json</code> or <code>text/json</code>: Returns paste metadata and content in JSON format</li>
-                        <li><code>text/plain</code> or <code>*/*</code>: Returns the raw paste content</li>
-                    </ul>
-
-                    <strong>Examples:</strong>
-                    <div class="labeled-code-block">
-                        <span class="command-label curl-label">View in Browser</span>
-                        <div class="code-block">
-                            <code>curl {{baseUrl}}/p/YOUR_PASTE_ID</code>
-                            <button class="action-btn" data-clipboard data-clipboard-content="curl {{baseUrl}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
-                        </div>
-                    </div>
-
-                    <div class="labeled-code-block">
-                        <span class="command-label curl-label">Get JSON Response</span>
-                        <div class="code-block">
-                            <code>curl -H "Accept: application/json" {{baseUrl}}/p/YOUR_PASTE_ID</code>
-                            <button class="action-btn" data-clipboard data-clipboard-content="curl -H &quot;Accept: application/json&quot; {{baseUrl}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
-                        </div>
-                    </div>
-
-                    <div class="labeled-code-block">
-                        <span class="command-label curl-label">Get Raw Content</span>
-                        <div class="code-block">
-                            <code>curl -H "Accept: text/plain" {{baseUrl}}/p/YOUR_PASTE_ID</code>
-                            <button class="action-btn" data-clipboard data-clipboard-content="curl -H &quot;Accept: text/plain&quot; {{baseUrl}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
-                        </div>
-                    </div>
-
-                    <p>The JSON response includes metadata about the paste along with its content (for text files) or download URL (for binary files). This is particularly useful for programmatic access to paste information.</p>
-                </dd>
-            </dl>
-        </li>
-
-        <li><strong>Delete with Key</strong>
-            <div class="labeled-code-block">
-                <span class="command-label curl-label">CURL</span>
-                <div class="code-block">
-                    <code>curl -X DELETE {{baseUrl}}/p/:id/:key</code>
-                    <button class="action-btn" data-clipboard data-clipboard-content="curl -X DELETE {{baseUrl}}/p/:id/:key"><span>Copy</span></button>
-                </div>
-            </div>
-            <dl>
-                <dt>Response:</dt>
-                <dd>
-                    <div class="code-block json">
-                        <pre><code>{
-    "success": true,
-    "message": "Paste deleted successfully"
-}</code></pre>
-                        <button class="action-btn" data-clipboard data-clipboard-content="#delete-response"><span>Copy</span></button>
-                    </div>
-                </dd>
-            </dl>
-        </li>
-    </ul>
 </section>
 
 {{#if apiKeysEnabled}}
@@ -335,7 +252,7 @@
         <div class="code-block">
             <code id="json-url-stats-body">curl -X GET \
     -H "Authorization: Bearer YOUR_API_KEY" \
-    "{{baseUrl}}/u/:id/stats?start_date=2024-01-01&end_date=2024-12-31"</code>
+    "{{baseUrl}}/u/:id/stats?start_date=2024-01-01&amp;end_date=2024-12-31"</code>
             <button class="action-btn" data-clipboard data-clipboard-content="#json-url-stats-body"><span>Copy</span></button>
         </div>
     </div>
@@ -355,7 +272,7 @@
         <div class="code-block">
             <code id="json-url-list-body">curl -X GET \
     -H "Authorization: Bearer YOUR_API_KEY" \
-    "{{baseUrl}}/u/list?page=1&limit=10"</code>
+    "{{baseUrl}}/u/list?page=1&amp;limit=10"</code>
             <button class="action-btn" data-clipboard data-clipboard-content="#json-url-list-body"><span>Copy</span></button>
         </div>
     </div>
@@ -379,7 +296,7 @@
         <div class="code-block">
             <code id="json-url-list-body">curl -X GET \
     -H "Authorization: Bearer YOUR_API_KEY" \
-    "{{baseUrl}}/u/list?page=1&limit=10"</code>
+    "{{baseUrl}}/u/list?page=1&amp;limit=10"</code>
             <button class="action-btn" data-clipboard data-clipboard-content="#json-url-list-body"><span>Copy</span></button>
         </div>
     </div>
@@ -399,7 +316,7 @@
         <div class="code-block">
             <code id="json-url-stats-body">curl -X GET \
     -H "Authorization: Bearer YOUR_API_KEY" \
-    "{{baseUrl}}/u/:id/stats?start_date=2024-01-01&end_date=2024-12-31"</code>
+    "{{baseUrl}}/u/:id/stats?start_date=2024-01-01&amp;end_date=2024-12-31"</code>
             <button class="action-btn" data-clipboard data-clipboard-content="#json-url-stats-body"><span>Copy</span></button>
         </div>
     </div>

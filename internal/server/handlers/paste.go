@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -53,27 +54,47 @@ func (h *PasteHandlers) HandleView(c *fiber.Ctx) error {
 		h.logger.Error("failed to log paste view", zap.Error(err))
 	}
 
-	// Check accepts headers. CURL by default sends an accepts header of "*/*"
-	// whereas browsers typically send a more specific header, but always
-	// starting with "text/html". If the first part of the accepts
-	// header is "text/html", we return the HTML view
-	if strings.HasPrefix(c.Get("Accept"), "text/html") {
-		return h.services.Paste.RenderPaste(c, paste)
-	}
-
-	// If the accepts header contains "application/json" or "text/json", we'll return the paste as JSON
-	if strings.Contains(c.Get("Accept"), "application/json") || strings.Contains(c.Get("Accept"), "text/json") {
+	// If the accepts header contains our vendor-specific MIME type, return the paste as JSON
+	if strings.Contains(c.Get("Accept"), "application/vnd.0x45.paste+json") {
 		return h.services.Paste.RenderPasteJSON(c, paste)
 	}
 
-	// And finally, if the accepts header is "*/*" or contains "text/plain", we'll
-	// return the raw content
-	if c.Get("Accept") == "*/*" || strings.Contains(c.Get("Accept"), "text/plain") {
-		return h.services.Paste.RenderPasteRaw(c, paste)
+	// If the client wants HTML (browsers), render the HTML view.
+	// Specifically using "application/xhtml+xml" here since all browsers include it in their
+	// Accept header, and it won't ever be automatically added as a mime type for a paste.
+	if strings.Contains(c.Get("Accept"), "application/xhtml+xml") {
+		return h.services.Paste.RenderPaste(c, paste)
 	}
 
-	// If none of the above conditions are met, we'll return 406 Not Acceptable
-	return fiber.NewError(fiber.StatusNotAcceptable, "Not Acceptable")
+	// For all other cases, check if the client accepts the paste's mime type
+	acceptHeader := c.Get("Accept")
+	if acceptHeader != "" && acceptHeader != "*/*" {
+		// Split accept header on commas and check if any of the accepted types match
+		acceptedTypes := strings.Split(acceptHeader, ",")
+		matched := false
+
+		// Strip quality values from paste's mime type
+		pasteMimeType := strings.TrimSpace(strings.Split(paste.MimeType, ";")[0])
+
+		for _, t := range acceptedTypes {
+			// Trim whitespace and remove quality values (e.g., "text/html;q=0.9")
+			mediaType := strings.TrimSpace(strings.Split(t, ";")[0])
+			if mediaType == pasteMimeType {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return fiber.NewError(
+				fiber.StatusNotAcceptable,
+				fmt.Sprintf("Client accepts %s but paste has mime type %s", acceptHeader, pasteMimeType),
+			)
+		}
+	}
+
+	// Set content type and return raw content
+	c.Set("Content-Type", paste.MimeType)
+	return h.services.Paste.RenderPasteRaw(c, paste)
 }
 
 // HandleRawView serves the raw content of a paste
