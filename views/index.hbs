@@ -1,71 +1,74 @@
 <section>
-<h1>Paste69</h1>
+    <h1>Paste69</h1>
 
-<p>
-    Paste69 is a fast and open source pastebin, file bin, and link shortener written in Go.
-</p>
+    <p>
+        Paste69 is a fast and open source pastebin, file bin, and link shortener written in Go.
+    </p>
 
-<p>
-    <a href="https://github.com/watzon/0x45">Star the Project on GitHub ⭐</a>
-</p>
-</section>
-
-<section>
-<h2>Usage</h2>
-
-<div class="command-group">
-    <div class="labeled-code-block">
-        <span class="command-label curl-label">CURL</span>
-        <div class="code-block">
-            <pre><code>curl -F 'file=@file.txt' {{baseUrl}}/p</code></pre>
-            <button class="action-btn" data-clipboard data-clipboard-content="curl -F 'file=@file.txt' {{baseUrl}}/p">
-                <span>Copy</span>
-            </button>
-        </div>
-    </div>
-</div>
-
-<div class="command-group">
-    <div class="labeled-code-block">
-        <span class="command-label curl-label">CURL</span>
-        <div class="code-block">
-            <pre><code>curl -F "url=https://example.com" {{baseUrl}}/u?api_key=YOUR_API_KEY</code></pre>
-            <button class="action-btn" data-clipboard data-clipboard-content='curl -F "url=https://example.com" {{baseUrl}}/u?api_key=YOUR_API_KEY'>
-                <span>Copy</span>
-            </button>
-        </div>
-    </div>
-</div>
-
-<p>
-    For more examples and API docs, visit:<br />
-    <a href="{{baseUrl}}/docs">{{baseUrl}}/docs</a>
-</p>
-
-<p>
-    View detailed statistics at:<br />
-    <a href="{{baseUrl}}/stats">{{baseUrl}}/stats</a>
-</p>
-</section>
-
-<section>
-<h2>File Retention</h2>
-
-<p>
-    Retention is the number of days a file will be available for download.
-</p>
-
-<ul>
-    <li>Limits:</li>
-    <ul>
-        <li>No API Key: {{retention.noKey}}</li>
-        <li>With API Key: {{retention.withKey}}</li>
-        <li>Maximum Size: {{retention.maxSizeMiB}}</li>
+    <ul class="action-list">
+        <li>📝 <a href="/submit">Create New Paste</a></li>
+        <li>⭐ <a href="https://github.com/watzon/0x45">Star on GitHub</a></li>
     </ul>
-</ul>
+</section>
 
-<div class="chart">
-    <span data-chart data-chart-type="dot" data-chart-options='{
+<section>
+    <h2>Usage</h2>
+
+    <div class="command-group">
+        <div class="labeled-code-block">
+            <span class="command-label curl-label">CURL</span>
+            <div class="code-block">
+                <pre><code>curl -F 'file=@file.txt' {{baseUrl}}/p</code></pre>
+                <button class="action-btn" data-clipboard
+                    data-clipboard-content="curl -F 'file=@file.txt' {{baseUrl}}/p">
+                    <span>Copy</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="command-group">
+        <div class="labeled-code-block">
+            <span class="command-label curl-label">CURL</span>
+            <div class="code-block">
+                <pre><code>curl -F "url=https://example.com" {{baseUrl}}/u?api_key=YOUR_API_KEY</code></pre>
+                <button class="action-btn" data-clipboard
+                    data-clipboard-content='curl -F "url=https://example.com" {{baseUrl}}/u?api_key=YOUR_API_KEY'>
+                    <span>Copy</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <p>
+        For more examples and API docs, visit:<br />
+        <a href="{{baseUrl}}/docs">{{baseUrl}}/docs</a>
+    </p>
+
+    <p>
+        View detailed statistics at:<br />
+        <a href="{{baseUrl}}/stats">{{baseUrl}}/stats</a>
+    </p>
+</section>
+
+<section>
+    <h2>File Retention</h2>
+
+    <p>
+        Retention is the number of days a file will be available for download.
+    </p>
+
+    <ul>
+        <li>Limits:</li>
+        <ul>
+            <li>No API Key: {{retention.noKey}}</li>
+            <li>With API Key: {{retention.withKey}}</li>
+            <li>Maximum Size: {{retention.maxSizeMiB}}</li>
+        </ul>
+    </ul>
+
+    <div class="chart">
+        <span data-chart data-chart-type="dot" data-chart-options='{
               "series": [
                   {"name": "No API Key", "palette": "blue", "data": {{{retention.noKeyHistory}}} },
                   {"name": "With API Key", "palette": "green", "data": {{{retention.withKeyHistory}}} }
@@ -95,6 +98,6 @@
                   }
               }
           }'>
-    </span>
-</div>
+        </span>
+    </div>
 </section>

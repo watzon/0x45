@@ -1,0 +1,20 @@
+{{#if isDeleteConfirm}}
+<div class="nav-bar">
+    <a href="{{baseUrl}}" class="nav-link">cd ..</a>
+</div>
+
+<div class="info-box">
+    <h2>Delete Paste</h2>
+    <p>Are you sure you want to delete this paste? This action cannot be undone.</p>
+    <div class="code-block">
+        <code>$ curl -X DELETE {{baseUrl}}/p/{{pasteId}}/{{deleteKey}}</code>
+        <button class="action-btn" data-clipboard
+            data-clipboard-content="curl -X DELETE {{baseUrl}}/p/{{pasteId}}/{{deleteKey}}"><span>Copy</span></button>
+    </div>
+    <p>To delete this paste, run the command above or click the button below:</p>
+    <form action="{{baseUrl}}/p/{{pasteId}}/{{deleteKey}}" method="POST" onsubmit="this._method.value='DELETE'">
+        <input type="hidden" name="_method" value="DELETE">
+        <button type="submit" class="action-btn">Delete Paste</button>
+    </form>
+</div>
+{{/if}}

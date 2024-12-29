@@ -2,6 +2,17 @@
     <a href="{{baseUrl}}" class="nav-link">cd ..</a>
 </div>
 
+{{#if deletionUrl}}
+<div class="deletion-toast">
+    <span class="comment"># Click the link below to delete this paste. Save it if you want to delete your paste
+        later.</span>
+    <div class="code-block">
+        <code>$ curl -X DELETE <a href="{{deletionUrl}}" class="delete-link">{{deletionUrl}}</a></code>
+        <button class="action-btn" data-clipboard data-clipboard-content="{{deletionUrl}}"><span>Copy</span></button>
+    </div>
+</div>
+{{/if}}
+
 <div class="paste-header">
     <div class="paste-info">
         <h2>{{filename}}</h2>
@@ -16,7 +27,7 @@
         </div>
     </div>
     <div class="actions">
-        <button class="action-btn" data-clipboard="#paste-content">Copy</button>
+        <button class="action-btn" data-clipboard data-clipboard-content="{{rawContent}}">Copy</button>
         <a href="/raw/{{id}}" class="action-btn">Raw</a>
         <a href="/download/{{id}}" class="action-btn">Download</a>
     </div>

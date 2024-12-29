@@ -1,0 +1,53 @@
+<div class="nav-bar">
+    <a href="{{baseUrl}}" class="nav-link">cd ..</a>
+</div>
+
+<div class="paste-header">
+    <div class="paste-info">
+        <h2>New Paste</h2>
+    </div>
+</div>
+
+<form id="paste-form" class="paste-form" method="POST" action="/p">
+    <div class="form-group">
+        <textarea id="content" name="content" class="paste-textarea" placeholder="Enter your text here..."
+            autofocus></textarea>
+    </div>
+
+    <div class="form-options">
+        <div class="form-group">
+            <label for="filename">Filename (optional):</label>
+            <input type="text" id="filename" name="filename" class="form-input" placeholder="e.g. script.py">
+        </div>
+
+        <div class="form-group">
+            <label for="expires_in">Expiration:</label>
+            <select id="expires_in" class="form-input" onchange="updateExpiresIn(this.value)">
+                <option value="">Never</option>
+                <option value="1h">1 Hour</option>
+                <option value="1d">1 Day</option>
+                <option value="1w">1 Week</option>
+                <option value="1m">1 Month</option>
+            </select>
+            <input type="hidden" id="expires_in_hidden" name="expires_in">
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="action-btn">Submit</button>
+    </div>
+</form>
+
+<script>
+    function updateExpiresIn(value) {
+        const hiddenInput = document.getElementById('expires_in_hidden');
+        if (value) {
+            hiddenInput.value = value;
+        } else {
+            hiddenInput.removeAttribute('value');
+            hiddenInput.setAttribute('disabled', 'disabled');
+        }
+    }
+    // Initialize on page load
+    updateExpiresIn(document.getElementById('expires_in').value);
+</script>

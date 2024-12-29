@@ -3,8 +3,11 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/template/handlebars/v2"
 	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/database"
@@ -106,12 +109,43 @@ func New(config *config.Config, logger *zap.Logger) *Server {
 	}
 }
 
+// SetupMiddleware configures all the middleware for the server
+func (s *Server) SetupMiddleware() {
+	// Add method override middleware
+	s.app.Use(func(c *fiber.Ctx) error {
+		// Check if this is a POST request with _method parameter
+		if c.Method() == "POST" {
+			method := c.FormValue("_method")
+			if method != "" {
+				c.Method(strings.ToUpper(method))
+			}
+		}
+		return c.Next()
+	})
+
+	// Setup CORS
+	s.app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders: "Origin, Content-Type, Accept",
+	}))
+
+	// Add request logging
+	s.app.Use(logger.New(logger.Config{
+		Format: "${time} ${ip} ${status} ${latency} ${method} ${path}\n",
+	}))
+}
+
 // SetupRoutes configures all the routes for the server
 func (s *Server) SetupRoutes() {
+	// Setup middleware first
+	s.SetupMiddleware()
+
 	// Web interface routes
 	s.app.Get("/", s.handlers.Web.HandleIndex)
 	s.app.Get("/stats", s.handlers.Web.HandleStats)
 	s.app.Get("/docs", s.handlers.Web.HandleDocs)
+	s.app.Get("/submit", s.handlers.Web.HandleSubmit)
 
 	// API Key routes
 	keys := s.app.Group("/keys")
@@ -161,6 +195,7 @@ func (s *Server) SetupRoutes() {
 	s.app.Get("/p/:id/download", s.handlers.Paste.HandleDownload)
 	s.app.Get("/p/:id/image", s.handlers.Paste.HandleGetPasteImage)
 	s.app.Delete("/p/:id/:key", s.handlers.Paste.HandleDeleteWithKey)
+	s.app.Get("/p/:id/:key", s.handlers.Paste.HandleDeleteWithKey)
 }
 
 // Error handler

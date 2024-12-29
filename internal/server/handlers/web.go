@@ -87,3 +87,10 @@ func (h *WebHandlers) HandleDocs(c *fiber.Ctx) error {
 		"maxSize": h.config.Server.MaxUploadSize / (1024 * 1024),
 	}, "layouts/main")
 }
+
+// HandleSubmit serves the paste submission page
+func (h *WebHandlers) HandleSubmit(c *fiber.Ctx) error {
+	return c.Render("submit", fiber.Map{
+		"baseUrl": h.config.Server.BaseURL,
+	}, "layouts/main")
+}

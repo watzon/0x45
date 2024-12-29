@@ -2,7 +2,6 @@ package services
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -63,12 +62,6 @@ type PasteService struct {
 	analytics *AnalyticsService
 }
 
-// contextKey is a custom type for context keys to avoid collisions
-type contextKey string
-
-// Define context keys
-const configKey contextKey = "config"
-
 func NewPasteService(db *gorm.DB, logger *zap.Logger, config *config.Config) *PasteService {
 	return &PasteService{
 		db:        db,
@@ -81,10 +74,21 @@ func NewPasteService(db *gorm.DB, logger *zap.Logger, config *config.Config) *Pa
 
 // CreatePaste handles the creation of a new paste
 func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
+	s.logger.Debug("Received upload request",
+		zap.String("content-type", c.Get("Content-Type")),
+		zap.String("body", string(c.Body())))
+
 	p := new(PasteOptions)
 	if err := c.BodyParser(p); err != nil {
+		s.logger.Error("Failed to parse request body",
+			zap.Error(err),
+			zap.String("content-type", c.Get("Content-Type")),
+			zap.String("body", string(c.Body())))
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
 	}
+
+	s.logger.Debug("Parsed paste options",
+		zap.Any("options", p))
 
 	// Get file content
 	var content []byte
@@ -151,8 +155,7 @@ func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
 	}
 
 	baseURL := s.config.Server.BaseURL
-
-	return c.JSON(&PasteResponse{
+	response := &PasteResponse{
 		ID:        paste.ID,
 		Filename:  paste.Filename,
 		URL:       fmt.Sprintf("%s/p/%s.%s", baseURL, paste.ID, paste.Extension),
@@ -161,7 +164,23 @@ func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
 		MimeType:  paste.MimeType,
 		Size:      paste.Size,
 		ExpiresAt: paste.ExpiresAt,
-	})
+	}
+
+	// If this is a browser form submission (application/x-www-form-urlencoded), redirect to the paste view
+	if strings.Contains(c.Get("Content-Type"), "application/x-www-form-urlencoded") {
+		// Store the deletion URL in the session for display after redirect
+		c.Cookie(&fiber.Cookie{
+			Name:     "deletion_url",
+			Value:    response.DeleteURL,
+			Path:     "/",
+			Expires:  time.Now().Add(5 * time.Minute),
+			HTTPOnly: true,
+		})
+		return c.Redirect(response.URL)
+	}
+
+	// For API requests, return JSON response
+	return c.JSON(response)
 }
 
 // GetPaste retrieves a paste by ID with expiry checking
@@ -284,7 +303,7 @@ func (s *PasteService) RenderDownload(c *fiber.Ctx, paste *models.Paste) error {
 
 // DeleteWithKey deletes a paste using its deletion key
 func (s *PasteService) DeleteWithKey(c *fiber.Ctx, id string) error {
-	key := c.Query("key")
+	key := c.Params("key") // Get key from URL path instead of query
 	if key == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Deletion key is required")
 	}
@@ -296,6 +315,7 @@ func (s *PasteService) DeleteWithKey(c *fiber.Ctx, id string) error {
 
 	paste, err := s.GetPaste(id)
 	if err != nil {
+		// Pass through the 404 error from GetPaste
 		return err
 	}
 
@@ -303,7 +323,42 @@ func (s *PasteService) DeleteWithKey(c *fiber.Ctx, id string) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Invalid deletion key")
 	}
 
-	return s.Delete(c, id)
+	// For DELETE requests, delete the paste
+	if c.Method() == fiber.MethodDelete {
+		if err := s.Delete(c, id); err != nil {
+			return err
+		}
+
+		// Return appropriate response based on Accept header
+		if strings.Contains(c.Get("Accept"), "application/json") {
+			return c.JSON(fiber.Map{
+				"message": "Paste deleted successfully",
+				"id":      id,
+			})
+		}
+
+		// For HTML requests, render the success page
+		return c.Render("delete_success", fiber.Map{
+			"isDeleteSuccess": true,
+			"baseUrl":         s.config.Server.BaseURL,
+		}, "layouts/main")
+	}
+
+	// For GET requests, show a confirmation page
+	if strings.Contains(c.Get("Accept"), "application/json") {
+		return c.JSON(fiber.Map{
+			"message": "Paste found and will be deleted",
+			"id":      id,
+		})
+	}
+
+	// For HTML requests, render the confirmation page
+	return c.Render("delete_confirm", fiber.Map{
+		"isDeleteConfirm": true,
+		"baseUrl":         s.config.Server.BaseURL,
+		"pasteId":         id,
+		"deleteKey":       key,
+	}, "layouts/main")
 }
 
 // Delete removes a paste and its associated files
@@ -390,30 +445,55 @@ func (s *PasteService) UpdateExpiration(c *fiber.Ctx, id string) error {
 
 // CleanupExpired removes expired pastes and their associated files
 func (s *PasteService) CleanupExpired() (int64, error) {
-	var pastes []models.Paste
-	result := s.db.Where("expires_at < ? AND expires_at IS NOT NULL", time.Now()).Find(&pastes)
-	if result.Error != nil {
-		return 0, result.Error
-	}
+	var totalDeleted int64
 
-	for _, paste := range pastes {
-		// Delete storage content first
-		if err := s.storage.Delete(paste.StoragePath); err != nil {
-			s.logger.Error("failed to delete paste content",
-				zap.String("id", paste.ID),
-				zap.String("path", paste.StoragePath),
-				zap.Error(err),
-			)
+	// Use a transaction to ensure consistency
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		var pastes []models.Paste
+		if err := tx.Where("expires_at < ? AND expires_at IS NOT NULL", time.Now()).Find(&pastes).Error; err != nil {
+			return err
 		}
+
+		for _, paste := range pastes {
+			// Delete storage content first
+			if err := s.storage.Delete(paste.StoragePath); err != nil {
+				s.logger.Error("failed to delete paste content",
+					zap.String("id", paste.ID),
+					zap.String("path", paste.StoragePath),
+					zap.Error(err),
+				)
+				// Skip this paste if we can't delete the storage
+				continue
+			}
+
+			// Delete the database record only if storage deletion was successful
+			if err := tx.Delete(&paste).Error; err != nil {
+				s.logger.Error("failed to delete paste record",
+					zap.String("id", paste.ID),
+					zap.Error(err),
+				)
+				// Try to recover the storage file since we couldn't delete the record
+				if _, err := s.storage.Put(paste.StoragePath, bytes.NewReader([]byte{})); err != nil {
+					s.logger.Error("failed to recover storage after failed deletion",
+						zap.String("id", paste.ID),
+						zap.String("path", paste.StoragePath),
+						zap.Error(err),
+					)
+				}
+				continue
+			}
+
+			totalDeleted++
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return 0, err
 	}
 
-	// Delete database records
-	result = s.db.Where("expires_at < ? AND expires_at IS NOT NULL", time.Now()).Delete(&models.Paste{})
-	if result.Error != nil {
-		return 0, result.Error
-	}
-
-	return result.RowsAffected, nil
+	return totalDeleted, nil
 }
 
 // Helper functions
@@ -464,13 +544,8 @@ func (s *PasteService) createPaste(content io.Reader, apiKey *models.APIKey, siz
 		Private:   opts.Private,
 	}
 
-	// Set extension in order of precedence:
-	// 1. Explicitly provided extension (opts.Extension)
-	// 2. Extension from filename
-	// 3. Extension from MIME type
-	// 4. Default to txt for text content
+	// Set extension in order of precedence
 	if paste.Extension == "" {
-		// Try to get extension from filename
 		if paste.Filename != "" {
 			parts := strings.Split(paste.Filename, ".")
 			if len(parts) > 1 {
@@ -478,78 +553,82 @@ func (s *PasteService) createPaste(content io.Reader, apiKey *models.APIKey, siz
 			}
 		}
 
-		// If still no extension, try from MIME type
 		if paste.Extension == "" {
 			mime := mimetype.Detect(contentBytes)
-			// Get extension without the dot
 			paste.Extension = strings.TrimPrefix(mime.Extension(), ".")
 
-			// Default to txt for text content without specific extension
 			if paste.Extension == "" && strings.HasPrefix(contentType, "text/") {
 				paste.Extension = "txt"
 			}
 		}
 	}
 
-	// Clean the extension (remove any leading dots and whitespace)
-	paste.Extension = strings.TrimSpace(strings.TrimPrefix(paste.Extension, "."))
-
-	if opts.APIKey != nil {
-		paste.APIKey = opts.APIKey.Key
-	}
-
-	expiresAt, err := s.calculateExpiry(ExpiryOptions{
-		Size:      int64(len(contentBytes)),
-		HasAPIKey: apiKey != nil,
-		ExpiresAt: opts.ExpiresAt,
-		ExpiresIn: opts.ExpiresIn,
-	})
-	if err != nil {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "Failed to calculate expiry")
-	}
-
-	paste.ExpiresAt = expiresAt
-
-	// Add config to context for storage configuration
-	ctx := context.WithValue(context.Background(), configKey, s.config)
-
-	// Set the default storage configuration
-	for _, storage := range s.config.Storage {
-		if storage.IsDefault {
-			paste.StorageName = storage.Name
-			paste.StorageType = storage.Type
-			break
+	// Calculate expiry time if provided
+	if (opts.ExpiresIn != nil && opts.ExpiresIn.String() != "") || opts.ExpiresAt != nil {
+		expiry, err := s.calculateExpiry(ExpiryOptions{
+			Size:      int64(len(contentBytes)),
+			HasAPIKey: apiKey != nil,
+			ExpiresIn: opts.ExpiresIn,
+			ExpiresAt: opts.ExpiresAt,
+		})
+		if err != nil {
+			return nil, fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
+		paste.ExpiresAt = expiry
 	}
 
-	if paste.StorageName == "" {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "No default storage configuration found")
+	// Set API key if provided
+	if apiKey != nil {
+		paste.APIKey = apiKey.Key
 	}
 
-	if err := s.db.WithContext(ctx).Create(paste).Error; err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to save paste")
-	}
+	// Use a transaction for the entire creation process
+	var storagePath string
+	err = s.db.Transaction(func(tx *gorm.DB) error {
+		// Set the default storage configuration
+		for _, storage := range s.config.Storage {
+			if storage.IsDefault {
+				paste.StorageName = storage.Name
+				paste.StorageType = storage.Type
+				break
+			}
+		}
 
-	// Generate filename
-	filename := paste.ID
-	if paste.Extension != "" {
-		filename = paste.ID + "." + paste.Extension
-	}
+		if paste.StorageName == "" {
+			return fiber.NewError(fiber.StatusInternalServerError, "No default storage configuration found")
+		}
 
-	// Store the content and get the storage path
-	storagePath, err := s.storage.Put(filename, bytes.NewReader(contentBytes))
+		// Create the initial database record
+		if err := tx.Create(paste).Error; err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Failed to save paste")
+		}
+
+		// Generate filename
+		filename := paste.ID
+		if paste.Extension != "" {
+			filename = paste.ID + "." + paste.Extension
+		}
+
+		// Store the content and get the storage path
+		var err error
+		storagePath, err = s.storage.Put(filename, bytes.NewReader(contentBytes))
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Failed to store content")
+		}
+
+		// Update the paste with the storage path
+		paste.StoragePath = storagePath
+		if err := tx.Save(paste).Error; err != nil {
+			// Try to cleanup the stored content since we couldn't update the record
+			_ = s.storage.Delete(storagePath)
+			return fiber.NewError(fiber.StatusInternalServerError, "Failed to update paste")
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		// Cleanup the database record if storage fails
-		s.db.Delete(paste)
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to store content")
-	}
-
-	// Update the paste with the storage path
-	paste.StoragePath = storagePath
-	if err := s.db.Save(paste).Error; err != nil {
-		// Try to cleanup the stored content
-		_ = s.storage.Delete(storagePath)
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to update paste")
+		return nil, err
 	}
 
 	return paste, nil
@@ -627,16 +706,32 @@ func (s *PasteService) renderPasteView(c *fiber.Ctx, paste *models.Paste) error 
 		pasteID = paste.ID + "." + paste.Extension
 	}
 
+	// Check for deletion URL cookie
+	var deletionUrl string
+	if cookie := c.Cookies("deletion_url"); cookie != "" {
+		deletionUrl = cookie
+		// Clear the cookie after reading it
+		c.Cookie(&fiber.Cookie{
+			Name:     "deletion_url",
+			Value:    "",
+			Path:     "/",
+			Expires:  time.Now().Add(-24 * time.Hour),
+			HTTPOnly: true,
+		})
+	}
+
 	return c.Render("paste", fiber.Map{
-		"isPaste":   true,
-		"id":        pasteID,
-		"filename":  paste.Filename,
-		"extension": paste.Extension,
-		"created":   paste.CreatedAt.Format("2006-01-02 15:04:05"),
-		"expires":   formatExpiryTime(paste.ExpiresAt),
-		"language":  lexer.Config().Name,
-		"content":   codeBuffer.String(),
-		"baseUrl":   s.config.Server.BaseURL,
+		"isPaste":     true,
+		"id":          pasteID,
+		"filename":    paste.Filename,
+		"extension":   paste.Extension,
+		"created":     paste.CreatedAt.Format("2006-01-02 15:04:05"),
+		"expires":     formatExpiryTime(paste.ExpiresAt),
+		"language":    lexer.Config().Name,
+		"content":     codeBuffer.String(),
+		"rawContent":  string(content),
+		"baseUrl":     s.config.Server.BaseURL,
+		"deletionUrl": deletionUrl,
 		"metadata": fiber.Map{
 			"size":      formatSize(paste.Size),
 			"mimeType":  paste.MimeType,
