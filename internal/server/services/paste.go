@@ -631,6 +631,11 @@ func (s *PasteService) renderPasteView(c *fiber.Ctx, paste *models.Paste) error 
 		return err
 	}
 
+	// Set no-cache headers for the HTML view since it contains dynamic deletion URL
+	c.Set("Cache-Control", "no-store, no-cache, must-revalidate")
+	c.Set("Pragma", "no-cache")
+	c.Set("Expires", "0")
+
 	// Determine lexer based on extension or content
 	var lexer chroma.Lexer
 	if paste.Extension != "" {
@@ -695,17 +700,18 @@ func (s *PasteService) renderPasteView(c *fiber.Ctx, paste *models.Paste) error 
 	}
 
 	return c.Render("paste", fiber.Map{
-		"isPaste":     true,
-		"id":          pasteID,
-		"filename":    paste.Filename,
-		"extension":   paste.Extension,
-		"created":     paste.CreatedAt.Format("2006-01-02 15:04:05"),
-		"expires":     formatExpiryTime(paste.ExpiresAt),
-		"language":    lexer.Config().Name,
-		"content":     codeBuffer.String(),
-		"rawContent":  string(content),
-		"baseUrl":     s.config.Server.BaseURL,
-		"deletionUrl": deletionUrl,
+		"isPaste":         true,
+		"id":              pasteID,
+		"filename":        paste.Filename,
+		"extension":       paste.Extension,
+		"created":         paste.CreatedAt.Format("2006-01-02 15:04:05"),
+		"expires":         formatExpiryTime(paste.ExpiresAt),
+		"language":        lexer.Config().Name,
+		"content":         codeBuffer.String(),
+		"rawContent":      string(content),
+		"baseUrl":         s.config.Server.BaseURL,
+		"deletionUrl":     deletionUrl,
+		"showDeletionUrl": deletionUrl != "",
 		"metadata": fiber.Map{
 			"size":      formatSize(paste.Size),
 			"mimeType":  paste.MimeType,
