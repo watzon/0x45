@@ -10,6 +10,7 @@ import (
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/gofiber/fiber/v2"
 	"github.com/watzon/0x45/internal/config"
@@ -20,39 +21,6 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
-
-var customStyle = chroma.MustNewStyle("0x45", chroma.StyleEntries{
-	chroma.Text:              "#c9d1d9", // --color-text
-	chroma.Error:             "#f85149", // error red
-	chroma.Comment:           "#8b949e", // --color-text-muted
-	chroma.CommentPreproc:    "#8b949e",
-	chroma.Keyword:           "#ff7b72", // keywords in red
-	chroma.KeywordPseudo:     "#ff7b72",
-	chroma.KeywordType:       "#79c0ff", // types in blue
-	chroma.Operator:          "#c9d1d9", // --color-text
-	chroma.Punctuation:       "#c9d1d9", // --color-text
-	chroma.Name:              "#c9d1d9", // --color-text
-	chroma.NameBuiltin:       "#79c0ff", // built-ins in blue
-	chroma.NameTag:           "#7ee787", // tags in green
-	chroma.NameAttribute:     "#79c0ff", // attributes in blue
-	chroma.NameClass:         "#f0883e", // --color-code
-	chroma.NameConstant:      "#79c0ff", // constants in blue
-	chroma.NameDecorator:     "#f0883e", // --color-code
-	chroma.NameException:     "#f0883e", // --color-code
-	chroma.NameFunction:      "#d2a8ff", // functions in purple
-	chroma.NameNamespace:     "#f0883e", // --color-code
-	chroma.Literal:           "#c9d1d9", // --color-text
-	chroma.LiteralString:     "#a5d6ff", // strings in light blue
-	chroma.LiteralStringDoc:  "#8b949e", // --color-text-muted
-	chroma.LiteralNumber:     "#f0883e", // --color-code
-	chroma.LiteralDate:       "#f0883e", // --color-code
-	chroma.GenericDeleted:    "#ffa198", // deleted in red
-	chroma.GenericEmph:       "italic",
-	chroma.GenericInserted:   "#7ee787", // inserted in green
-	chroma.GenericStrong:     "bold",
-	chroma.GenericSubheading: "#8b949e",    // --color-text-muted
-	chroma.Background:        "bg:#161b22", // --color-bg-secondary
-})
 
 type PasteService struct {
 	db        *gorm.DB
@@ -696,7 +664,13 @@ func (s *PasteService) renderPasteView(c *fiber.Ctx, paste *models.Paste) error 
 		return err
 	}
 
-	if err := formatter.Format(&codeBuffer, customStyle, iterator); err != nil {
+	// Use GitHub Dark style
+	style := styles.Get("github-dark")
+	if style == nil {
+		style = styles.Fallback
+	}
+
+	if err := formatter.Format(&codeBuffer, style, iterator); err != nil {
 		return err
 	}
 
@@ -709,8 +683,7 @@ func (s *PasteService) renderPasteView(c *fiber.Ctx, paste *models.Paste) error 
 	// Check for deletion URL cookie
 	var deletionUrl string
 	if cookie := c.Cookies("deletion_url"); cookie != "" {
-		deletionUrl = cookie
-		// Clear the cookie after reading it
+		// Clear the cookie before reading it to ensure one-time use
 		c.Cookie(&fiber.Cookie{
 			Name:     "deletion_url",
 			Value:    "",
@@ -718,6 +691,7 @@ func (s *PasteService) renderPasteView(c *fiber.Ctx, paste *models.Paste) error 
 			Expires:  time.Now().Add(-24 * time.Hour),
 			HTTPOnly: true,
 		})
+		deletionUrl = cookie
 	}
 
 	return c.Render("paste", fiber.Map{

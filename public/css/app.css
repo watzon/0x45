@@ -383,16 +383,14 @@ tr:nth-child(even) {
 
 .paste-content {
     background: var(--color-bg-secondary);
-    padding-top: var(--space-sm);
-    padding-bottom: var(--space-sm);
-    padding-right: var(--space-sm);
+    padding: var(--space-sm);
     border-radius: var(--border-radius);
     overflow-x: auto;
 }
 
 .paste-content pre {
     margin: 0;
-    padding: 0;
+    padding: var(--space-sm) 4px;
     white-space: pre-wrap;
     word-break: break-word;
 }
@@ -594,107 +592,185 @@ tr:nth-child(even) {
 /* Mobile Responsiveness */
 @media screen and (max-width: 768px) {
     .container {
-        padding: var(--space-md);
+        padding: var(--space-sm);
         margin: 0;
         width: 100%;
         box-sizing: border-box;
+        overflow-x: hidden;
     }
 
-    body {
-        font-size: 15px;
-        line-height: 1.7;
-    }
-
-    h1 { 
-        font-size: 2em;
-        line-height: 1.3;
-    }
-    h2 { 
-        font-size: 1.6em;
-        line-height: 1.3;
-    }
-    h3 { 
-        font-size: 1.4em;
-        line-height: 1.3;
-    }
-
-    p {
-        margin: var(--space-md) 0;
-        line-height: 1.7;
-    }
-
-    code {
-        font-size: 0.95em;
-        padding: var(--space-xs) var(--space-sm);
-    }
-
-    .command-group {
+    /* Improved paste header for mobile */
+    .paste-header {
         flex-direction: column;
-        gap: var(--space-md);
-    }
-
-    .labeled-code-block {
-        width: 100%;
-        margin-bottom: var(--space-sm);
-    }
-
-    .code-block {
-        width: 100%;
-        overflow-x: auto;
-        white-space: pre;
-        padding: var(--space-md);
-    }
-
-    pre {
-        overflow-x: auto;
-        padding-bottom: var(--space-sm);
-        line-height: 1.6;
-    }
-
-    .info-box {
-        padding: var(--space-md);
-        margin: var(--space-md) 0;
-    }
-
-    table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
-    }
-
-    th, td {
-        padding: var(--space-xs);
-    }
-
-    li {
-        margin: var(--space-sm) 0;
-        line-height: 1.6;
-    }
-
-    .nav-bar {
-        font-size: 1.1em;
+        gap: var(--space-sm);
         padding: var(--space-sm);
+    }
+
+    .paste-info {
+        width: 100%;
+    }
+
+    .metadata {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 4px var(--space-sm);
+        margin-top: var(--space-sm);
+    }
+
+    .metadata span {
+        margin: 0;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .actions {
+        width: 100%;
+        justify-content: flex-start;
+        gap: var(--space-sm);
+    }
+
+    .action-btn {
+        flex: 1;
+        text-align: center;
+        padding: 8px var(--space-sm);
+        font-size: 13px;
+        min-width: 80px;
+    }
+
+    /* Improved code blocks for mobile */
+    .paste-content {
+        padding: var(--space-xs);
+        border-radius: var(--border-radius);
+        font-size: 13px;
+        line-height: 1.5;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        background: var(--color-bg-secondary);
+    }
+
+    .paste-content pre {
+        padding: var(--space-xs);
+        white-space: pre;
+        word-wrap: normal;
+        overflow-x: auto;
+        min-width: min-content;
+        background: inherit;
+    }
+
+    .paste-content code {
+        display: inline-block;
+        min-width: min-content;
+        white-space: pre;
+        background: inherit;
+    }
+
+    /* Better deletion toast for mobile */
+    .deletion-toast .code-block {
+        margin-top: var(--space-xs);
+        padding: var(--space-xs) 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        background: inherit;
+    }
+
+    .deletion-toast code {
+        white-space: pre;
+        display: inline-block;
+        min-width: min-content;
+        background: inherit;
+    }
+
+    .deletion-toast .action-btn {
+        padding: 4px;
+        min-width: 32px;
+    }
+
+    /* Form improvements for mobile */
+    .paste-form {
+        padding: var(--space-sm);
+    }
+
+    .paste-textarea {
+        font-size: 13px;
+        padding: var(--space-xs);
+        min-height: 200px;
+    }
+
+    .form-input {
+        font-size: 13px;
+        padding: 8px var(--space-xs);
+    }
+
+    .form-group label {
+        font-size: 13px;
+    }
+
+    /* Navigation improvements */
+    .nav-bar {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        background: rgba(22, 27, 34, 0.8);
+        margin-bottom: var(--space-md);
+    }
+
+    .nav-link {
+        font-size: 13px;
+        padding: 8px 0;
+        display: inline-block;
     }
 }
 
 /* Small mobile devices */
 @media screen and (max-width: 480px) {
     .container {
-        padding: var(--space-sm);
+        padding: var(--space-xs);
     }
 
-    body {
-        font-size: 14px;
+    .metadata {
+        grid-template-columns: 1fr;
+    }
+
+    .actions {
+        flex-wrap: wrap;
     }
 
     .action-btn {
-        padding: var(--space-xs) var(--space-sm);
-        font-size: 0.9em;
+        min-width: 70px;
+        font-size: 12px;
     }
 
-    .command-label {
-        font-size: 0.95em;
-        padding: var(--space-xs) var(--space-sm);
+    .paste-content,
+    .code-block,
+    .deletion-toast .code-block {
+        font-size: 12px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-border) transparent;
+    }
+
+    /* Custom scrollbar styling */
+    .paste-content::-webkit-scrollbar,
+    .code-block::-webkit-scrollbar,
+    .deletion-toast .code-block::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .paste-content::-webkit-scrollbar-track,
+    .code-block::-webkit-scrollbar-track,
+    .deletion-toast .code-block::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .paste-content::-webkit-scrollbar-thumb,
+    .code-block::-webkit-scrollbar-thumb,
+    .deletion-toast .code-block::-webkit-scrollbar-thumb {
+        background-color: var(--color-border);
+        border-radius: var(--border-radius);
     }
 }
 
@@ -845,4 +921,69 @@ tr:nth-child(even) {
 .deletion-toast .delete-link:hover {
     color: var(--color-accent);
     text-decoration: none;
+}
+
+/* Code area expand functionality */
+.paste-content {
+    position: relative;
+}
+
+.expand-btn {
+    position: absolute;
+    top: 22px;
+    right: 22px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    padding: 4px 8px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    z-index: 10;
+}
+
+.expand-btn:hover {
+    opacity: 1;
+    color: var(--color-text);
+}
+
+.paste-content.expanded {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: var(--space-md);
+    z-index: 1000;
+    box-sizing: border-box;
+    border-radius: 0;
+    overflow: auto;
+}
+
+.paste-content.expanded .expand-btn {
+    top: 28px;
+    right: 28px;
+}
+
+.paste-content.expanded pre {
+    height: auto;
+    margin: 0;
+    overflow: visible;
+}
+
+.paste-content.expanded code {
+    min-width: auto;
+}
+
+/* Hide expand button on mobile */
+@media screen and (max-width: 768px) {
+    .expand-btn {
+        display: none;
+    }
 }
