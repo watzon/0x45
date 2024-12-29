@@ -631,10 +631,33 @@ func (s *PasteService) renderPasteView(c *fiber.Ctx, paste *models.Paste) error 
 		return err
 	}
 
-	// Set no-cache headers for the HTML view since it contains dynamic deletion URL
-	c.Set("Cache-Control", "no-store, no-cache, must-revalidate")
-	c.Set("Pragma", "no-cache")
-	c.Set("Expires", "0")
+	// Check for deletion URL cookie
+	var deletionUrl string
+	if cookie := c.Cookies("deletion_url"); cookie != "" {
+		// Clear the cookie before reading it to ensure one-time use
+		c.Cookie(&fiber.Cookie{
+			Name:     "deletion_url",
+			Value:    "",
+			Path:     "/",
+			Expires:  time.Now().Add(-24 * time.Hour),
+			HTTPOnly: true,
+		})
+		deletionUrl = cookie
+	}
+
+	// Set appropriate cache headers based on whether we have a deletion URL
+	if deletionUrl != "" {
+		// Only set no-cache headers if we have a deletion URL
+		c.Set("Cache-Control", "private, no-cache, no-store, must-revalidate, max-age=0")
+		c.Set("Pragma", "no-cache")
+		c.Set("Expires", "0")
+		c.Set("CDN-Cache-Control", "no-store")
+		c.Set("Cloudflare-CDN-Cache-Control", "no-store")
+	} else {
+		// If no deletion URL, content is immutable and can be cached
+		c.Set("Cache-Control", "public, max-age=31536000, immutable")
+		c.Set("ETag", paste.ID)
+	}
 
 	// Determine lexer based on extension or content
 	var lexer chroma.Lexer
@@ -685,33 +708,18 @@ func (s *PasteService) renderPasteView(c *fiber.Ctx, paste *models.Paste) error 
 		pasteID = paste.ID + "." + paste.Extension
 	}
 
-	// Check for deletion URL cookie
-	var deletionUrl string
-	if cookie := c.Cookies("deletion_url"); cookie != "" {
-		// Clear the cookie before reading it to ensure one-time use
-		c.Cookie(&fiber.Cookie{
-			Name:     "deletion_url",
-			Value:    "",
-			Path:     "/",
-			Expires:  time.Now().Add(-24 * time.Hour),
-			HTTPOnly: true,
-		})
-		deletionUrl = cookie
-	}
-
 	return c.Render("paste", fiber.Map{
-		"isPaste":         true,
-		"id":              pasteID,
-		"filename":        paste.Filename,
-		"extension":       paste.Extension,
-		"created":         paste.CreatedAt.Format("2006-01-02 15:04:05"),
-		"expires":         formatExpiryTime(paste.ExpiresAt),
-		"language":        lexer.Config().Name,
-		"content":         codeBuffer.String(),
-		"rawContent":      string(content),
-		"baseUrl":         s.config.Server.BaseURL,
-		"deletionUrl":     deletionUrl,
-		"showDeletionUrl": deletionUrl != "",
+		"isPaste":     true,
+		"id":          pasteID,
+		"filename":    paste.Filename,
+		"extension":   paste.Extension,
+		"created":     paste.CreatedAt.Format("2006-01-02 15:04:05"),
+		"expires":     formatExpiryTime(paste.ExpiresAt),
+		"language":    lexer.Config().Name,
+		"content":     codeBuffer.String(),
+		"rawContent":  string(content),
+		"baseUrl":     s.config.Server.BaseURL,
+		"deletionUrl": deletionUrl,
 		"metadata": fiber.Map{
 			"size":      formatSize(paste.Size),
 			"mimeType":  paste.MimeType,
