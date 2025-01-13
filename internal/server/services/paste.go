@@ -730,18 +730,16 @@ func (s *PasteService) createPaste(content io.Reader, apiKey *models.APIKey, siz
 	}
 
 	// Calculate expiry time if provided
-	if (opts.ExpiresIn != nil && opts.ExpiresIn.String() != "") || opts.ExpiresAt != nil {
-		expiry, err := s.calculateExpiry(ExpiryOptions{
-			Size:      int64(len(contentBytes)),
-			HasAPIKey: apiKey != nil,
-			ExpiresIn: opts.ExpiresIn,
-			ExpiresAt: opts.ExpiresAt,
-		})
-		if err != nil {
-			return nil, fiber.NewError(fiber.StatusBadRequest, err.Error())
-		}
-		paste.ExpiresAt = expiry
+	expiry, err := s.calculateExpiry(ExpiryOptions{
+		Size:      int64(len(contentBytes)),
+		HasAPIKey: apiKey != nil,
+		ExpiresIn: opts.ExpiresIn,
+		ExpiresAt: opts.ExpiresAt,
+	})
+	if err != nil {
+		return nil, fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
+	paste.ExpiresAt = expiry
 
 	// Set API key if provided
 	if apiKey != nil {

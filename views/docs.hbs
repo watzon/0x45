@@ -106,6 +106,7 @@
                 <li><code>filename</code> - (optional) Custom filename for the paste (overrides the uploaded file's name)</li>
                 <li><code>private</code> - (optional) Set to "true" to make the paste private</li>
                 <li><code>expires_in</code> - (optional) Duration string for paste expiry (e.g. "24h", "7d")</li>
+                <li><code>expires_at</code> - (optional) Unix timestamp or ISO 8601 date for paste expiry (e.g. "2024-12-31T23:59:59Z")</li>
             </ul>
         </dd>
         <dt>Response:</dt>
@@ -154,7 +155,8 @@
     "content": "Hello, World!",
     "filename": "hello.txt",
     "private": false,
-    "expires_in": "24h"
+    "expires_in": "24h",
+    "_comment": "Use either expires_in (e.g. '24h', '7d') or expires_at (e.g. '2024-12-31T23:59:59Z')"
 }
 EOF</code>
             <button class="action-btn" data-clipboard data-clipboard-selector="#json-upload-body"><span>Copy</span></button>
