@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 
 	"github.com/dustin/go-humanize"
 	"github.com/gofiber/fiber/v2"
@@ -24,6 +25,12 @@ func NewWebHandlers(services *services.Services, logger *zap.Logger, config *con
 		logger:   logger,
 		config:   config,
 	}
+}
+
+var httpRe = regexp.MustCompile(`^https?://`)
+
+func (h *WebHandlers) getBaseURL() string {
+	return httpRe.ReplaceAllString(h.config.Server.BaseURL, "")
 }
 
 // HandleIndex serves the main web interface page
@@ -48,7 +55,7 @@ func (h *WebHandlers) HandleIndex(c *fiber.Ctx) error {
 	}
 
 	h.logger.Debug("preparing template data",
-		zap.String("baseUrl", h.config.Server.BaseURL),
+		zap.String("baseUrl", h.getBaseURL()),
 		zap.Any("retention", retentionStats))
 
 	err = c.Render("index", fiber.Map{
@@ -62,7 +69,7 @@ func (h *WebHandlers) HandleIndex(c *fiber.Ctx) error {
 			"noKeyHistory":   string(noKeyHistory),
 			"withKeyHistory": string(withKeyHistory),
 		},
-		"baseUrl": h.config.Server.BaseURL,
+		"baseUrl": h.getBaseURL(),
 	}, "layouts/main")
 
 	if err != nil {
@@ -85,7 +92,7 @@ func (h *WebHandlers) HandleStats(c *fiber.Ctx) error {
 
 	return c.Render("stats", fiber.Map{
 		"stats":   stats,
-		"baseUrl": h.config.Server.BaseURL,
+		"baseUrl": h.getBaseURL(),
 	}, "layouts/main")
 }
 
@@ -97,8 +104,8 @@ func (h *WebHandlers) HandleDocs(c *fiber.Ctx) error {
 	}
 
 	return c.Render("docs", fiber.Map{
-		"baseUrl":        h.config.Server.BaseURL,
-		"apiKeysEnabled": h.services.APIKey.HasMailer(),
+		"baseUrl":        h.getBaseURL(),
+		"apiKeysEnabled": h.services.APIKey.IsEnabled(),
 		"retention": fiber.Map{
 			"noKey":   retentionStats.NoKeyRange,
 			"withKey": retentionStats.WithKeyRange,
@@ -116,6 +123,6 @@ func (h *WebHandlers) HandleDocs(c *fiber.Ctx) error {
 // HandleSubmit serves the paste submission page
 func (h *WebHandlers) HandleSubmit(c *fiber.Ctx) error {
 	return c.Render("submit", fiber.Map{
-		"baseUrl": h.config.Server.BaseURL,
+		"baseUrl": h.getBaseURL(),
 	}, "layouts/main")
 }
