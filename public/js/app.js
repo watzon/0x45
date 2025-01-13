@@ -1,10 +1,12 @@
 import { initializeClipboard } from './clipboard.js';
 import { initializeCharts } from './charts/index.js';
+import { initializeFileUpload } from './upload.js';
 
 // Initialize all features when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     initializeClipboard();
     initializeCharts();
+    initializeFileUpload();
 
     // Handle code area expansion
     const expandBtn = document.querySelector('.expand-btn');

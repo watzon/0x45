@@ -134,8 +134,9 @@ func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
 		ExpiresAt: paste.ExpiresAt,
 	}
 
-	// If this is a browser form submission (application/x-www-form-urlencoded), redirect to the paste view
-	if strings.Contains(c.Get("Content-Type"), "application/x-www-form-urlencoded") {
+	// If this is a browser form submission, redirect to the paste view
+	contentType := c.Get("Content-Type")
+	if strings.Contains(contentType, "application/x-www-form-urlencoded") || strings.Contains(contentType, "multipart/form-data") {
 		// Store the deletion URL in the session for display after redirect
 		c.Cookie(&fiber.Cookie{
 			Name:     "deletion_url",
@@ -205,13 +206,137 @@ func (s *PasteService) GetPasteImage(c *fiber.Ctx, paste *models.Paste) error {
 
 // RenderPaste renders the paste view for text content
 func (s *PasteService) RenderPaste(c *fiber.Ctx, paste *models.Paste) error {
+	content, err := s.storage.Get(paste.StoragePath)
+	if err != nil {
+		return err
+	}
+
+	// Check for deletion URL cookie
+	var deletionUrl string
+	if cookie := c.Cookies("deletion_url"); cookie != "" {
+		// Clear the cookie before reading it to ensure one-time use
+		c.Cookie(&fiber.Cookie{
+			Name:     "deletion_url",
+			Value:    "",
+			Path:     "/",
+			Expires:  time.Now().Add(-24 * time.Hour),
+			HTTPOnly: true,
+		})
+		deletionUrl = cookie
+	}
+
+	// Set cache headers
+	if deletionUrl != "" {
+		// Only set no-cache headers if we have a deletion URL
+		c.Set("Cache-Control", "private, no-cache, no-store, must-revalidate, max-age=0")
+		c.Set("Pragma", "no-cache")
+		c.Set("Expires", "0")
+		c.Set("CDN-Cache-Control", "no-store")
+		c.Set("Cloudflare-CDN-Cache-Control", "no-store")
+	} else {
+		// If no deletion URL, content is immutable and can be cached
+		c.Set("Cache-Control", "public, max-age=31536000, immutable")
+		c.Set("ETag", paste.ID)
+	}
+
+	var renderedContent string
+
 	if s.isTextContent(paste.MimeType) {
-		return s.renderPasteView(c, paste)
+		// Handle text content with syntax highlighting
+		renderedContent, err = s.renderHighlightedText(string(content), paste.Extension, paste.MimeType)
+		if err != nil {
+			return err
+		}
 	}
-	if s.isImageContent(paste.MimeType) {
-		return s.RenderPasteRaw(c, paste)
+
+	// Build paste ID with extension if available
+	pasteID := paste.ID
+	if paste.Extension != "" {
+		pasteID = paste.ID + "." + paste.Extension
 	}
-	return c.Redirect("/p/" + paste.ID + "/download")
+
+	return c.Render("paste", fiber.Map{
+		"isPaste":     true,
+		"id":          pasteID,
+		"filename":    paste.Filename,
+		"extension":   paste.Extension,
+		"created":     paste.CreatedAt.Format("2006-01-02 15:04:05"),
+		"expires":     formatExpiryTime(paste.ExpiresAt),
+		"language":    s.getLanguageName(paste.Extension, paste.MimeType),
+		"content":     renderedContent,
+		"rawContent":  string(content),
+		"baseUrl":     s.config.Server.BaseURL,
+		"deletionUrl": deletionUrl,
+		"metadata": fiber.Map{
+			"size":      formatSize(paste.Size),
+			"mimeType":  paste.MimeType,
+			"createdAt": paste.CreatedAt,
+			"expiresAt": paste.ExpiresAt,
+		},
+	}, "layouts/main")
+}
+
+// Helper function to get language name
+func (s *PasteService) getLanguageName(extension, mimeType string) string {
+	var lexer chroma.Lexer
+	if extension != "" {
+		lexer = lexers.Get(extension)
+	}
+	if lexer == nil {
+		lexer = lexers.Get(mimeType)
+	}
+	if lexer == nil {
+		return "plain"
+	}
+	return lexer.Config().Name
+}
+
+// Helper function to render highlighted text
+func (s *PasteService) renderHighlightedText(content, extension, mimeType string) (string, error) {
+	// Determine lexer based on extension or content
+	var lexer chroma.Lexer
+	if extension != "" {
+		lexer = lexers.Get(extension)
+	}
+	if lexer == nil {
+		lexer = lexers.Get(mimeType)
+	}
+	if lexer == nil {
+		lexer = lexers.Analyse(content)
+	}
+	if lexer == nil {
+		lexer = lexers.Fallback
+	}
+	lexer = chroma.Coalesce(lexer)
+
+	// Create formatter
+	formatter := html.New(
+		html.WithLineNumbers(true),
+		html.WithLinkableLineNumbers(true, ""),
+		html.TabWidth(4),
+		html.WithClasses(false), // Use inline styles
+	)
+
+	// Create buffer for highlighted code
+	var codeBuffer bytes.Buffer
+
+	// Write highlighted code
+	iterator, err := lexer.Tokenise(nil, content)
+	if err != nil {
+		return "", err
+	}
+
+	// Use GitHub Dark style
+	style := styles.Get("github-dark")
+	if style == nil {
+		style = styles.Fallback
+	}
+
+	if err := formatter.Format(&codeBuffer, style, iterator); err != nil {
+		return "", err
+	}
+
+	return codeBuffer.String(), nil
 }
 
 // RenderPasteRaw serves the raw content with proper content type
@@ -623,110 +748,6 @@ func (s *PasteService) isTextContent(mimeType string) bool {
 
 func (s *PasteService) isImageContent(mimeType string) bool {
 	return strings.HasPrefix(mimeType, "image/")
-}
-
-func (s *PasteService) renderPasteView(c *fiber.Ctx, paste *models.Paste) error {
-	content, err := s.storage.Get(paste.StoragePath)
-	if err != nil {
-		return err
-	}
-
-	// Check for deletion URL cookie
-	var deletionUrl string
-	if cookie := c.Cookies("deletion_url"); cookie != "" {
-		// Clear the cookie before reading it to ensure one-time use
-		c.Cookie(&fiber.Cookie{
-			Name:     "deletion_url",
-			Value:    "",
-			Path:     "/",
-			Expires:  time.Now().Add(-24 * time.Hour),
-			HTTPOnly: true,
-		})
-		deletionUrl = cookie
-	}
-
-	// Set appropriate cache headers based on whether we have a deletion URL
-	if deletionUrl != "" {
-		// Only set no-cache headers if we have a deletion URL
-		c.Set("Cache-Control", "private, no-cache, no-store, must-revalidate, max-age=0")
-		c.Set("Pragma", "no-cache")
-		c.Set("Expires", "0")
-		c.Set("CDN-Cache-Control", "no-store")
-		c.Set("Cloudflare-CDN-Cache-Control", "no-store")
-	} else {
-		// If no deletion URL, content is immutable and can be cached
-		c.Set("Cache-Control", "public, max-age=31536000, immutable")
-		c.Set("ETag", paste.ID)
-	}
-
-	// Determine lexer based on extension or content
-	var lexer chroma.Lexer
-	if paste.Extension != "" {
-		lexer = lexers.Get(paste.Extension)
-	}
-	if lexer == nil {
-		lexer = lexers.Get(paste.MimeType)
-	}
-	if lexer == nil {
-		lexer = lexers.Analyse(string(content))
-	}
-	if lexer == nil {
-		lexer = lexers.Fallback
-	}
-	lexer = chroma.Coalesce(lexer)
-
-	// Create formatter
-	formatter := html.New(
-		html.WithLineNumbers(true),
-		html.WithLinkableLineNumbers(true, ""),
-		html.TabWidth(4),
-		html.WithClasses(false), // Use inline styles
-	)
-
-	// Create buffer for highlighted code
-	var codeBuffer bytes.Buffer
-
-	// Write highlighted code
-	iterator, err := lexer.Tokenise(nil, string(content))
-	if err != nil {
-		return err
-	}
-
-	// Use GitHub Dark style
-	style := styles.Get("github-dark")
-	if style == nil {
-		style = styles.Fallback
-	}
-
-	if err := formatter.Format(&codeBuffer, style, iterator); err != nil {
-		return err
-	}
-
-	// Build paste ID with extension if available
-	pasteID := paste.ID
-	if paste.Extension != "" {
-		pasteID = paste.ID + "." + paste.Extension
-	}
-
-	return c.Render("paste", fiber.Map{
-		"isPaste":     true,
-		"id":          pasteID,
-		"filename":    paste.Filename,
-		"extension":   paste.Extension,
-		"created":     paste.CreatedAt.Format("2006-01-02 15:04:05"),
-		"expires":     formatExpiryTime(paste.ExpiresAt),
-		"language":    lexer.Config().Name,
-		"content":     codeBuffer.String(),
-		"rawContent":  string(content),
-		"baseUrl":     s.config.Server.BaseURL,
-		"deletionUrl": deletionUrl,
-		"metadata": fiber.Map{
-			"size":      formatSize(paste.Size),
-			"mimeType":  paste.MimeType,
-			"createdAt": paste.CreatedAt,
-			"expiresAt": paste.ExpiresAt,
-		},
-	}, "layouts/main")
 }
 
 func formatExpiryTime(t *time.Time) string {

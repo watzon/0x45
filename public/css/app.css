@@ -987,3 +987,102 @@ tr:nth-child(even) {
         display: none;
     }
 }
+
+.image-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    background: #2e3440;
+    border-radius: 4px;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+}
+
+.video-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    background: #2e3440;
+    border-radius: 4px;
+}
+
+.video-preview video {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+}
+
+.binary-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    padding: 2rem;
+    background: #2e3440;
+    border-radius: 4px;
+}
+
+.binary-info {
+    text-align: center;
+    color: #d8dee9;
+}
+
+.binary-info p {
+    margin: 0.5rem 0;
+}
+
+.pdf-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    background: #2e3440;
+    border-radius: 4px;
+    min-height: 600px;
+}
+
+.pdf-preview object {
+    width: 100%;
+    height: 80vh;
+    min-height: 600px;
+    border: none;
+}
+
+.pdf-fallback {
+    text-align: center;
+    color: #d8dee9;
+    padding: 2rem;
+}
+
+.pdf-fallback p {
+    margin: 0.5rem 0;
+}
+
+.pdf-fallback a {
+    color: var(--color-accent);
+    text-decoration: none;
+}
+
+.pdf-fallback a:hover {
+    text-decoration: underline;
+}
+
+.audio-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    background: #2e3440;
+    border-radius: 4px;
+}
+
+.audio-preview audio {
+    width: 100%;
+    max-width: 600px;
+}

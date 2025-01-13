@@ -21,19 +21,60 @@
             {{#if expires}}
             <span title="{{expires}}">Expires: {{expires}}</span>
             {{/if}}
+            {{#if language}}
             <span>Language: {{language}}</span>
+            {{/if}}
             <span>Size: {{metadata.size}}</span>
             <span>Type: {{metadata.mimeType}}</span>
         </div>
     </div>
     <div class="actions">
+        {{#if (startsWith metadata.mimeType "text/")}}
         <button class="action-btn" data-clipboard data-clipboard-content="{{rawContent}}">Copy</button>
+        {{/if}}
         <a href="/p/{{id}}/raw" class="action-btn">Raw</a>
         <a href="/p/{{id}}/download" class="action-btn">Download</a>
     </div>
 </div>
 
 <div id="paste-content" class="paste-content">
-    <button class="expand-btn">expand</button>
-    {{{content}}}
+    {{#if (startsWith metadata.mimeType "text/")}}
+        <button class="expand-btn">expand</button>
+        {{{content}}}
+    {{else if (startsWith metadata.mimeType "image/")}}
+        <div class="image-preview">
+            <img src="/p/{{id}}/raw" alt="{{filename}}" loading="lazy" />
+        </div>
+    {{else if (startsWith metadata.mimeType "video/")}}
+        <div class="video-preview">
+            <video controls>
+                <source src="/p/{{id}}/raw" type="{{metadata.mimeType}}">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    {{else if (startsWith metadata.mimeType "audio/")}}
+        <div class="audio-preview">
+            <audio controls>
+                <source src="/p/{{id}}/raw" type="{{metadata.mimeType}}">
+                Your browser does not support the audio tag.
+            </audio>
+        </div>
+    {{else if (eq metadata.mimeType "application/pdf")}}
+        <div class="pdf-preview">
+            <object data="/p/{{id}}/raw" type="application/pdf">
+                <div class="pdf-fallback">
+                    <p>It appears your browser doesn't support embedded PDFs.</p>
+                    <p>You can <a href="/p/{{id}}/raw">click here to download</a> the PDF file.</p>
+                </div>
+            </object>
+        </div>
+    {{else}}
+        <div class="binary-preview">
+            <div class="binary-info">
+                <p>This is a binary file of type {{metadata.mimeType}}.</p>
+                <p>Size: {{metadata.size}}</p>
+                <p>You can download it using the download button above.</p>
+            </div>
+        </div>
+    {{/if}}
 </div>

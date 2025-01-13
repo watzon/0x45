@@ -8,10 +8,22 @@
     </div>
 </div>
 
-<form id="paste-form" class="paste-form" method="POST" action="/p">
+<form id="paste-form" class="paste-form" method="POST" action="/p" enctype="multipart/form-data">
     <div class="form-group">
+        <div class="input-toggle">
+            <button type="button" id="toggle-input" class="toggle-btn">Switch to File Upload</button>
+        </div>
         <textarea id="content" name="content" class="paste-textarea" placeholder="Enter your text here..."
             autofocus></textarea>
+        <div id="dropzone" class="dropzone" style="display: none;">
+            <div class="dropzone-content">
+                <div class="dropzone-text">
+                    <p>Drop file here, paste from clipboard, or click to upload</p>
+                    <p class="dropzone-subtext">You can also paste content directly from your clipboard</p>
+                </div>
+            </div>
+            <input type="file" id="file-upload" name="file" class="file-input">
+        </div>
     </div>
 
     <div class="form-options">

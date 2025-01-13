@@ -47,6 +47,15 @@ func New(viewsDir, fallbackDir string, extension string, logger *zap.Logger) *Mu
 	baseEngine := handlebars.New(absViewsDir, extension)
 	baseEngine.Templates = make(map[string]*raymond.Template)
 
+	// Register helpers
+	raymond.RegisterHelper("startsWith", func(str, prefix string) bool {
+		return strings.HasPrefix(str, prefix)
+	})
+
+	raymond.RegisterHelper("eq", func(a, b interface{}) bool {
+		return a == b
+	})
+
 	engine := &MultiHandlebars{
 		Engine:      baseEngine,
 		fallbackDir: absFallbackDir,
