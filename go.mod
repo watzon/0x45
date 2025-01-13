@@ -22,7 +22,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/net v0.31.0
+	golang.org/x/net v0.33.0
 	golang.org/x/time v0.8.0
 	gorm.io/driver/postgres v1.5.9
 	gorm.io/gorm v1.25.12

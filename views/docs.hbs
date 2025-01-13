@@ -9,6 +9,7 @@
 <ul>
     <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#file-upload-endpoints">File Upload Endpoints</a></li>
+    <li><a href="#integrations">Integrations</a></li>
     {{#if apiKeysEnabled}}
     <li><a href="#authentication">Authentication & API Keys</a></li>
     <li><a href="#url-shortener">URL Shortener</a></li>
@@ -215,6 +216,81 @@ EOF</code>
             <p>The delete key is provided in the response when creating a paste.</p>
         </dd>
     </dl>
+</section>
+
+<section id="integrations">
+    <h2>Integrations</h2>
+
+    <h3>ShareX Integration</h3>
+    <p>Copy and save the following configuration as a <code>.sxcu</code> file, then import it into ShareX:</p>
+
+    <div class="labeled-code-block">
+        <span class="command-label json-label">JSON</span>
+        <div class="code-block">
+            <code>{
+    "Version": "15.0.0",
+    "Name": "0x45 Uploader",
+    "DestinationType": "ImageUploader, TextUploader, FileUploader",
+    "RequestMethod": "POST",
+    "RequestURL": "{{baseUrl}}/p",
+    {{#if apiKeysEnabled}}
+    "Headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+    },
+    {{/if}}
+    "Body": "MultipartFormData",
+    "FileFormName": "file",
+    "URL": "{json:url}"
+}</code>
+            <button class="action-btn" data-clipboard data-clipboard-selector="#sharex-config"><span>Copy</span></button>
+        </div>
+    </div>
+
+    <p>After importing, you can set this as your default uploader in ShareX under "Destinations".</p>
+
+    <h3>Flameshot Integration</h3>
+    <p>Save this script to use Flameshot with 0x45:</p>
+
+    <div class="labeled-code-block">
+        <span class="command-label bash-label">BASH</span>
+        <div class="code-block">
+            <code>#!/bin/bash
+
+# Detect clipboard command
+if command -v wl-copy >/dev/null 2>&1; then
+    CLIP_CMD="wl-copy"
+elif command -v xclip >/dev/null 2>&1; then
+    CLIP_CMD="xclip -selection clipboard"
+elif command -v pbcopy >/dev/null 2>&1; then
+    CLIP_CMD="pbcopy"
+else
+    echo "No clipboard command found. Please install xclip, wl-copy, or pbcopy"
+    exit 1
+fi
+
+filename="/tmp/screenshot-$(date +%Y%m%d-%H%M%S).png"
+flameshot gui -r > "$filename"; if [ ! -s "$filename" ]; then
+    exit 1
+fi
+
+{{#if apiKeysEnabled}}
+curl -s -H "Authorization: Bearer YOUR_API_KEY" {{baseUrl}}/p -F file=@"$filename" | jq -r '.url' | $CLIP_CMD
+{{else}}
+curl -s {{baseUrl}}/p -F file=@"$filename" | jq -r '.url' | $CLIP_CMD
+{{/if}}</code>
+            <button class="action-btn" data-clipboard data-clipboard-selector="#flameshot-script"><span>Copy</span></button>
+        </div>
+    </div>
+
+    <p>Save this script somewhere in your PATH (e.g. <code>~/.local/bin/upload-screenshot</code>), make it executable with <code>chmod +x</code>, and bind it to a keyboard shortcut.</p>
+
+    <p>Dependencies:</p>
+    <ul>
+        <li><code>flameshot</code> - Screenshot tool</li>
+        <li><code>curl</code> - For uploading</li>
+        <li><code>jq</code> - For parsing JSON response</li>
+        <li>One of: <code>wl-copy</code> (Wayland), <code>xclip</code> (X11), or <code>pbcopy</code> (macOS)</li>
+    </ul>
 </section>
 
 {{#if apiKeysEnabled}}

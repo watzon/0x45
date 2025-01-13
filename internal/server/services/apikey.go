@@ -127,6 +127,10 @@ func (s *APIKeyService) HasMailer() bool {
 	return s.mailer != nil
 }
 
+func (s *APIKeyService) IsEnabled() bool {
+	return s.config.SMTP.Enabled && s.HasMailer()
+}
+
 // Helper functions
 
 func (s *APIKeyService) sendVerificationEmail(email, token string) error {
