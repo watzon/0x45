@@ -52,12 +52,24 @@ func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
 		zap.String("body", string(c.Body())))
 
 	p := new(PasteOptions)
-	if err := c.BodyParser(p); err != nil {
-		s.logger.Error("Failed to parse request body",
-			zap.Error(err),
-			zap.String("content-type", c.Get("Content-Type")),
-			zap.String("body", string(c.Body())))
-		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
+	contentType := c.Get("Content-Type")
+
+	// Handle form data differently from JSON/other formats
+	if strings.Contains(contentType, "multipart/form-data") || strings.Contains(contentType, "application/x-www-form-urlencoded") {
+		// Parse form values
+		if err := c.BodyParser(p); err != nil {
+			s.logger.Error("Failed to parse form values",
+				zap.Error(err))
+		}
+	} else {
+		// For JSON and other formats
+		if err := c.BodyParser(p); err != nil {
+			s.logger.Error("Failed to parse request body",
+				zap.Error(err),
+				zap.String("content-type", c.Get("Content-Type")),
+				zap.String("body", string(c.Body())))
+			return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
+		}
 	}
 
 	s.logger.Debug("Parsed paste options",
@@ -142,8 +154,8 @@ func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
 	}
 
 	// If this is a browser form submission, redirect to the paste view
-	contentType := c.Get("Content-Type")
-	if strings.Contains(contentType, "application/x-www-form-urlencoded") || strings.Contains(contentType, "multipart/form-data") {
+	acceptHeader := c.Get("Accept")
+	if strings.Contains(acceptHeader, "text/html") {
 		// Store the deletion URL in the session for display after redirect
 		c.Cookie(&fiber.Cookie{
 			Name:     "deletion_url",
