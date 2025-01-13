@@ -94,8 +94,10 @@ func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
 		// First check for a filename in form field
 		if formFilename := c.FormValue("filename"); formFilename != "" {
 			filename = formFilename
-		} else if file.Filename != "" { // Fall back to uploaded file's filename
+		} else if file.Filename != "" && file.Filename != "-" { // Don't use "-" as filename
 			filename = file.Filename
+		} else {
+			filename = "paste.txt" // Default filename
 		}
 	} else if p.URL != "" {
 		// Read content from the given URL
