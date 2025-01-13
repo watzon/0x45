@@ -5,10 +5,12 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/server"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // @title 0x45 API
@@ -28,12 +30,18 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	// Initialize logger
-	logger, err := zap.NewProduction()
+	// Initialize logger with environment-based level
+	logLevel := getLogLevel()
+	logConfig := zap.NewDevelopmentConfig()
+	logConfig.Level = zap.NewAtomicLevelAt(logLevel)
+
+	logger, err := logConfig.Build()
 	if err != nil {
 		log.Fatalf("failed to initialize logger: %v", err)
 	}
 	defer func() { _ = logger.Sync() }()
+
+	logger.Info("logger initialized", zap.String("level", logLevel.String()))
 
 	// Initialize server with storage manager
 	srv := server.New(cfg, logger)
@@ -57,5 +65,26 @@ func main() {
 	log.Print("shutdown signal received, initiate shutdown")
 	if err := srv.Shutdown(context.Background()); err != nil {
 		log.Printf("failed shutting down gracefully: %v", err)
+	}
+}
+
+func getLogLevel() zapcore.Level {
+	env := os.Getenv("0X_LOG_LEVEL")
+	if env == "" {
+		return zapcore.InfoLevel
+	}
+
+	switch strings.ToLower(env) {
+	case "debug":
+		return zapcore.DebugLevel
+	case "info":
+		return zapcore.InfoLevel
+	case "warn":
+		return zapcore.WarnLevel
+	case "error":
+		return zapcore.ErrorLevel
+	default:
+		log.Fatalf("unknown log level: %s", env)
+		return zapcore.InfoLevel
 	}
 }
