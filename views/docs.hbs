@@ -94,8 +94,8 @@
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl -X POST -F "file=@path/to/file.txt" {{baseUrlHost}}/p</code>
-            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST -F 'file=@path/to/file.txt' {{baseUrlHost}}/p"><span>Copy</span></button>
+            <code>curl -X POST -F "file=@path/to/file.txt" -F "filename=custom_name.txt" {{baseUrlHost}}/p</code>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST -F 'file=@path/to/file.txt' -F 'filename=custom_name.txt' {{baseUrlHost}}/p"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -103,6 +103,7 @@
         <dd>
             <ul>
                 <li><code>file</code> - The file to upload</li>
+                <li><code>filename</code> - (optional) Custom filename for the paste (overrides the uploaded file's name)</li>
                 <li><code>private</code> - (optional) Set to "true" to make the paste private</li>
                 <li><code>expires_in</code> - (optional) Duration string for paste expiry (e.g. "24h", "7d")</li>
             </ul>

@@ -79,8 +79,10 @@ func (s *PasteService) UploadPaste(c *fiber.Ctx) error {
 			return fiber.NewError(fiber.StatusInternalServerError, "Failed to read file content")
 		}
 
-		// Get filename from form field if available
-		if file.Filename != "" {
+		// First check for a filename in form field
+		if formFilename := c.FormValue("filename"); formFilename != "" {
+			filename = formFilename
+		} else if file.Filename != "" { // Fall back to uploaded file's filename
 			filename = file.Filename
 		}
 	} else if p.URL != "" {
