@@ -6,12 +6,14 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"math"
 	"path/filepath"
 	"strings"
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/disintegration/imaging"
 	"github.com/fogleman/gg"
 )
 
@@ -29,13 +31,10 @@ const (
 	borderRadius = 15.0
 	tabWidth     = 4 // Number of spaces per tab
 
-	// Line number settings
-	lineNumPadding = 10.0
-	lineNumWidth   = 50.0
-	lineNumColor   = 0x666666
-
 	// Font settings
-	fontPath = "public/fonts/Go-Mono.ttf"
+	monoFontPath     = "public/fonts/Go-Mono.ttf"
+	interBoldPath    = "public/fonts/Inter-Bold.ttf"
+	interRegularPath = "public/fonts/Inter-Regular.ttf"
 )
 
 // WatermarkConfig holds configuration for the image watermark
@@ -58,7 +57,7 @@ func DefaultWatermarkConfig() WatermarkConfig {
 		Color:    color.RGBA{128, 128, 128, 80}, // Semi-transparent gray
 		PaddingX: 20,
 		PaddingY: 20,
-		FontPath: fontPath,
+		FontPath: monoFontPath,
 	}
 }
 
@@ -87,138 +86,9 @@ func DefaultImageConfig() ImageConfig {
 		Padding:      padding,
 		BorderWidth:  borderWidth,
 		BorderRadius: borderRadius,
-		FontPath:     fontPath,
+		FontPath:     monoFontPath,
 		Watermark:    DefaultWatermarkConfig(),
 	}
-}
-
-type codeImageContext struct {
-	dc           *gg.Context
-	style        *chroma.Style
-	lineNumWidth float64
-	maxWidth     float64
-	lineHeight   float64
-	currentLine  int
-	spaceWidth   float64 // Width of a single space character
-}
-
-func setupContext(dc *gg.Context, style *chroma.Style, lineNumWidth, maxWidth, lineHeight float64) *codeImageContext {
-	// Measure space width for tab calculations
-	spaceWidth, _ := dc.MeasureString(" ")
-
-	return &codeImageContext{
-		dc:           dc,
-		style:        style,
-		lineNumWidth: lineNumWidth,
-		maxWidth:     maxWidth,
-		lineHeight:   lineHeight,
-		currentLine:  1,
-		spaceWidth:   spaceWidth,
-	}
-}
-
-// expandTabs replaces tabs with the appropriate number of spaces
-func (ctx *codeImageContext) expandTabs(text string, currentX float64) string {
-	var result strings.Builder
-	column := int(currentX / ctx.spaceWidth)
-
-	for _, r := range text {
-		if r == '\t' {
-			spaces := tabWidth - (column % tabWidth)
-			result.WriteString(strings.Repeat(" ", spaces))
-			column += spaces
-		} else {
-			result.WriteRune(r)
-			if r == '\n' {
-				column = 0
-			} else {
-				column++
-			}
-		}
-	}
-	return result.String()
-}
-
-func drawToken(ctx *codeImageContext, token chroma.Token, x *float64, y *float64) {
-	if token.Value == "" {
-		return
-	}
-
-	// Handle tabs and other special characters
-	expandedText := ctx.expandTabs(token.Value, *x)
-
-	// Set color for the token
-	ctx.dc.SetColor(getTokenColor(token, ctx.style))
-
-	// Split into lines and handle each separately
-	lines := strings.Split(expandedText, "\n")
-	for i, line := range lines {
-		if ctx.currentLine > maxLines {
-			break
-		}
-
-		// Handle line numbers for new lines
-		if i > 0 {
-			*x = padding + borderWidth + ctx.lineNumWidth + lineNumPadding
-			*y += ctx.lineHeight
-			ctx.currentLine++
-			drawLineNumbers(ctx, *y)
-		}
-
-		// Skip empty lines
-		if line == "" {
-			continue
-		}
-
-		// Check if we need to wrap
-		if *x > padding+borderWidth+ctx.lineNumWidth+lineNumPadding {
-			remainingWidth := float64(ogImageWidth) - *x - padding - borderWidth
-			width, _ := ctx.dc.MeasureString(line)
-			if width > remainingWidth {
-				*x = padding + borderWidth + ctx.lineNumWidth + lineNumPadding
-				*y += ctx.lineHeight
-				ctx.currentLine++
-				drawLineNumbers(ctx, *y)
-			}
-		}
-
-		// Draw the text
-		ctx.dc.DrawString(line, *x, *y)
-		width, _ := ctx.dc.MeasureString(line)
-		*x += width
-	}
-}
-
-// setupCanvas initializes the drawing context with background and border
-func setupCanvas(width, height int) (*gg.Context, error) {
-	dc := gg.NewContext(width, height)
-	dc.Clear()
-
-	// Create clipping path for rounded corners
-	dc.DrawRoundedRectangle(borderWidth/2, borderWidth/2,
-		float64(width)-borderWidth,
-		float64(height)-borderWidth,
-		borderRadius)
-	dc.Clip()
-
-	// Set background color (dark theme)
-	dc.SetColor(color.RGBA{40, 44, 52, 255})
-	dc.DrawRectangle(borderWidth/2, borderWidth/2,
-		float64(width)-borderWidth,
-		float64(height)-borderWidth)
-	dc.Fill()
-
-	// Reset clip and draw border
-	dc.ResetClip()
-	dc.SetColor(color.RGBA{60, 64, 72, 255})
-	dc.SetLineWidth(borderWidth)
-	dc.DrawRoundedRectangle(borderWidth/2, borderWidth/2,
-		float64(width)-borderWidth,
-		float64(height)-borderWidth,
-		borderRadius)
-	dc.Stroke()
-
-	return dc, nil
 }
 
 // setupSyntaxHighlighting prepares the lexer and style for syntax highlighting
@@ -243,14 +113,6 @@ func setupSyntaxHighlighting(code string) (chroma.Iterator, *chroma.Style, error
 	}
 
 	return iterator, style, nil
-}
-
-// drawLineNumbers draws the line number column and separator
-func drawLineNumbers(ctx *codeImageContext, y float64) {
-	// Draw line number
-	ctx.dc.SetColor(color.RGBA{102, 102, 102, 255})
-	lineNumX := padding + borderWidth + ctx.lineNumWidth - 5
-	ctx.dc.DrawStringAnchored(fmt.Sprintf("%d", ctx.currentLine), lineNumX, y, 1.0, 0)
 }
 
 // getTokenColor extracts the color for a token based on its style
@@ -278,8 +140,11 @@ func getTokenColor(token chroma.Token, style *chroma.Style) color.Color {
 	return color.White
 }
 
-func GenerateCodeImage(code string) ([]byte, error) {
-	img, err := GenerateCodeImageWithConfig(code, "", DefaultImageConfig())
+func GenerateCodeImage(code, filename string) ([]byte, error) {
+	config := DefaultImageConfig()
+	config.FontSize = 32 // Even larger text for better visibility
+
+	img, err := GenerateCodeImageWithConfig(code, filename, config)
 	if err != nil {
 		return nil, err
 	}
@@ -290,12 +155,28 @@ func GenerateCodeImage(code string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func GenerateCodeImageWithConfig(code, language string, config ImageConfig) (image.Image, error) {
-	// Setup canvas
-	dc, err := setupCanvas(config.Width, config.Height)
+func GenerateCodeImageWithConfig(code, filename string, config ImageConfig) (image.Image, error) {
+	// Setup canvas with dark background
+	bgColor := color.RGBA{46, 52, 64, 255} // #2E3440
+	dc := gg.NewContext(config.Width, config.Height)
+	dc.SetColor(bgColor)
+	dc.Clear()
+
+	// Load fonts
+	monoFontPath, err := filepath.Abs(monoFontPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get mono font path: %w", err)
 	}
+
+	interBoldPath, err := filepath.Abs(interBoldPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Inter Bold font path: %w", err)
+	}
+
+	// Calculate positions
+	gradientStop := float64(config.Width) * 0.2
+	codeStartX := gradientStop + 40 // 20px after gradient stop
+	codeStartY := 120.0
 
 	// Setup syntax highlighting
 	iterator, style, err := setupSyntaxHighlighting(code)
@@ -303,54 +184,71 @@ func GenerateCodeImageWithConfig(code, language string, config ImageConfig) (ima
 		return nil, err
 	}
 
-	// Load font
-	fontAbsPath, err := filepath.Abs(config.FontPath)
-	if err != nil {
-		return nil, err
+	// Load font for code
+	if err := dc.LoadFontFace(monoFontPath, config.FontSize); err != nil {
+		return nil, fmt.Errorf("failed to load font: %w", err)
 	}
-	if err := dc.LoadFontFace(fontAbsPath, config.FontSize); err != nil {
-		return nil, err
-	}
-
-	// Calculate dimensions
-	textStartX := padding + borderWidth + lineNumWidth + lineNumPadding
-	maxTextWidth := float64(config.Width) - textStartX - padding - borderWidth
-
-	// Create context
-	ctx := setupContext(dc, style, lineNumWidth, maxTextWidth, config.FontSize*lineSpacing)
-
-	// Draw separator line for line numbers
-	dc.SetColor(color.RGBA{60, 64, 72, 255})
-	dc.SetLineWidth(1)
-	dc.DrawLine(
-		padding+borderWidth+lineNumWidth,
-		borderWidth,
-		padding+borderWidth+lineNumWidth,
-		float64(config.Height)-borderWidth,
-	)
-	dc.Stroke()
 
 	// Draw code
-	x := textStartX
-	y := padding + config.FontSize + borderWidth
-
-	// Draw initial line number
-	drawLineNumbers(ctx, y)
+	x := codeStartX
+	y := codeStartY
+	lineHeight := config.FontSize * config.LineSpacing
 
 	for _, token := range iterator.Tokens() {
-		if ctx.currentLine > config.MaxLines {
-			break
+		if token.Value == "" {
+			continue
 		}
 
-		drawToken(ctx, token, &x, &y)
+		color := getTokenColor(token, style)
+		dc.SetColor(color)
+
+		lines := strings.Split(token.Value, "\n")
+		for i, line := range lines {
+			if i > 0 {
+				x = codeStartX
+				y += lineHeight
+			}
+
+			// Skip if we've reached the bottom of the image
+			if y > float64(config.Height-40) {
+				break
+			}
+
+			dc.DrawString(line, x, y)
+			width, _ := dc.MeasureString(line)
+			x += width
+		}
 	}
 
-	if ctx.currentLine > config.MaxLines {
-		dc.SetColor(color.White)
-		dc.DrawString("...", textStartX, y+ctx.lineHeight)
+	// Create gradient overlay using a smoother technique
+	// First stop: solid white rectangle up to gradientStop
+	dc.SetRGBA(0.92, 0.92, 0.96, 0.90) // Almost completely opaque white
+	dc.DrawRectangle(0, 0, gradientStop, float64(config.Height))
+	dc.Fill()
+
+	// Second stop: smooth gradient from white to transparent
+	gradientWidth := float64(config.Width) - gradientStop
+	for x := 0.0; x < gradientWidth; x++ {
+		// Use a smooth easing function instead of linear
+		progress := x / gradientWidth
+		// Apply cubic easing: progress = 1 - (1-t)^3
+		easedProgress := 1 - math.Pow(1-progress, 3)
+		alpha := (1.0 - easedProgress) * 0.90
+
+		dc.SetRGBA(0.92, 0.92, 0.96, alpha)
+		xPos := gradientStop + x
+		dc.DrawRectangle(xPos, 0, 1, float64(config.Height))
+		dc.Fill()
 	}
 
-	// Add watermark
+	// Draw filename on top of everything with background color using Inter Bold
+	if err := dc.LoadFontFace(interBoldPath, 42); err != nil {
+		return nil, fmt.Errorf("failed to load Inter Bold font: %w", err)
+	}
+	dc.SetColor(bgColor)
+	dc.DrawString(filename, 40, 60)
+
+	// Add watermark if enabled
 	if config.Watermark.Enabled {
 		if err := drawWatermark(dc, config.Watermark); err != nil {
 			return nil, fmt.Errorf("failed to draw watermark: %w", err)
@@ -375,4 +273,139 @@ func drawWatermark(dc *gg.Context, config WatermarkConfig) error {
 	// Draw the text
 	dc.DrawString(config.Text, x, y)
 	return nil
+}
+
+func GenerateBinaryPreviewImage(filename, mimeType string) (image.Image, error) {
+	// Create new context with OG dimensions
+	bgColor := color.RGBA{46, 52, 64, 255} // #2E3440
+	dc := gg.NewContext(ogImageWidth, ogImageHeight)
+	dc.SetColor(bgColor)
+	dc.Clear()
+
+	// Load font
+	interBoldPath, err := filepath.Abs(interBoldPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get font path: %w", err)
+	}
+
+	// Calculate gradient stop
+	gradientStop := float64(ogImageWidth) * 0.2
+
+	// Create gradient overlay using a smoother technique
+	overlayR, overlayG, overlayB := 235.0/255.0, 235.0/255.0, 245.0/255.0 // Light color for overlay and shadows
+	overlayAlpha := 0.90
+	// First stop: solid white rectangle up to gradientStop
+	dc.SetRGBA(overlayR, overlayG, overlayB, overlayAlpha)
+	dc.DrawRectangle(0, 0, gradientStop, float64(ogImageHeight))
+	dc.Fill()
+
+	// Second stop: smooth gradient from white to transparent
+	gradientWidth := float64(ogImageWidth) - gradientStop
+	for x := 0.0; x < gradientWidth; x++ {
+		// Use a smooth easing function instead of linear
+		progress := x / gradientWidth
+		// Apply cubic easing: progress = 1 - (1-t)^3
+		easedProgress := 1 - math.Pow(1-progress, 3)
+		alpha := (1.0 - easedProgress) * overlayAlpha
+
+		dc.SetRGBA(overlayR, overlayG, overlayB, alpha)
+		xPos := gradientStop + x
+		dc.DrawRectangle(xPos, 0, 1, float64(ogImageHeight))
+		dc.Fill()
+	}
+
+	// Draw centered title with soft shadow
+	if err := dc.LoadFontFace(interBoldPath, 48); err != nil {
+		return nil, fmt.Errorf("failed to load font: %w", err)
+	}
+
+	titleY := float64(ogImageHeight)/2 - 40
+	// Draw shadow first - using overlay color for a softer effect
+	shadowOffset := 1.0
+	shadowBlur := 10.0
+	shadowSteps := 16.0
+
+	// Draw shadow in a circular pattern
+	for i := 0.0; i < shadowSteps; i++ {
+		angle := (i / shadowSteps) * 2 * math.Pi
+		for r := 0.0; r < shadowBlur; r++ {
+			progress := r / shadowBlur
+			alpha := 0.03 * (1 - progress*progress)
+
+			offsetX := math.Cos(angle) * r * 0.5
+			offsetY := math.Sin(angle) * r * 0.5
+
+			dc.SetRGBA(float64(overlayR), float64(overlayG), float64(overlayB), alpha)
+			dc.DrawStringAnchored(filename,
+				float64(ogImageWidth)/2+offsetX+shadowOffset,
+				titleY+offsetY+shadowOffset,
+				0.5, 0.5)
+		}
+	}
+
+	// Draw main text
+	dc.SetColor(bgColor)
+	dc.DrawStringAnchored(filename, float64(ogImageWidth)/2, titleY, 0.5, 0.5)
+
+	// Draw centered mime type with soft shadow
+	if err := dc.LoadFontFace(interBoldPath, 36); err != nil {
+		return nil, fmt.Errorf("failed to load font: %w", err)
+	}
+
+	mimeTypeY := titleY + 80
+	// Draw shadow first - using overlay color for a softer effect
+	for i := 0.0; i < shadowSteps; i++ {
+		angle := (i / shadowSteps) * 2 * math.Pi
+		for r := 0.0; r < shadowBlur; r++ {
+			progress := r / shadowBlur
+			alpha := 0.03 * (1 - progress*progress)
+
+			offsetX := math.Cos(angle) * r * 0.5
+			offsetY := math.Sin(angle) * r * 0.5
+
+			dc.SetRGBA(float64(overlayR), float64(overlayG), float64(overlayB), alpha)
+			dc.DrawStringAnchored(mimeType,
+				float64(ogImageWidth)/2+offsetX+shadowOffset,
+				mimeTypeY+offsetY+shadowOffset,
+				0.5, 0.5)
+		}
+	}
+
+	// Draw main text
+	dc.SetColor(bgColor)
+	dc.DrawStringAnchored(mimeType, float64(ogImageWidth)/2, mimeTypeY, 0.5, 0.5)
+
+	// Add watermark
+	watermark := DefaultWatermarkConfig()
+	if err := drawWatermark(dc, watermark); err != nil {
+		return nil, fmt.Errorf("failed to draw watermark: %w", err)
+	}
+
+	return dc.Image(), nil
+}
+
+func GenerateImagePreview(img image.Image) (image.Image, error) {
+	// Create new context with OG dimensions
+	bgColor := color.RGBA{46, 52, 64, 255} // #2E3440
+	dc := gg.NewContext(ogImageWidth, ogImageHeight)
+	dc.SetColor(bgColor)
+	dc.Clear()
+
+	// Resize to OG image dimensions while maintaining aspect ratio
+	resized := imaging.Fit(img, ogImageWidth, ogImageHeight, imaging.Lanczos)
+
+	// Calculate position to center the image
+	x := (ogImageWidth - resized.Bounds().Dx()) / 2
+	y := (ogImageHeight - resized.Bounds().Dy()) / 2
+
+	// Draw the resized image centered
+	dc.DrawImage(resized, x, y)
+
+	// Add watermark
+	watermark := DefaultWatermarkConfig()
+	if err := drawWatermark(dc, watermark); err != nil {
+		return nil, fmt.Errorf("failed to draw watermark: %w", err)
+	}
+
+	return dc.Image(), nil
 }

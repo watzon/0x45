@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -32,8 +33,18 @@ type Server struct {
 }
 
 func New(config *config.Config, logger *zap.Logger) *Server {
-	// gormLogger := zapgorm2.New(logger)
-	// gormLogger.SetAsDefault()
+	// Register markdown MIME types
+	mimetype.Extend(func(raw []byte, limit uint32) bool {
+		// Check for common markdown headers
+		content := string(raw)
+		if len(content) > 0 {
+			firstLine := strings.Split(content, "\n")[0]
+			if strings.HasPrefix(firstLine, "# ") || strings.HasPrefix(firstLine, "## ") {
+				return true
+			}
+		}
+		return false
+	}, "text/markdown", ".md", ".markdown")
 
 	// Custom parsers for fiber
 	fiber.SetParserDecoder(fiber.ParserConfig{
@@ -194,6 +205,7 @@ func (s *Server) SetupRoutes() {
 	s.app.Get("/p/:id/raw", s.handlers.Paste.HandleRawView)
 	s.app.Get("/p/:id/download", s.handlers.Paste.HandleDownload)
 	s.app.Get("/p/:id/image", s.handlers.Paste.HandleGetPasteImage)
+	s.app.Get("/p/:id/preview", s.handlers.Paste.HandlePreview)
 	s.app.Delete("/p/:id/:key", s.handlers.Paste.HandleDeleteWithKey)
 	s.app.Get("/p/:id/:key", s.handlers.Paste.HandleDeleteWithKey)
 }

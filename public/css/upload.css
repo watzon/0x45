@@ -59,4 +59,21 @@
 
 .toggle-btn:active {
     color: #81a1c1;
+}
+
+.preview-container {
+    margin-top: 1rem;
+    max-width: 100%;
+    max-height: 300px;
+    overflow: hidden;
+    border-radius: var(--border-radius);
+    background: var(--color-bg);
+}
+
+.image-preview-upload {
+    max-width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
 } 

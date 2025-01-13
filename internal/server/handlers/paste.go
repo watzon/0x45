@@ -3,8 +3,12 @@ package handlers
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/parser"
+	"github.com/valyala/fasthttp"
 	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/server/services"
 	"go.uber.org/zap"
@@ -166,4 +170,84 @@ func (h *PasteHandlers) HandleGetPasteImage(c *fiber.Ctx) error {
 	}
 
 	return h.services.Paste.GetPasteImage(c, paste)
+}
+
+// HandlePreview renders a markdown preview
+func (h *PasteHandlers) HandlePreview(c *fiber.Ctx) error {
+	id := getPasteID(c)
+
+	// Get extension from locals if available and build full ID
+	var fullID string
+	if ext := c.Locals("extension"); ext != nil {
+		fullID = id + "." + ext.(string)
+	} else {
+		fullID = id
+	}
+
+	paste, err := h.services.Paste.GetPaste(id)
+	if err != nil {
+		return err
+	}
+
+	// Create a new context for rendering the raw content
+	app := c.App()
+	ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
+	defer app.ReleaseCtx(ctx)
+
+	// Reset the response to avoid any previous data
+	ctx.Response().Reset()
+
+	// Get the raw content
+	if err := h.services.Paste.RenderPasteRaw(ctx, paste); err != nil {
+		return err
+	}
+
+	// Get the content from the response
+	content := ctx.Response().Body()
+
+	// Convert markdown to HTML
+	extensions := parser.CommonExtensions | parser.AutoHeadingIDs
+	p := parser.NewWithExtensions(extensions)
+	renderedContent := string(markdown.ToHTML(content, p, nil))
+
+	// Format the expiry time
+	var expiryTime string
+	if paste.ExpiresAt != nil {
+		expiryTime = formatExpiryTime(paste.ExpiresAt)
+	}
+
+	// Render the preview template
+	return c.Render("preview", fiber.Map{
+		"id":       fullID, // Use the ID with extension
+		"filename": paste.Filename,
+		"created":  paste.CreatedAt.Format("2006-01-02 15:04:05"),
+		"expires":  expiryTime,
+		"metadata": fiber.Map{
+			"size":     formatSize(paste.Size),
+			"mimeType": paste.MimeType,
+		},
+		"renderedContent": renderedContent,
+	}, "layouts/main")
+}
+
+// formatExpiryTime formats a time pointer into a string
+func formatExpiryTime(t *time.Time) string {
+	if t == nil {
+		return "Never"
+	}
+	return t.Format("2006-01-02 15:04:05")
+}
+
+// formatSize formats a size in bytes into a human readable string
+func formatSize(size int64) string {
+	const unit = 1024
+	if size < unit {
+		return fmt.Sprintf("%d B", size)
+	}
+	div, exp := int64(unit), 0
+	for n := size / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(size)/float64(div), "KMGTPE"[exp])
 }

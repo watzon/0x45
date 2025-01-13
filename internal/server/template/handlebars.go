@@ -52,6 +52,31 @@ func New(viewsDir, fallbackDir string, extension string, logger *zap.Logger) *Mu
 		return strings.HasPrefix(str, prefix)
 	})
 
+	raymond.RegisterHelper("or", func(args ...interface{}) bool {
+		for _, arg := range args {
+			// Convert to boolean and check if true
+			switch v := arg.(type) {
+			case bool:
+				if v {
+					return true
+				}
+			case string:
+				if v != "" {
+					return true
+				}
+			case int, int64, float64:
+				if v != 0 {
+					return true
+				}
+			default:
+				if v != nil {
+					return true
+				}
+			}
+		}
+		return false
+	})
+
 	raymond.RegisterHelper("eq", func(a, b interface{}) bool {
 		return a == b
 	})

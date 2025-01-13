@@ -32,6 +32,9 @@
         {{#if (startsWith metadata.mimeType "text/")}}
         <button class="action-btn" data-clipboard data-clipboard-content="{{rawContent}}">Copy</button>
         {{/if}}
+        {{#if (or (eq metadata.mimeType "text/markdown") (eq metadata.mimeType "text/x-markdown"))}}
+        <a href="/p/{{id}}/preview" class="action-btn">Preview</a>
+        {{/if}}
         <a href="/p/{{id}}/raw" class="action-btn">Raw</a>
         <a href="/p/{{id}}/download" class="action-btn">Download</a>
     </div>

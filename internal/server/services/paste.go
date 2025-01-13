@@ -3,7 +3,12 @@ package services
 import (
 	"bytes"
 	"fmt"
+	"image"
+	_ "image/gif"  // Register GIF format
+	_ "image/jpeg" // Register JPEG format
+	"image/png"
 	"io"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -172,14 +177,6 @@ func (s *PasteService) GetPaste(id string) (*models.Paste, error) {
 
 // GetPasteImage returns an image of the paste suitable for Open Graph
 func (s *PasteService) GetPasteImage(c *fiber.Ctx, paste *models.Paste) error {
-	// First check if the paste is even text, if not we won't generate an image
-	if !s.isTextContent(paste.MimeType) {
-		s.logger.Debug("Cannot generate image for non-text content",
-			zap.String("mime_type", paste.MimeType),
-			zap.String("id", paste.ID))
-		return fiber.NewError(fiber.StatusBadRequest, "Cannot generate image for non-text content")
-	}
-
 	// Get the content
 	content, err := s.storage.Get(paste.StoragePath)
 	if err != nil {
@@ -190,18 +187,70 @@ func (s *PasteService) GetPasteImage(c *fiber.Ctx, paste *models.Paste) error {
 		return err
 	}
 
-	// Generate the image
-	image, err := GenerateCodeImage(string(content))
-	if err != nil {
-		s.logger.Error("Failed to generate paste image",
-			zap.Error(err),
-			zap.String("id", paste.ID))
-		return err
+	var imageBytes []byte
+
+	// Handle different content types
+	if s.isTextContent(paste.MimeType) {
+		// For text content, generate a code preview image
+		imageBytes, err = GenerateCodeImage(string(content), paste.Filename)
+		if err != nil {
+			s.logger.Error("Failed to generate code image",
+				zap.Error(err),
+				zap.String("id", paste.ID))
+			return err
+		}
+	} else if s.isImageContent(paste.MimeType) {
+		// For images, use the image directly but resize if needed
+		img, _, err := image.Decode(bytes.NewReader(content))
+		if err != nil {
+			s.logger.Error("Failed to decode image",
+				zap.Error(err),
+				zap.String("id", paste.ID))
+			return err
+		}
+
+		// Generate preview with watermark
+		preview, err := GenerateImagePreview(img)
+		if err != nil {
+			s.logger.Error("Failed to generate image preview",
+				zap.Error(err),
+				zap.String("id", paste.ID))
+			return err
+		}
+
+		// Encode the preview image
+		var buf bytes.Buffer
+		if err := png.Encode(&buf, preview); err != nil {
+			s.logger.Error("Failed to encode preview image",
+				zap.Error(err),
+				zap.String("id", paste.ID))
+			return err
+		}
+		imageBytes = buf.Bytes()
+	} else {
+		// For binary content, generate a placeholder image
+		img, err := GenerateBinaryPreviewImage(paste.Filename, paste.MimeType)
+		if err != nil {
+			s.logger.Error("Failed to generate binary preview image",
+				zap.Error(err),
+				zap.String("id", paste.ID))
+			return err
+		}
+
+		// Encode the image
+		var buf bytes.Buffer
+		if err := png.Encode(&buf, img); err != nil {
+			s.logger.Error("Failed to encode binary preview image",
+				zap.Error(err),
+				zap.String("id", paste.ID))
+			return err
+		}
+		imageBytes = buf.Bytes()
 	}
 
 	c.Set("Cache-Control", "max-age=31536000, immutable")
 	c.Set("Content-Type", "image/png")
-	return c.Send(image)
+	return c.Send(imageBytes)
 }
 
 // RenderPaste renders the paste view for text content
@@ -627,6 +676,16 @@ func (s *PasteService) createPaste(content io.Reader, apiKey *models.APIKey, siz
 	// Detect MIME type if not provided
 	mime := mimetype.Detect(contentBytes)
 	contentType := mime.String()
+
+	// Check if the file has a markdown extension
+	if opts.Extension != "" && (opts.Extension == "md" || opts.Extension == "markdown") {
+		contentType = "text/markdown"
+	} else if opts.Filename != "" {
+		ext := strings.ToLower(filepath.Ext(opts.Filename))
+		if ext == ".md" || ext == ".markdown" {
+			contentType = "text/markdown"
+		}
+	}
 
 	// Create paste record
 	paste := &models.Paste{
