@@ -28,15 +28,30 @@ func NewWebHandlers(services *services.Services, logger *zap.Logger, config *con
 
 // HandleIndex serves the main web interface page
 func (h *WebHandlers) HandleIndex(c *fiber.Ctx) error {
+	h.logger.Debug("generating retention data for index page")
 	retentionStats, err := utils.GenerateRetentionData(int64(h.config.Server.MaxUploadSize), h.config)
 	if err != nil {
 		h.logger.Error("failed to generate retention data", zap.Error(err))
 	}
 
-	noKeyHistory, _ := json.Marshal(retentionStats.Data["noKey"])
-	withKeyHistory, _ := json.Marshal(retentionStats.Data["withKey"])
+	h.logger.Debug("marshaling retention history data")
+	noKeyHistory, err := json.Marshal(retentionStats.Data["noKey"])
+	if err != nil {
+		h.logger.Error("failed to marshal noKey history", zap.Error(err))
+		return err
+	}
 
-	return c.Render("index", fiber.Map{
+	withKeyHistory, err := json.Marshal(retentionStats.Data["withKey"])
+	if err != nil {
+		h.logger.Error("failed to marshal withKey history", zap.Error(err))
+		return err
+	}
+
+	h.logger.Debug("preparing template data",
+		zap.String("baseUrl", h.config.Server.BaseURL),
+		zap.Any("retention", retentionStats))
+
+	err = c.Render("index", fiber.Map{
 		"retention": fiber.Map{
 			"noKey":          retentionStats.NoKeyRange,
 			"withKey":        retentionStats.WithKeyRange,
@@ -49,6 +64,16 @@ func (h *WebHandlers) HandleIndex(c *fiber.Ctx) error {
 		},
 		"baseUrl": h.config.Server.BaseURL,
 	}, "layouts/main")
+
+	if err != nil {
+		h.logger.Error("failed to render index template",
+			zap.Error(err),
+			zap.String("template", "index"),
+			zap.String("layout", "layouts/main"))
+		return err
+	}
+
+	return nil
 }
 
 // HandleStats serves the statistics page

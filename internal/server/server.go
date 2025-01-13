@@ -8,12 +8,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/template/handlebars/v2"
 	"github.com/watzon/0x45/internal/config"
 	"github.com/watzon/0x45/internal/database"
 	"github.com/watzon/0x45/internal/server/handlers"
 	"github.com/watzon/0x45/internal/server/middleware"
 	"github.com/watzon/0x45/internal/server/services"
+	"github.com/watzon/0x45/internal/server/template"
 	"github.com/watzon/0x45/internal/storage"
 	"github.com/watzon/hdur"
 	"go.uber.org/zap"
@@ -66,8 +66,8 @@ func New(config *config.Config, logger *zap.Logger) *Server {
 		logger.Fatal("Failed to initialize storage", zap.Error(err))
 	}
 
-	// Initialize template engine
-	engine := handlebars.New(config.Server.ViewsDirectory, ".hbs")
+	// Initialize template engine with fallback support
+	engine := template.New(config.Server.ViewsDirectory, "./views", ".hbs", logger)
 
 	// Initialize services
 	svc := services.NewServices(db.DB, logger, config)

@@ -1,12 +1,12 @@
 # Database configuration
 database:
-  # Database driver: "sqlite" or "postgres"
-  driver: postgres
+  driver: sqlite
   host: localhost
   port: 5432
-  user: watzon
-  name: "0x45"
-  sslmode: disable  # Options: disable, require, verify-ca, verify-full
+  user: ""
+  password: ""
+  name: "paste69.db"
+  sslmode: disable
 
 # Storage configuration
 storage:
@@ -14,14 +14,6 @@ storage:
     type: local
     path: ./uploads
     default: true
-    
-  # - name: s3
-  #   type: s3
-  #   s3_bucket: paste69-bucket
-  #   s3_region: us-east-1
-  #   s3_key: your-access-key
-  #   s3_secret: your-secret-key
-  #   s3_endpoint: https://localhost.localstack.cloud:4566
 
 # Server configuration
 server:
@@ -31,72 +23,58 @@ server:
   # Public-facing URL (used for generating links)
   base_url: http://localhost:3000
   
-  # Maximum upload size in bytes (hard server limit)
-  max_upload_size: 104857600 # 100 MB
+  # Maximum upload size in bytes
+  max_upload_size: 5242880      # 5MB default
+  default_upload_size: 10485760 # 10MB default
+  api_upload_size: 52428800     # 50MB default
   
-  # Maximum upload size in bytes (normal users)
-  default_upload_size: 10485760 # 10 MB
-  
-  # Maximim upload size in bytes (users with API key)
-  api_upload_size: 52428800 # 50 MB
-  
-  # Preforking
+  # Server identity
   prefork: false
+  server_header: "Paste69"
+  app_name: "Paste69"
+  
+  # Directory configuration
+  views_directory: "./views"
+  public_directory: "./public"
+  
+  # CORS configuration
+  cors_origins: ["*"]
   
   # Rate limiting configuration
   rate_limit:
     # Global rate limit (across all IPs)
     global:
-      enabled: true  # Enable/disable global rate limiting
-      rate: 6969.0   # Requests per second
-      burst: 250     # Maximum burst size
+      enabled: true
+      rate: 6969.0
+      burst: 250
     
     # Per-IP rate limit
     per_ip:
-      enabled: true # Enable/disable per-IP rate limiting
-      rate: 2.0    # Requests per second per IP
-      burst: 5     # Maximum burst size
+      enabled: true
+      rate: 2.0
+      burst: 5
     
-    # Use Redis for rate limiting if it's available (required for prefork)
+    # Redis configuration for rate limiting
     use_redis: false
-
-    # How often to clean up inactive IP limiters
     ip_cleanup_interval: 1h
   
-  # Security settings
-  security:
-    cors_enabled: true
-    cors_origins: ["*"]
-    cors_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-    
-    # HTTPS/TLS configuration
-    tls_enabled: false
-    cert_file: ./certs/cert.pem
-    key_file: ./certs/key.pem
-  
-  # Logging configuration
-  logging:
-    level: info      # debug, info, warn, error
-    format: json     # text or json
-    output: stdout   # stdout, stderr, or file path
-    
   # Cleanup configuration
   cleanup:
     enabled: true
-    interval: 3600   # Cleanup interval in seconds
-    max_age: 168h    # Maximum age for temporary pastes (7 days)
+    interval: 3600
+    max_age: "168h"
 
-# SMTP configuration for sending emails with PostPilot
+# SMTP configuration
 smtp:
-  enabled: true  # Set to true to enable email features
+  enabled: false
   host: localhost
-  port: 1025
-  username: 
-  password:
-  from: noreply@0x45.st
-  from_name: Paste69
-  starttls: false
-  tls_verify: false
+  port: 587
+  username: ""
+  password: ""
+  from: ""
+  from_name: "Paste69"
+  starttls: true
+  tls_verify: true
 
 # Redis configuration
 redis:
@@ -108,17 +86,9 @@ redis:
 # Retention configuration
 retention:
   no_key:
-    min_age: 15.0    # Minimum retention in days
-    max_age: 365.0  # Maximum retention in days (1 year)
+    min_age: 7.0     # 7 days minimum
+    max_age: 128.0   # 128 days without key
   with_key:
-    min_age: 30.0    # Minimum retention in days
-    max_age: 730.0   # Maximum retention in days (2 years)
-  points: 50         # Number of points to generate for the curve
-
-# Feature flags (TODO)
-features:
-  url_shortener: true
-  file_preview: true
-  syntax_highlighting: true
-  api_keys: true
-  base_url: http://localhost:3000 
+    min_age: 30.0    # 30 days minimum
+    max_age: 730.0   # 2 years with key
+  points: 50         # Number of points to generate for the curve 
