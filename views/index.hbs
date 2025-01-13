@@ -18,9 +18,9 @@
         <div class="labeled-code-block">
             <span class="command-label curl-label">CURL</span>
             <div class="code-block">
-                <pre><code>curl -F 'file=@file.txt' {{baseUrl}}/p</code></pre>
+                <pre><code>curl -F 'file=@file.txt' {{baseUrlHost}}/p</code></pre>
                 <button class="action-btn" data-clipboard
-                    data-clipboard-content="curl -F 'file=@file.txt' {{baseUrl}}/p">
+                    data-clipboard-content="curl -F 'file=@file.txt' {{baseUrlHost}}/p">
                     <span>Copy</span>
                 </button>
             </div>
@@ -31,9 +31,9 @@
         <div class="labeled-code-block">
             <span class="command-label curl-label">CURL</span>
             <div class="code-block">
-                <pre><code>curl -F "url=https://example.com" {{baseUrl}}/u?api_key=YOUR_API_KEY</code></pre>
+                <pre><code>curl -F "url=https://example.com" {{baseUrlHost}}/u?api_key=YOUR_API_KEY</code></pre>
                 <button class="action-btn" data-clipboard
-                    data-clipboard-content='curl -F "url=https://example.com" {{baseUrl}}/u?api_key=YOUR_API_KEY'>
+                    data-clipboard-content='curl -F "url=https://example.com" {{baseUrlHost}}/u?api_key=YOUR_API_KEY'>
                     <span>Copy</span>
                 </button>
             </div>
@@ -42,12 +42,12 @@
 
     <p>
         For more examples and API docs, visit:<br />
-        <a href="{{baseUrl}}/docs">{{baseUrl}}/docs</a>
+        <a href="{{baseUrl}}/docs">{{baseUrlHost}}/docs</a>
     </p>
 
     <p>
         View detailed statistics at:<br />
-        <a href="{{baseUrl}}/stats">{{baseUrl}}/stats</a>
+        <a href="{{baseUrl}}/stats">{{baseUrlHost}}/stats</a>
     </p>
 </section>
 

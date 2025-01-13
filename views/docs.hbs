@@ -43,8 +43,8 @@
             <code>curl -X POST \
     -d "name=Your Name" \
     -d "email=your@email.com" \
-    {{baseUrl}}/keys/request</code>
-            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST -d &quot;name=Your Name&quot; -d &quot;email=your@email.com&quot; {{baseUrl}}/keys/request"><span>Copy</span></button>
+    {{baseUrlHost}}/keys/request</code>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST -d &quot;name=Your Name&quot; -d &quot;email=your@email.com&quot; {{baseUrlHost}}/keys/request"><span>Copy</span></button>
         </div>
     </div>
 
@@ -54,8 +54,8 @@
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl -H "Authorization: Bearer YOUR_API_KEY" {{baseUrl}}/u/list</code>
-            <button class="action-btn" data-clipboard data-clipboard-content="curl -H &quot;Authorization: Bearer YOUR_API_KEY&quot; {{baseUrl}}/u/list"><span>Copy</span></button>
+            <code>curl -H "Authorization: Bearer YOUR_API_KEY" {{baseUrlHost}}/u/list</code>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl -H &quot;Authorization: Bearer YOUR_API_KEY&quot; {{baseUrlHost}}/u/list"><span>Copy</span></button>
         </div>
     </div>
 
@@ -63,8 +63,8 @@
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl "{{baseUrl}}/u/list?api_key=YOUR_API_KEY"</code>
-            <button class="action-btn" data-clipboard data-clipboard-content="curl {{baseUrl}}/u/list?api_key=YOUR_API_KEY"><span>Copy</span></button>
+            <code>curl "{{baseUrlHost}}/u/list?api_key=YOUR_API_KEY"</code>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl {{baseUrlHost}}/u/list?api_key=YOUR_API_KEY"><span>Copy</span></button>
         </div>
     </div>
 
@@ -80,8 +80,8 @@
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl -H "Authorization: Bearer YOUR_API_KEY" {{baseUrl}}/keys/verify</code>
-            <button class="action-btn" data-clipboard data-clipboard-content="curl -H &quot;Authorization: Bearer YOUR_API_KEY&quot; {{baseUrl}}/keys/verify"><span>Copy</span></button>
+            <code>curl -H "Authorization: Bearer YOUR_API_KEY" {{baseUrlHost}}/keys/verify</code>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl -H &quot;Authorization: Bearer YOUR_API_KEY&quot; {{baseUrlHost}}/keys/verify"><span>Copy</span></button>
         </div>
     </div>
 </section>
@@ -94,8 +94,8 @@
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl -X POST -F "file=@path/to/file.txt" {{baseUrl}}/p</code>
-            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST -F 'file=@path/to/file.txt' {{baseUrl}}/p"><span>Copy</span></button>
+            <code>curl -X POST -F "file=@path/to/file.txt" {{baseUrlHost}}/p</code>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST -F 'file=@path/to/file.txt' {{baseUrlHost}}/p"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -127,8 +127,8 @@
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl -X POST --data-binary @path/to/file.txt {{baseUrl}}/p</code>
-            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST --data-binary @path/to/file.txt {{baseUrl}}/p"><span>Copy</span></button>
+            <code>curl -X POST --data-binary @path/to/file.txt {{baseUrlHost}}/p</code>
+            <button class="action-btn" data-clipboard data-clipboard-content="curl -X POST --data-binary @path/to/file.txt {{baseUrlHost}}/p"><span>Copy</span></button>
         </div>
     </div>
     <dl>
@@ -148,7 +148,7 @@
     <div class="labeled-code-block">
         <span class="command-label curl-label">CURL</span>
         <div class="code-block">
-            <code>curl -X POST -H "Content-Type: application/json" -d @- {{baseUrl}}/p << 'EOF'
+            <code>curl -X POST -H "Content-Type: application/json" -d @- {{baseUrlHost}}/p << 'EOF'
 {
     "content": "Hello, World!",
     "filename": "hello.txt",
@@ -165,7 +165,7 @@ EOF</code>
         <dt>Viewing Pastes:</dt>
         <dd>
             <h3>Content Negotiation</h3>
-            <p>When viewing a paste at <code>{{baseUrl}}/p/:id</code>, the response format is determined by the <code>Accept</code> header in your request:</p>
+            <p>When viewing a paste at <code>{{baseUrlHost}}/p/:id</code>, the response format is determined by the <code>Accept</code> header in your request:</p>
             <ul>
                 <li><code>application/xhtml+xml</code>: Returns an HTML page with syntax highlighting (default for browsers)</li>
                 <li><code>application/vnd.0x45.paste+json</code>: Returns paste metadata as JSON (for API integrations)</li>
@@ -176,24 +176,24 @@ EOF</code>
             <div class="labeled-code-block">
                 <span class="command-label curl-label">View in Browser</span>
                 <div class="code-block">
-                    <code>curl {{baseUrl}}/p/YOUR_PASTE_ID</code>
-                    <button class="action-btn" data-clipboard data-clipboard-content="curl {{baseUrl}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
+                    <code>curl {{baseUrlHost}}/p/YOUR_PASTE_ID</code>
+                    <button class="action-btn" data-clipboard data-clipboard-content="curl {{baseUrlHost}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
                 </div>
             </div>
 
             <div class="labeled-code-block">
                 <span class="command-label curl-label">Get Paste Metadata (API)</span>
                 <div class="code-block">
-                    <code>curl -H "Accept: application/vnd.0x45.paste+json" {{baseUrl}}/p/YOUR_PASTE_ID</code>
-                    <button class="action-btn" data-clipboard data-clipboard-content="curl -H &quot;Accept: application/vnd.0x45.paste+json&quot; {{baseUrl}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
+                    <code>curl -H "Accept: application/vnd.0x45.paste+json" {{baseUrlHost}}/p/YOUR_PASTE_ID</code>
+                    <button class="action-btn" data-clipboard data-clipboard-content="curl -H &quot;Accept: application/vnd.0x45.paste+json&quot; {{baseUrlHost}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
                 </div>
             </div>
 
             <div class="labeled-code-block">
                 <span class="command-label curl-label">Get Raw Content</span>
                 <div class="code-block">
-                    <code>curl {{baseUrl}}/p/YOUR_PASTE_ID</code>
-                    <button class="action-btn" data-clipboard data-clipboard-content="curl {{baseUrl}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
+                    <code>curl {{baseUrlHost}}/p/YOUR_PASTE_ID</code>
+                    <button class="action-btn" data-clipboard data-clipboard-content="curl {{baseUrlHost}}/p/YOUR_PASTE_ID"><span>Copy</span></button>
                 </div>
             </div>
 
@@ -209,8 +209,8 @@ EOF</code>
             <div class="labeled-code-block">
                 <span class="command-label curl-label">CURL</span>
                 <div class="code-block">
-                    <code>curl -X DELETE {{baseUrl}}/p/:id/:delete_key</code>
-                    <button class="action-btn" data-clipboard data-clipboard-content="curl -X DELETE {{baseUrl}}/p/:id/:delete_key"><span>Copy</span></button>
+                    <code>curl -X DELETE {{baseUrlHost}}/p/:id/:delete_key</code>
+                    <button class="action-btn" data-clipboard data-clipboard-content="curl -X DELETE {{baseUrlHost}}/p/:id/:delete_key"><span>Copy</span></button>
                 </div>
             </div>
             <p>The delete key is provided in the response when creating a paste.</p>
@@ -232,7 +232,7 @@ EOF</code>
     "Name": "0x45 Uploader",
     "DestinationType": "ImageUploader, TextUploader, FileUploader",
     "RequestMethod": "POST",
-    "RequestURL": "{{baseUrl}}/p",
+    "RequestURL": "{{baseUrlHost}}/p",
     {{#if apiKeysEnabled}}
     "Headers": {
         "Authorization": "Bearer YOUR_API_KEY"
@@ -274,9 +274,9 @@ flameshot gui -r > "$filename"; if [ ! -s "$filename" ]; then
 fi
 
 {{#if apiKeysEnabled}}
-curl -s -H "Authorization: Bearer YOUR_API_KEY" {{baseUrl}}/p -F file=@"$filename" | jq -r '.url' | $CLIP_CMD
+curl -s -H "Authorization: Bearer YOUR_API_KEY" {{baseUrlHost}}/p -F file=@"$filename" | jq -r '.url' | $CLIP_CMD
 {{else}}
-curl -s {{baseUrl}}/p -F file=@"$filename" | jq -r '.url' | $CLIP_CMD
+curl -s {{baseUrlHost}}/p -F file=@"$filename" | jq -r '.url' | $CLIP_CMD
 {{/if}}</code>
             <button class="action-btn" data-clipboard data-clipboard-selector="#flameshot-script"><span>Copy</span></button>
         </div>
@@ -306,7 +306,7 @@ curl -s {{baseUrl}}/p -F file=@"$filename" | jq -r '.url' | $CLIP_CMD
     -d "url=https://example.com" \
     -d "title=Example Website" \
     -d "expires_in=7d" \
-    {{baseUrl}}/u</code>
+    {{baseUrlHost}}/u</code>
             <button class="action-btn" data-clipboard data-clipboard-content="#json-url-expire-body"><span>Copy</span></button>
         </div>
     </div>
@@ -328,7 +328,7 @@ curl -s {{baseUrl}}/p -F file=@"$filename" | jq -r '.url' | $CLIP_CMD
         <div class="code-block">
             <code id="json-url-stats-body">curl -X GET \
     -H "Authorization: Bearer YOUR_API_KEY" \
-    "{{baseUrl}}/u/:id/stats?start_date=2024-01-01&amp;end_date=2024-12-31"</code>
+    "{{baseUrlHost}}/u/:id/stats?start_date=2024-01-01&amp;end_date=2024-12-31"</code>
             <button class="action-btn" data-clipboard data-clipboard-content="#json-url-stats-body"><span>Copy</span></button>
         </div>
     </div>
@@ -348,7 +348,7 @@ curl -s {{baseUrl}}/p -F file=@"$filename" | jq -r '.url' | $CLIP_CMD
         <div class="code-block">
             <code id="json-url-list-body">curl -X GET \
     -H "Authorization: Bearer YOUR_API_KEY" \
-    "{{baseUrl}}/u/list?page=1&amp;limit=10"</code>
+    "{{baseUrlHost}}/u/list?page=1&amp;limit=10"</code>
             <button class="action-btn" data-clipboard data-clipboard-content="#json-url-list-body"><span>Copy</span></button>
         </div>
     </div>
@@ -372,7 +372,7 @@ curl -s {{baseUrl}}/p -F file=@"$filename" | jq -r '.url' | $CLIP_CMD
         <div class="code-block">
             <code id="json-url-list-body">curl -X GET \
     -H "Authorization: Bearer YOUR_API_KEY" \
-    "{{baseUrl}}/u/list?page=1&amp;limit=10"</code>
+    "{{baseUrlHost}}/u/list?page=1&amp;limit=10"</code>
             <button class="action-btn" data-clipboard data-clipboard-content="#json-url-list-body"><span>Copy</span></button>
         </div>
     </div>
@@ -392,7 +392,7 @@ curl -s {{baseUrl}}/p -F file=@"$filename" | jq -r '.url' | $CLIP_CMD
         <div class="code-block">
             <code id="json-url-stats-body">curl -X GET \
     -H "Authorization: Bearer YOUR_API_KEY" \
-    "{{baseUrl}}/u/:id/stats?start_date=2024-01-01&amp;end_date=2024-12-31"</code>
+    "{{baseUrlHost}}/u/:id/stats?start_date=2024-01-01&amp;end_date=2024-12-31"</code>
             <button class="action-btn" data-clipboard data-clipboard-content="#json-url-stats-body"><span>Copy</span></button>
         </div>
     </div>
@@ -416,7 +416,7 @@ curl -s {{baseUrl}}/p -F file=@"$filename" | jq -r '.url' | $CLIP_CMD
     -d '{
         "expires_at": "2024-12-31T23:59:59Z"
     }' \
-    {{baseUrl}}/u/:id/expire</code>
+    {{baseUrlHost}}/u/:id/expire</code>
             <button class="action-btn" data-clipboard data-clipboard-content="#json-url-expire-body"><span>Copy</span></button>
         </div>
     </div>
@@ -442,7 +442,7 @@ curl -s {{baseUrl}}/p -F file=@"$filename" | jq -r '.url' | $CLIP_CMD
         <div class="code-block">
             <code>curl -X DELETE \
     -H "Authorization: Bearer YOUR_API_KEY" \
-    "{{baseUrl}}/u/:id"</code>
+    "{{baseUrlHost}}/u/:id"</code>
             <button class="action-btn" data-clipboard><span>Copy</span></button>
         </div>
     </div>

@@ -29,7 +29,7 @@ func NewWebHandlers(services *services.Services, logger *zap.Logger, config *con
 
 var httpRe = regexp.MustCompile(`^https?://`)
 
-func (h *WebHandlers) getBaseURL() string {
+func (h *WebHandlers) getBaseURLHost() string {
 	return httpRe.ReplaceAllString(h.config.Server.BaseURL, "")
 }
 
@@ -55,7 +55,7 @@ func (h *WebHandlers) HandleIndex(c *fiber.Ctx) error {
 	}
 
 	h.logger.Debug("preparing template data",
-		zap.String("baseUrl", h.getBaseURL()),
+		zap.String("baseUrlHost", h.getBaseURLHost()),
 		zap.Any("retention", retentionStats))
 
 	err = c.Render("index", fiber.Map{
@@ -69,7 +69,8 @@ func (h *WebHandlers) HandleIndex(c *fiber.Ctx) error {
 			"noKeyHistory":   string(noKeyHistory),
 			"withKeyHistory": string(withKeyHistory),
 		},
-		"baseUrl": h.getBaseURL(),
+		"baseUrlHost": h.getBaseURLHost(),
+		"baseUrl":     h.config.Server.BaseURL,
 	}, "layouts/main")
 
 	if err != nil {
@@ -91,8 +92,9 @@ func (h *WebHandlers) HandleStats(c *fiber.Ctx) error {
 	}
 
 	return c.Render("stats", fiber.Map{
-		"stats":   stats,
-		"baseUrl": h.getBaseURL(),
+		"stats":       stats,
+		"baseUrlHost": h.getBaseURLHost(),
+		"baseUrl":     h.config.Server.BaseURL,
 	}, "layouts/main")
 }
 
@@ -104,7 +106,8 @@ func (h *WebHandlers) HandleDocs(c *fiber.Ctx) error {
 	}
 
 	return c.Render("docs", fiber.Map{
-		"baseUrl":        h.getBaseURL(),
+		"baseUrlHost":    h.getBaseURLHost(),
+		"baseUrl":        h.config.Server.BaseURL,
 		"apiKeysEnabled": h.services.APIKey.IsEnabled(),
 		"retention": fiber.Map{
 			"noKey":   retentionStats.NoKeyRange,
@@ -123,6 +126,7 @@ func (h *WebHandlers) HandleDocs(c *fiber.Ctx) error {
 // HandleSubmit serves the paste submission page
 func (h *WebHandlers) HandleSubmit(c *fiber.Ctx) error {
 	return c.Render("submit", fiber.Map{
-		"baseUrl": h.getBaseURL(),
+		"baseUrlHost": h.getBaseURLHost(),
+		"baseUrl":     h.config.Server.BaseURL,
 	}, "layouts/main")
 }
