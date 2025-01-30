@@ -41,7 +41,7 @@
 </div>
 
 <div id="paste-content" class="paste-content">
-    {{#if (startsWith metadata.mimeType "text/")}}
+    {{#if (or (startsWith metadata.mimeType "text/") (startsWith metadata.mimeType "application/"))}}
         <button class="expand-btn">expand</button>
         {{{content}}}
     {{else if (startsWith metadata.mimeType "image/")}}
