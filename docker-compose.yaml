@@ -12,6 +12,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - paste69
 
   db:
     image: postgres:16-alpine
@@ -31,7 +33,12 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - paste69
 
 volumes:
   uploads:
   postgres_data:
+
+networks:
+  paste69:
