@@ -36,11 +36,11 @@ services:
     networks:
       - paste69
 
-  phpmyadmin:
-    image: phpmyadmin:latest
+  phppgadmin:
+    image: dpage/pgadmin4
     environment:
-      - PMA_HOST=db
-      - PMA_PORT=5432
+      - PHP_PGADMIN_SERVER_HOST=${PHP_PGADMIN_SERVER_HOST:-db}
+      - PHP_PGADMIN_SERVER_PORT=${PHP_PGADMIN_SERVER_PORT:-5432}
     networks:
       - paste69
 
