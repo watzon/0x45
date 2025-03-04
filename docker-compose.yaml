@@ -36,6 +36,14 @@ services:
     networks:
       - paste69
 
+  phpmyadmin:
+    image: phpmyadmin:latest
+    environment:
+      - PMA_HOST=db
+      - PMA_PORT=5432
+    networks:
+      - paste69
+
 volumes:
   uploads:
   postgres_data:
