@@ -5,14 +5,6 @@ services:
     build: .
     ports:
       - "3000:3000"
-    environment:
-      - 0X_DATABASE_DRIVER=postgres
-      - 0X_DATABASE_HOST=db
-      - 0X_DATABASE_PORT=5432
-      - 0X_DATABASE_USER=paste69
-      - 0X_DATABASE_PASSWORD=paste69
-      - 0X_DATABASE_NAME=paste69
-      - 0X_DATABASE_SSLMODE=disable
     env_file:
       - .env
     volumes:
@@ -24,9 +16,9 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=paste69
-      - POSTGRES_PASSWORD=paste69
-      - POSTGRES_DB=paste69
+      - POSTGRES_USER=${POSTGRES_USER:-paste69}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-paste69}
+      - POSTGRES_DB=${POSTGRES_DB:-paste69}
     env_file:
       - .env
     volumes:
@@ -34,7 +26,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U paste69"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-paste69}"]
       interval: 5s
       timeout: 5s
       retries: 5
