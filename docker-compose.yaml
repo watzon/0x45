@@ -29,6 +29,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    ports:
+      - "9352:5432"
     networks:
       - paste69
 
