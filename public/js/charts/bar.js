@@ -5,7 +5,7 @@ class AsciiBarChart extends Chart {
     constructor(data, options = {}) {
         // Calculate responsive bar width
         const defaultBarWidth = typeof window !== 'undefined' && window.innerWidth < 480 ? 8 : 12;
-        
+
         const mergedOptions = {
             barChar: options.barChar || '█',
             emptyChar: options.emptyChar || '░',
@@ -30,7 +30,7 @@ class AsciiBarChart extends Chart {
         };
 
         super(data, mergedOptions);
-        
+
         // Create normalizer
         this.normalizer = new DataNormalizer(mergedOptions.normalizer);
 
@@ -47,7 +47,7 @@ class AsciiBarChart extends Chart {
 
         // First normalize the max value to get the proper unit scale
         const normalizedMax = Number(this.normalizer.normalize(this.rawMax, 'value')) || 0;
-        
+
         // For unitless values (like counts), round to nice number
         if (!this.options.normalizer?.inputUnit) {
             if (normalizedMax === 0 || this.rawValues.every(v => v === 0)) {
@@ -60,7 +60,7 @@ class AsciiBarChart extends Chart {
             // For values with units (like bytes), just round up
             this.scaledMax = Math.ceil(normalizedMax) || 0; // Use 0 when all values are zero
         }
-        
+
         // Calculate unit based on max scale
         this.scaledUnit = this.scaledMax === 0 ? 0 : this.scaledMax / this.options.height;
 
@@ -109,36 +109,36 @@ class AsciiBarChart extends Chart {
             const num = this.formattedNumbers[i];
             const barWidth = this.options.barWidth;
             const numWidth = num.length;
-            
+
             // Calculate exact center position with a slight right offset
-            const leftPad = Math.floor((barWidth - numWidth) / 2) + 1; 
+            const leftPad = Math.floor((barWidth - numWidth) / 2) + 1;
             const rightPad = barWidth - numWidth - leftPad;
             const intensity = this.getIntensity(this.normalizedValues[i]);
-            
+
             // Add left padding spaces
             for (let x = 0; x < leftPad; x++) {
                 labels += `<span class="chart-label" style="--value-intensity: ${intensity}"> </span>`;
             }
-            
+
             // Add each digit of the number
             for (let x = 0; x < num.length; x++) {
                 labels += `<span class="chart-label" style="--value-intensity: ${intensity}">${num[x]}</span>`;
             }
-            
+
             // Add right padding spaces
             for (let x = 0; x < rightPad; x++) {
                 labels += `<span class="chart-label" style="--value-intensity: ${intensity}"> </span>`;
             }
-            
+
             // Add spacing between bars (except for the last label)
             if (i < this.formattedNumbers.length - 1) {
                 labels += `<span class="chart-spacer"> </span>`;
             }
         }
-        
+
         const scaleWidth = this.options.showScale ? this.getMaxScaleWidth() + 3 : 0; // +3 for " │ "
         const scalePadding = ' '.repeat(scaleWidth);
-        
+
         return [
             (this.options.scalePosition === 'left' ? scalePadding : '') + labels + (this.options.scalePosition === 'right' ? scalePadding : ''),
             (this.options.scalePosition === 'left' ? scalePadding : '') + ' '.repeat(labels.length) + (this.options.scalePosition === 'right' ? scalePadding : '')
@@ -161,18 +161,18 @@ class AsciiBarChart extends Chart {
             const normalizedValue = Number(this.normalizer.normalize(rawValue, 'value'));
             const intensity = this.getIntensity(rawValue);
             let char = this.options.emptyChar;
-            
+
             if (this.scaledMax > 0) {
                 const filled = Math.round((normalizedValue / this.scaledMax) * this.options.height);
                 // Check against inverted row to fill from bottom up
                 char = filled > (this.options.height - row - 1) ? this.options.barChar : this.options.emptyChar;
             }
-            
+
             // Render each character individually
             for (let x = 0; x < this.options.barWidth; x++) {
                 rowContent += `<span class="chart-bar" style="--value-intensity: ${intensity}">${char}</span>`;
             }
-            
+
             // Add spacing between bars (except for the last bar)
             if (i < this.values.length - 1) {
                 rowContent += `<span class="chart-spacer"> </span>`;
@@ -180,31 +180,43 @@ class AsciiBarChart extends Chart {
         }
 
         if (this.options.showScale) {
-            // Calculate scale value for current row (from bottom to top)
-            // Invert row to make scale go from max at top to 0 at bottom
-            let valueToFormat = 0;
-            
-            if (this.scaledMax > 0) {
-                const scaleValue = (this.options.height - row - 1) * this.scaledUnit;
-                if (this.options.normalizer?.inputUnit) {
-                    // For values with units (like bytes), convert back
-                    const scaleBytes = Math.round(scaleValue * 1024 * 1024);
-                    valueToFormat = row === 0 ? this.rawMax : scaleBytes;
-                } else {
-                    // For unitless values, use scale value directly
-                    valueToFormat = row === 0 ? this.rawMax : scaleValue;
+            // Only show scale values at top, middle (if needed), and bottom
+            let formattedScale = '';
+            const isTopRow = row === 0;
+            const isBottomRow = row === this.options.height - 1;
+            const isMiddleRow = row === Math.floor(this.options.height / 2);
+
+            // For empty charts (all values are 0), only show a zero at the bottom
+            const isEmptyChart = this.rawMax === 0 || this.rawValues.every(v => v === 0);
+
+            if ((isTopRow && !isEmptyChart) ||
+                isBottomRow ||
+                (isMiddleRow && this.options.height > 2 && !isEmptyChart)) {
+                let valueToFormat = 0;
+
+                if (this.scaledMax > 0) {
+                    if (isTopRow) {
+                        // Top row shows the max value
+                        valueToFormat = this.rawMax;
+                    } else if (isBottomRow) {
+                        // Bottom row always shows 0
+                        valueToFormat = 0;
+                    } else if (isMiddleRow) {
+                        // Middle row shows half the max value
+                        valueToFormat = this.rawMax / 2;
+                    }
                 }
+
+                formattedScale = this.normalizer.normalize(valueToFormat, 'full');
             }
-            
-            const formattedScale = this.normalizer.normalize(valueToFormat, 'full');
-            
+
             // Calculate padding based on the longest scale value
             const maxScaleWidth = this.getMaxScaleWidth();
-            const paddedScale = this.options.scalePosition === 'left' 
+            const paddedScale = this.options.scalePosition === 'left'
                 ? formattedScale.padStart(maxScaleWidth)
                 : formattedScale;
 
-            // Return row with scale on the specified side
+            // Return row with scale on the specified side - always show the pipe
             return this.options.scalePosition === 'left'
                 ? `${paddedScale} │ ${rowContent}`
                 : `${rowContent} │ ${paddedScale}`;
@@ -218,21 +230,17 @@ class AsciiBarChart extends Chart {
         }
 
         const scaleValues = [];
-        // Include the actual max value for proper width calculation
+        // Include the max value
         scaleValues.push(this.normalizer.normalize(this.rawMax, 'full').length);
-        
-        for (let i = 0; i < this.options.height; i++) {
-            const value = i * this.scaledUnit;
-            let valueToFormat;
-            if (this.options.normalizer?.inputUnit) {
-                const scaleBytes = Math.round(value * 1024 * 1024);
-                valueToFormat = scaleBytes;
-            } else {
-                valueToFormat = value;
-            }
-            const formatted = this.normalizer.normalize(valueToFormat, 'full');
-            scaleValues.push(formatted.length);
+
+        // Include the middle value if height > 2
+        if (this.options.height > 2) {
+            scaleValues.push(this.normalizer.normalize(this.rawMax / 2, 'full').length);
         }
+
+        // Include the min value (0)
+        scaleValues.push(this.normalizer.normalize(0, 'full').length);
+
         return Math.max(...scaleValues);
     }
 
@@ -249,17 +257,17 @@ class AsciiBarChart extends Chart {
             const value = this.scaledMax - (i * this.scaledUnit);
             return this.normalizer.normalize(value, 'full');
         });
-        
+
         const maxScaleWidth = Math.max(...scaleValues.map(v => v.toString().length));
-        
+
         for (let i = 0; i < this.options.height; i++) {
             const value = scaleValues[i];
-            const padding = this.options.scalePosition === 'left' 
-                ? value.toString().padStart(maxScaleWidth) 
+            const padding = this.options.scalePosition === 'left'
+                ? value.toString().padStart(maxScaleWidth)
                 : value.toString().padEnd(maxScaleWidth);
             rows.push(`${padding} `);
         }
-        
+
         return rows;
     }
 
@@ -270,18 +278,18 @@ class AsciiBarChart extends Chart {
             const dateStr = date.toLocaleDateString('en-US', this.options.dateFormat);
             const barWidth = this.options.barWidth;
             const dateWidth = dateStr.length;
-            
+
             // Calculate exact center position with extra left padding
-            const leftPad = Math.floor((barWidth - dateWidth) / 2) + 1; 
+            const leftPad = Math.floor((barWidth - dateWidth) / 2) + 1;
             const rightPad = barWidth - dateWidth - leftPad;
-            
+
             // Add left padding
             dates += ' '.repeat(leftPad);
             // Add the date string
             dates += dateStr;
             // Add right padding
             dates += ' '.repeat(rightPad);
-            
+
             // Add spacing between dates (except for the last date)
             if (i < this.data.length - 1) {
                 dates += ' ';
@@ -303,7 +311,7 @@ class AsciiBarChart extends Chart {
         const scaleWidth = this.options.showScale ? this.getMaxScaleWidth() + 3 : 0;
         return [
             '',
-            (this.options.scalePosition === 'left' ? ' '.repeat(scaleWidth) : '') + 
+            (this.options.scalePosition === 'left' ? ' '.repeat(scaleWidth) : '') +
             `min: ${min} | avg: ${avg} | max: ${max}` +
             (this.options.scalePosition === 'right' ? ' '.repeat(scaleWidth) : '')
         ];

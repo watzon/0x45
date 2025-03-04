@@ -112,7 +112,6 @@ func Load() (*Config, error) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("./config")
 
 	// Database bindings
 	_ = viper.BindEnv("database.driver", "0X_DATABASE_DRIVER")

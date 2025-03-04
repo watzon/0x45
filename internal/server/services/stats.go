@@ -126,6 +126,9 @@ func (s *StatsService) GetSystemStats() (fiber.Map, error) {
 		totalStorage = 0
 	}
 
+	// Format the private ratio to 2 decimal places
+	formattedPrivateRatio := float64(int(privateRatio*100)) / 100
+
 	return fiber.Map{
 		"current": fiber.Map{
 			"pastes":         totalPastes,
@@ -155,7 +158,7 @@ func (s *StatsService) GetSystemStats() (fiber.Map, error) {
 		"privacy": fiber.Map{
 			"private":      privatePastes,
 			"public":       publicPastes,
-			"privateRatio": privateRatio,
+			"privateRatio": formattedPrivateRatio,
 		},
 	}, nil
 }
@@ -213,5 +216,9 @@ func (s *StatsService) categorizeMimeType(mimeType string) string {
 func (s *StatsService) getStorageSize() (uint64, error) {
 	var totalSize uint64
 	err := s.db.Model(&models.Paste{}).Select("COALESCE(SUM(size), 0)").Row().Scan(&totalSize)
-	return totalSize, err
+	if err != nil {
+		s.logger.Error("failed to get total storage size", zap.Error(err))
+		return 0, err
+	}
+	return totalSize, nil
 }

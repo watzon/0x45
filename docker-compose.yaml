@@ -13,6 +13,8 @@ services:
       - 0X_DATABASE_PASSWORD=paste69
       - 0X_DATABASE_NAME=paste69
       - 0X_DATABASE_SSLMODE=disable
+    env_file:
+      - .env
     volumes:
       - uploads:/app/uploads
     depends_on:
@@ -25,6 +27,8 @@ services:
       - POSTGRES_USER=paste69
       - POSTGRES_PASSWORD=paste69
       - POSTGRES_DB=paste69
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -38,4 +42,4 @@ services:
 
 volumes:
   uploads:
-  postgres_data: 
+  postgres_data:

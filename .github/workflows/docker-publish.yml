@@ -16,7 +16,6 @@ on:
       - 'Dockerfile'
       - 'docker/**'
       - '.github/workflows/docker-publish.yml'
-      - 'config/**'
       - 'internal/**'
       - 'views/**'
       - 'public/**'
@@ -30,7 +29,6 @@ on:
       - 'Dockerfile'
       - 'docker/**'
       - '.github/workflows/docker-publish.yml'
-      - 'config/**'
       - 'internal/**'
       - 'views/**'
       - 'public/**'
@@ -48,7 +46,7 @@ jobs:
 
     runs-on: ubuntu-latest
     permissions: write-all
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3

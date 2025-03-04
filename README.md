@@ -40,7 +40,7 @@ cd 0x45
 go mod download
 
 # Configure settings
-vim config/config.yaml
+vim config.yaml
 
 # Start the server (migrations will be run automatically)
 go run cmd/server/main.go
@@ -70,7 +70,7 @@ docker run -d -p 3000:3000 ghcr.io/watzon/0x45:main
 
 ## Configuration
 
-Configuration is done through the `config/config.yaml` file. See the [example config](config/config.yaml) for more information on the available options. When running in a docker container it might be more convenient to set the environment variables instead, here is a list of available options:
+Configuration is done through the `config.yaml` file. See the [example config](config.yaml) for more information on the available options. When running in a docker container it might be more convenient to set the environment variables instead, here is a list of available options:
 
 ### Debugging
 Set the `0X_LOG_LEVEL` environment variable to `debug` to get more verbose logging.

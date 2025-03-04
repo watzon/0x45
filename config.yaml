@@ -19,27 +19,27 @@ storage:
 server:
   # Server binding address
   address: :3000
-  
+
   # Public-facing URL (used for generating links)
   base_url: http://localhost:3000
-  
+
   # Maximum upload size in bytes
   max_upload_size: 5242880      # 5MB default
   default_upload_size: 10485760 # 10MB default
   api_upload_size: 52428800     # 50MB default
-  
+
   # Server identity
   prefork: false
   server_header: "Paste69"
   app_name: "Paste69"
-  
+
   # Directory configuration
   views_directory: "./views"
   public_directory: "./public"
-  
+
   # CORS configuration
   cors_origins: ["*"]
-  
+
   # Rate limiting configuration
   rate_limit:
     # Global rate limit (across all IPs)
@@ -47,17 +47,17 @@ server:
       enabled: true
       rate: 6969.0
       burst: 250
-    
+
     # Per-IP rate limit
     per_ip:
       enabled: true
       rate: 2.0
       burst: 5
-    
+
     # Redis configuration for rate limiting
     use_redis: false
     ip_cleanup_interval: 1h
-  
+
   # Cleanup configuration
   cleanup:
     enabled: true
@@ -91,4 +91,4 @@ retention:
   with_key:
     min_age: 30.0    # 30 days minimum
     max_age: 730.0   # 2 years with key
-  points: 50         # Number of points to generate for the curve 
+  points: 50         # Number of points to generate for the curve

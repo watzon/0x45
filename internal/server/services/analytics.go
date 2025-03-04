@@ -206,44 +206,40 @@ func (s *AnalyticsService) GetStatsHistory(days int) (*StatsHistory, error) {
 		dateStr := dateOnly.Format("2006-01-02")
 
 		// Initialize with zero values
-		history.Pastes[i] = ChartDataPoint{Date: dateOnly, Value: int64(0)}
-		history.URLs[i] = ChartDataPoint{Date: dateOnly, Value: int64(0)}
-		history.Storage[i] = ChartDataPoint{Date: dateOnly, Value: int64(0)}
-		history.AvgSize[i] = ChartDataPoint{Date: dateOnly, Value: float64(0)}
-		history.APIKeys[i] = ChartDataPoint{Date: dateOnly, Value: int64(0)}
+		history.Pastes[days-i-1] = ChartDataPoint{Date: dateOnly, Value: int64(0)}
+		history.URLs[days-i-1] = ChartDataPoint{Date: dateOnly, Value: int64(0)}
+		history.Storage[days-i-1] = ChartDataPoint{Date: dateOnly, Value: int64(0)}
+		history.AvgSize[days-i-1] = ChartDataPoint{Date: dateOnly, Value: float64(0)}
+		history.APIKeys[days-i-1] = ChartDataPoint{Date: dateOnly, Value: int64(0)}
 
 		// Update with actual values if available
 		for _, pc := range pasteCounts {
-			pcTime, err := time.Parse(time.RFC3339, pc.DateStr)
-			if err == nil && pcTime.Format("2006-01-02") == dateStr {
-				history.Pastes[i].Value = pc.Count
+			if pc.DateStr == dateStr {
+				history.Pastes[days-i-1].Value = pc.Count
 				break
 			}
 		}
 
 		for _, uc := range urlCounts {
-			ucTime, err := time.Parse(time.RFC3339, uc.DateStr)
-			if err == nil && ucTime.Format("2006-01-02") == dateStr {
-				history.URLs[i].Value = uc.Count
+			if uc.DateStr == dateStr {
+				history.URLs[days-i-1].Value = uc.Count
 				break
 			}
 		}
 
 		for _, sc := range storageCounts {
-			scTime, err := time.Parse(time.RFC3339, sc.DateStr)
-			if err == nil && scTime.Format("2006-01-02") == dateStr {
-				history.Storage[i].Value = sc.Size
+			if sc.DateStr == dateStr {
+				history.Storage[days-i-1].Value = sc.Size
 				if sc.Count > 0 {
-					history.AvgSize[i].Value = float64(sc.Size) / float64(sc.Count)
+					history.AvgSize[days-i-1].Value = float64(sc.Size) / float64(sc.Count)
 				}
 				break
 			}
 		}
 
 		for _, ac := range apiKeyCounts {
-			acTime, err := time.Parse(time.RFC3339, ac.DateStr)
-			if err == nil && acTime.Format("2006-01-02") == dateStr {
-				history.APIKeys[i].Value = ac.Count
+			if ac.DateStr == dateStr {
+				history.APIKeys[days-i-1].Value = ac.Count
 				break
 			}
 		}

@@ -1,6 +1,6 @@
 /docs/
 /lib/
 /bin/
-/config/
+config.yaml
 *.dwarf
 *.env
